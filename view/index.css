@@ -1,3 +1,6 @@
+/* CSSv3 */
+
+/* w2ui {{{ */
 /* w2ui 1.5.rc1 (nightly) (c) http://w2ui.com, vitmalina@gmail.com */
 @font-face {
   font-family: "w2ui-font";
@@ -3245,3 +3248,825 @@ button.w2ui-btn-small:focus:before {
 .w2ui-listview > ul > li div.icon-none {
   border: 1px solid rgba(102, 102, 102, 0.35);
 }
+
+
+
+/* }}} */
+
+/* гипертекст {{{ */
+html
+{
+  min-height: 100vh;
+  min-width: 100vw;
+  height: 100%;
+  width: 100%;
+}
+body
+{
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  background-color: white;
+}
+:root {
+  /* цветовая палитра */
+  /* цвет по-умолчанию: ALICE BLUE */
+  --col-h: 211;/* hue */
+  --col-s:  92;/* saturation */
+  /* используемые цвета */
+  --col95: hsla(211, 92%, 95%, 1);
+  --col93: hsla(211, 92%, 93%, 1);
+  --col92: hsla(211, 92%, 92%, 1);
+  --col90: hsla(211, 92%, 90%, 1);
+  --col87: hsla(211, 92%, 87%, 1);
+  --col85: hsla(211, 92%, 85%, 1);
+  --col84: hsla(211, 92%, 84%, 1);
+  --col83: hsla(211, 92%, 83%, 1);
+  --col82: hsla(211, 92%, 82%, 1);
+  --col80: hsla(211, 92%, 80%, 1);
+  --col77: hsla(211, 92%, 77%, 1);
+  --col75: hsla(211, 92%, 75%, 1);
+  --col73: hsla(211, 92%, 73%, 1);
+  --col70: hsla(211, 92%, 70%, 1);
+  --col65: hsla(211, 92%, 65%, 1);
+  --col60: hsla(211, 92%, 60%, 1);
+  --col55: hsla(211, 92%, 55%, 1);
+  --col50: hsla(211, 92%, 50%, 1);
+  --col40: hsla(211, 92%, 40%, 1);
+  --col35: hsla(211, 92%, 35%, 1);
+  --col30: hsla(211, 92%, 30%, 1);
+  --col20: hsla(211, 92%, 20%, 1);
+  /* прозрачные */
+  --col95a: hsla(211, 92%, 95%, 0);
+  --col90a: hsla(211, 92%, 90%, 0);
+  --col85a: hsla(211, 92%, 85%, 0);
+  --col80a: hsla(211, 92%, 80%, 0);
+  /* шаблоны градиентов главной панели */
+  --gr0: linear-gradient(--col90, --col95a 20%, --col95a 80%, --col90);/* начальная навигация */
+  --gr1: linear-gradient(to right, --col90, --col95a 10%, --col95a 90%, --col90);/* аккордеон */
+  --gr2: radial-gradient(ellipse, transparent, --col90 75%);/* авторизация #1 */
+  --gr3: radial-gradient(ellipse, --col90 25%, transparent 75%);/* авторизация #2 */
+}
+/* }}} */
+/* шрифт {{{ */
+/* тип */
+#title,
+#wa button,
+.ui-widget,
+.ui-accordion-header,
+.w2ui-form .w2ui-btn
+{
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+}
+.w2ui-grid-body .w2ui-grid-records td.w2ui-grid-data
+{
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  /*font-family: Arial, Helvetica, sans-serif;/**/
+  /*font-weight: bold;/**/
+}
+#console,
+#gridControls button,
+.w2ui-col-header,
+.w2ui-grid-footer,
+.w2ui-form .w2ui-form-header
+{
+  font-family: "Arial Black", Gadget, sans-serif;
+}
+
+/* размер */
+#console button,
+button
+{
+  font-size: 90%;
+}
+#note,
+#gridControls button,
+.w2ui-grid-footer,
+.w2ui-form .w2ui-btn
+{
+  font-size: 100%;
+}
+.ui-widget,
+.ui-accordion-header,
+.w2ui-form .w2ui-btn
+{
+  font-size: 110%;
+}
+.w2ui-grid-body .w2ui-grid-records td.w2ui-grid-data,
+.w2ui-col-header,
+.w2ui-form .w2ui-form-header
+{
+  font-size: 120%;
+}
+#title
+{
+  font-size: 130%;
+}
+.w2ui-form .w2ui-form-header
+{
+  font-size: 240%;
+}
+/* }}} */
+
+/* раскладка интерфейса */
+/* рабочая зона {{{ */
+#wa
+{
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  bottom: 2px;
+  right: 2px;
+  display: flex;
+  flex-direction: column;
+  /**/
+  overflow: hidden;
+  background-color: var(--col95);
+}
+/* контейнеры по вертикали */
+#wa > div
+{
+  display: flex;
+  flex-direction: column;
+}
+#toolbar  {flex: 1 1 10%;}
+#wa .main {flex: 8 8 80%;}
+#console  {flex: 1 1 10%;}
+/* контейнеры по горизонтали */
+#wa .main {
+  flex-direction: row;
+}
+#panel {flex: 1 1 25%;}
+#view  {flex: 4 4 80%;}
+/* }}} */
+/* тулбар {{{ */
+#toolbar
+{
+  justify-content: flex-end;
+}
+/* контейнеры */
+#toolbar > div
+{
+  margin: 0 0 2px 0;
+}
+#toolbar .tools {flex: 1 1 100%;}
+#toolbar .ui-progressbar {flex: 0 0 5px;}
+#toolbar .tools
+{
+  display: flex;
+  flex-direction: row;
+}
+#mode  {flex: 1 1 25%;}
+#title {flex: 2 2 50%;}
+#usr   {flex: 1 1 25%;}
+/* кнопы режима {{{ */
+#mode button {
+  /* скрыта по-умолчанию */
+  background-color: inherit;
+  color: transparent;
+  cursor: default;
+  /**/
+  height: 100%;
+  margin: 0;
+  display: block;
+  float: left;
+  border: 1px solid var(--col85);
+  /* анимация */
+  transition-property: background-color, color, opacity;
+  transition-duration: 0.6s;
+  transition-timing-function: ease;
+}
+/* доступна */
+#wa.auth #mode button {
+  cursor: pointer;
+  background-color: var(--col93);
+  color: var(--col40);
+}
+#wa.auth #mode button:hover {
+  background-color: var(--col82);
+  color: var(--col20);
+}
+/* выбрана */
+#wa.auth #mode button.on {
+  background-color: var(--col85);
+  border: 1px solid var(--col93);
+  color: var(--col30);
+}
+#wa.auth #mode button.on:hover {
+  background-color: var(--col77);
+  color: var(--col20);
+}
+/* не выбрана */
+#wa.auth #mode button.off {
+  opacity: 0.6;
+}
+#wa.auth #mode button.off:hover {
+  opacity: 1;
+}
+/* }}} */
+/* заголовок {{{ */
+#title
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--col40);
+}
+/* }}} */
+/* профиль пользователя {{{ */
+#usr
+{
+}
+/* }}} */
+/* }}} */
+/* панель навигации {{{ */
+#panel
+{
+}
+/* вкладки {{{ */
+#panel div.aPanel.ui-accordion-header {
+  background-color: var(--col90);
+  border: 1px solid var(--col85);
+  color: var(--col40);
+  margin: 2px 0 1px 0;
+  padding-left: 20px;
+  height: 48px;
+  outline-style: none;
+  /**/
+  display: flex;
+  align-items: center;
+  /* анимация */
+  transition-property: background-color, color, opacity;
+  transition-duration: 0.6s;
+  transition-timing-function: ease;
+}
+/* панель активирована */
+#panel div.aPanel.ui-state-active {
+  background-color: var(--col85);
+  border: 1px solid var(--col90);
+  color: var(--col30);
+  margin-bottom: 0;
+}
+#panel div.aPanel.ui-state-active:hover {
+  background-color: var(--col77);
+  color: var(--col20);
+}
+/* ушла в фон */
+#panel div.aPanel.faded {
+  opacity: 0.5;
+}
+/* наведение */
+#panel div.aPanel:hover,
+#panel div.aPanel.faded:hover
+{
+  background-color: var(--col77);
+  color: var(--col20);
+  opacity: 1;
+}
+/* позиции */
+#panel div.aPanel.top {
+  margin: 0 0 1px 0;
+}
+#panel div.aPanel.bottom {
+  margin: 2px 0 0 0;
+}
+#panel div.aPanel.below {
+  margin-top: 3px;
+}
+/* содержимое аккордеона */
+#panel div.aBox.ui-accordion-content {
+  background-color: var(--col85);
+  border: 1px solid var(--col90);
+  margin-bottom: -2px;/* dirty hack */
+  padding-right: 0;
+  overflow: hidden;
+}
+/* }}} */
+/* radio-переключатели {{{ */
+.swBox {
+  position: relative;
+  display: block;
+  width: 95%;
+  height: 34px;
+  margin: 0 0 1px 0;
+  text-align: left;
+  color: var(--col40);
+  /* анимация */
+  transition-property: width, margin, background-color, color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+/* наведение */
+.swBox:hover {
+  color: var(--col20);
+  width: 93%;
+  margin-left: 1%;
+}
+/* активирован */
+.swBox.on {
+  width: 100%;
+  color: var(--col30);
+}
+.swBox.on:hover {
+  color: var(--col20);
+  width: 98%;
+}
+/* затемнен */
+.swBox.off {
+  opacity: 0.5;
+}
+.swBox.off:hover {
+  opacity: 1;
+}
+/* input скрыт */
+.swInput {display:none;}
+/* контент элемента */
+.swLabel {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 5px 0 5px 36px;
+  /* закругленные границы */
+  border-radius: 5px;
+  /* фон */
+  background-color: var(--col82);
+  border: 1px solid var(--col83);
+  /* анимация */
+  transition-property: left, background-color, color, opacity;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+/* наведение */
+.swLabel:hover {
+  background-color: var(--col75);
+  color: var(--col20);
+}
+/* маркер */
+.swLabel:before {
+  position: absolute;
+  left: 8px;
+  bottom: 7px;
+  content: '';
+  height: 18px;
+  width: 18px;
+  background-color: var(--col82);
+  border: 0;
+  border-radius: 20%;
+}
+.swInput[type=radio] + .swLabel:before {
+  border-radius: 100%;
+}
+/* активирован */
+.swInput:checked + .swLabel:before {
+  background-color: var(--col85);
+}
+.swInput:checked + .swLabel {
+  left: 6%;/* сдвиг */
+  background-color: var(--col77);
+}
+.swInput:checked + .swLabel:hover {
+  left: 5%;
+  background-color: var(--col73);
+}
+/* }}} */
+/* }}} */
+/* представление данных {{{ */
+#view
+{
+  display: flex;
+  flex-direction: column;
+  /**/
+  background-image: none;
+  background-color: transparent;
+  /**/
+  border-color: var(--col85);
+  border-style: solid;
+  border-width: 0;
+  border-radius: 5px;
+  border-left-style: none;
+  /* анимация */
+  transition-property: border-width, border-color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+/* выдвинута панель навигации */
+#wa.n0 #view {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+/* рамка */
+#wa.n2 #view {
+  border-top-width: 2px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+/* рамка выделена */
+#view.sel {
+  border-color: var(--col77);
+}
+/* область для рисования */
+#view canvas {
+  position: relative;
+  width: 1px;
+  height: 1px;
+}
+/* grid {{{
+*/
+#grid {
+  flex: 0 1 100%;
+  border-style: none;
+  border-width: 0;
+}
+/* контейнер заголовков */
+#grid .w2ui-grid-columns {
+  box-shadow: 0 2px 4px var(--col85);
+  background-color: var(--col90);
+  margin: -1px;
+}
+/* заголовок */
+#grid .w2ui-col-header {
+  padding: 6px 6px;
+  color: var(--col30);
+  background-color: var(--col90);
+  text-align: center;
+}
+/* заголовок с установленной сортировкой */
+#grid .w2ui-col-header.w2ui-col-sorted {
+  color: var(--col40);
+  background-color: var(--col85);
+}
+/* коробка заголовка */
+#grid .w2ui-head {
+  border-color: var(--col85);
+  border-style: solid;
+  border-top-width: 0;
+  border-left-width: 0;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+  background-color: var(--col90);
+}
+/* неиспользуемая область/кубик сверху-справа */
+#grid .w2ui-head.w2ui-head-last {
+  border-color: var(--col85);
+  border-style: solid;
+  border-width: 0;
+  border-bottom-width: 1px;
+}
+#grid .w2ui-head.w2ui-head-last div {
+  background-color: var(--col90);
+}
+
+/* тело */
+#grid .w2ui-grid-records {
+  background-color: var(--col95);
+  margin-left: -1px;/* фикс, слазит поле:( */
+}
+/* ячейка */
+#grid .w2ui-grid-body td {
+  border-color: var(--col85);
+  border-style: solid;
+  border-width: 0;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+  color: var(--col20);
+}
+/* четная|нечетная */
+#grid .w2ui-even {
+  background-color: var(--col93);
+}
+#grid .w2ui-odd {
+  background-color: var(--col95);
+}
+/* пустая ячейка */
+#grid .w2ui-empty-record {
+  visibility: hidden;
+}
+/* строка */
+#grid tr.w2ui-selected,
+#grid tr.w2ui-inactive
+{
+  background-color: var(--col85) !important;
+}
+/* выделенная строка */
+#grid tr.w2ui-selected .w2ui-grid-data {
+  color: var(--col30);
+  font-weight: bold;
+}
+/* футeр */
+#grid .w2ui-grid-footer {
+  background-color: var(--col90);
+  color: var(--col30);
+  border-color: var(--col85);
+  border-style: solid;
+  border-width: 0;
+  border-radius: 0;
+  box-shadow: 0 -1px 4px var(--col85);
+  height: 16px;
+  padding: 2px 4px 0 4px;
+  /**/
+}
+#grid .w2ui-grid-footer .w2ui-footer-left,
+#grid .w2ui-grid-footer .w2ui-footer-right
+{
+  padding: 0;
+}
+/* }}} */
+/* gridControls {{{
+*/
+#gridControls {
+  flex: 0 1 40px;
+  background-color: var(--col90);
+  /**/
+  border-style: none;
+  border-width: 0;
+}
+/* выдвинута панель навигации */
+#wa.n0 #gridControls {
+  border-bottom-left-radius: 0;
+}
+/* рамка */
+#wa.n2 #gridControls {
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+/* рамка выделена */
+#gridControls.sel {
+  border-color: var(--col77);
+}
+
+/* кнопы */
+#gridControls button {
+  /* скрыта по-умолчанию */
+  cursor: pointer;
+  border-style: none;
+  border-width: 0;
+  border-radius: 5px;
+  color: var(--col40);
+  background-color: var(--col92);
+  border: 1px solid var(--col85);
+  /**
+  background-color: transparent;
+  /**/
+  width: 120px;
+  height: 100%;
+  margin: 0 1px 0 0;
+  display: block;
+  float: left;
+  /* анимация */
+  transition-property: background-color, color, opacity;
+  transition-duration: 0.4s;
+  transition-timing-function: ease;
+}
+/* наведение */
+#gridControls button:hover {
+  background-color: var(--col82);
+  color: var(--col20);
+}
+/* }}} */
+/* auth {{{
+*/
+/* основной контейнер */
+#auth {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-style: none;
+  border-width: 0;
+  /**/
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* кнопа */
+#authBtn {
+  cursor: default;
+  fill: var(--col95);
+  fill-opacity: 0;
+  stroke-width: 0;
+  opacity: 0;
+}
+#auth.anim #authBtn {
+  cursor:pointer;
+}
+/* изображение */
+#auth svg {
+  width: 300px;
+  height: 300px;
+  margin: 0;
+  padding: 0;
+  /**/
+  border-style: none;
+  border-width: 0;
+  border-radius: 100%;
+}
+/* начальные настройки анимируемых элементов */
+#auth g.node *
+{
+  stroke-width: 0;
+  stroke-opacity: 0;
+  fill: none;
+  fill-opacity: 0;
+}
+#auth g.node :nth-child(1) {
+  fill: url(#gr3);
+  fill-opacity: 1;
+}
+#auth g.node :nth-child(2) {
+  fill: url(#gr2);
+}
+#auth g.node :nth-child(3) {
+  fill: var(--col80);
+  fill-opacity: 1;
+}
+/* }}} */
+/* }}} */
+/* консоль {{{ */
+#console
+{
+  justify-content: flex-start;
+}
+/* контейнеры */
+#console > div
+{
+  margin: 2px 0 0 0;
+}
+#console .ui-progressbar {flex: 0 0 5px;}
+#console .tools {flex: 1 1 100%;}
+#console .tools
+{
+  display: flex;
+  flex-direction: row;
+}
+#note  {flex: 1 1 25%;}
+#setup {flex: 3 3 75%;}
+/* короткое сообщение (заметка) {{{ */
+#note
+{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /**/
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 3px;
+  border-color: var(--col85);
+  color: var(--col70);
+}
+#wa.auth #note {
+  color: var(--col40);
+}
+/* }}} */
+/* конфигурация приложения {{{ */
+#setup
+{
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  /**/
+  padding-left: 2px;
+}
+/* }}} */
+/* }}} */
+
+/* отдельные элементы */
+/* прогресс {{{
+*/
+.ui-progressbar {
+  padding: 0 2px 0 2px;
+  background-color: var(--col92);
+  border: 1px solid var(--col90);
+  border-radius: 3px;
+}
+.ui-progressbar .ui-progressbar-value {
+  height: 100%;
+  margin: 0;
+  border-style: none;
+  border-width: 0;
+  background-color: var(--col80);
+  border-radius: 3px;
+}
+/* }}} */
+/* слайдер {{{ */
+#sliderBtn
+{
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  /**/
+  height: 100%;
+  width: 100%;
+  margin-right: 2px;
+}
+#sliderBtn button
+{
+  flex: none;
+  width: 80px;
+  border-style: solid;
+  border-width: 1px 1px 1px 0;
+  border-radius: 0 3px 3px 0;
+  border-color: var(--col85);
+  background-color: var(--col93);
+  /**/
+  transition-property: background-color;
+  transition-duration: 0.6s;
+  transition-timing-function: ease;
+}
+#sliderBtn:hover button {
+  background-color: var(--col90);
+}
+#sliderBtn:hover button {
+  background-color: var(--col85);
+}
+/* шкала */
+#sliderBtn div.ui-slider
+{
+  min-width: 86px;
+  width: 100%;
+  height: 100%;
+  /**/
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 3px 0 0 3px;
+  border-color: var(--col85);
+  border-right-color: var(--col93);
+  background-color: var(--col93);
+  cursor: pointer;
+  /**/
+  transition-property: background-color, border;
+  transition-duration: 0.6s;
+  transition-timing-function: ease;
+}
+#sliderBtn:hover div.ui-slider {
+  background-color: var(--col90);
+  border-right-color: var(--col85);
+}
+/* ползунок */
+#sliderBtn div.ui-slider .ui-slider-handle
+{
+  min-width: 80px;
+  width: 6%;
+  margin: 2px 2px 2px 2px;
+  text-align: center;
+  padding-top: 2px;
+  /**/
+  border-style: none;
+  border-width: 0;
+  border-radius: 5px 0 0 5px;
+  border-radius: 5px;
+  background-color: var(--col80);
+  color: var(--col40);
+  outline: none;
+  cursor: move;
+  /**/
+  transition-property: background-color, color, opacity;
+  transition-duration: 0.6s;
+  transition-timing-function: ease;
+}
+#sliderBtn div.ui-slider:hover .ui-slider-handle {
+  background-color: var(--col70);
+  color: var(--col20);
+}
+/* }}} */
+
+/* мусорка */
+/* resizer {{{
+*/
+#layout_wa_resizer_left {
+  background-color: var(--col85);
+  border-color: var(--col77);
+  border-style: solid;
+  border-width: 0;
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+  /* анимация */
+  transition-property: background-color, border-left-width;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+#layout_wa_resizer_left:hover {
+  background-color: var(--col75);
+}
+/* выдвинут */
+#wa.n0panel #layout_wa_resizer_left {
+  background-color: var(--col90);
+}
+#wa.n0panel #layout_wa_resizer_left:hover {
+  background-color: var(--col85);
+}
+/* активирован */
+#wa.n2 #layout_wa_resizer_left {
+  border-left-width: 2px;
+  background-color: var(--col85);
+}
+#wa.n2 #layout_wa_resizer_left:hover {
+  background-color: var(--col75);
+}
+/* }}} */
+
+

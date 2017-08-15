@@ -1,6 +1,7 @@
 # cis project
 
-**Definition**:
+
+**Definition**
 
 cis ~ communal informational system.
 cis ~ web application.

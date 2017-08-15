@@ -202,7 +202,7 @@ MVPApp = function(){
   /* [M]odel {{{
   */
   M = {
-    authorized: false,
+    authorized: true,
     nav: PROXY({
       arch: [],
       data: [

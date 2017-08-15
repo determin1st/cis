@@ -197,7 +197,7 @@ MVPApp = -> # MVP приложение
     */
     M = {
         # сессия {{{
-        authorized: false # авторизация, флаг
+        authorized: true # авторизация, флаг
         # }}}
         nav: PROXY { # навигация {{{
             # архив

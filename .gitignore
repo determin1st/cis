@@ -1,4 +1,5 @@
-DB/
+app/
+view/w3ui
 *.vim
 *.swp
 
