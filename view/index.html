@@ -6,34 +6,30 @@
     <link type="text/css" rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <!-- точка входа -->
-    <div id="wa" style="opacity: 0;"></div>
-    <!-- шаблоны -->
-    <!-- раскладка интерфейса {{{ -->
-    <script type='text/template' id='wa-t'>
-      <div id='toolbar'></div>
-      <div class='main'>
-        <div id='panel'></div><div id='view'></div>
-      </div>
-      <div id='console'></div>
-    </script>
-    <!-- }}} -->
-    <!-- тулбар {{{ -->
-    <script type='text/template' id='toolbar-t'>
-      <div class='tools'>
-        <div id='mode'>
-          <button id='m1'></button>
-          <button id='m2'></button>
-          <button id='m3'></button>
+    <div id="wa" style="opacity: 0;">
+      <div class='toolbar'>
+        <div>
+          <div class='mode'>
+            <button id='m1'>1</button>
+            <button id='m2'>2</button>
+            <button id='m3'>3</button>
+            <button id='m4'>4</button>
+            <button id='m5'>5</button>
+          </div>
+          <div class='title'></div>
+          <div class='usr'></div>
         </div>
-        <div id='title'></div>
-        <div id='usr'></div>
+        <div class='ext'></div>
       </div>
-      <div class='ui-progressbar'><div class='ui-progressbar-value'></div></div>
-    </script>
-    <!-- }}} -->
-    <!-- панель навигации {{{ -->
-    <script type="text/template" id="panel-t">
+      <div class='view'></div>
+      <div class='console'>
+        <div class="ext"></div>
+        <div class="action"></div>
+        <div class="log"></div>
+      </div>
+    </div>
+    <!-- toolbar.ext {{{ -->
+    <script type="text/template" id="toolbar-ext-t">
       {{#body}}
       <div id="{{id}}" class="aPanel">
         <span>{{n}}</span>
@@ -49,10 +45,7 @@
       {{/body}}
     </script>
     <!-- }}} -->
-    <!-- представление данных {{{ -->
-    <script type="text/template" id="view-t"></script>
-    <!-- }}} -->
-    <!-- # авторизация {{{ -->
+    <!-- auth {{{ -->
     <script type="text/template" id="auth-t">
       <canvas>!</canvas>
       <div id="auth" class="anim">
@@ -107,38 +100,14 @@
       </div>
     </script>
     <!-- }}} -->
-    <!-- # грид {{{ -->
+    <!-- view.grid {{{ -->
     <script type="text/template" id="grid-t">
       <div id="grid"></div>
-      <div id="gridControls"></div>
-    </script>
-    <!-- # контролы -->
-    <script type="text/template" id="gridControls-t">
-    {{#list}}
-      <button id="{{id}}">{{n}}</button>
-    {{/list}}
     </script>
     <!-- }}} -->
-    <!-- консоль {{{ -->
-    <script type="text/template" id="console-t">
-      <div class='ui-progressbar'><div class='ui-progressbar-value'></div></div>
-      <div class='tools'>
-        <div id='note'></div>
-        <div id='setup'>
-          <div id='sliderBtn'>
-            <div class='ui-slider'><div class='ui-slider-handle'></div></div>
-            <button class='restore'></button>
-            <button class='accept'></button>
-          </div>
-          <button id="dbg0">debugger</button>
-          <button id="dbg1">ifAuth</button>
-          <button id="dbg9">...</button>
-        </div>
-      </div>
-    </script>
-    <!-- }}} -->
-    <!-- скрипты -->
+    <!-- include -->
     <script type='text/javascript' src='core.js'></script>
+    <script type='text/javascript' src='w3ui/w3ui.js'></script>
     <script type='text/javascript' src='index.js'></script>
   </body>
 </html>

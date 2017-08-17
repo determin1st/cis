@@ -3253,7 +3253,7 @@ button.w2ui-btn-small:focus:before {
 
 /* }}} */
 
-/* гипертекст {{{ */
+/* html {{{ */
 html
 {
   min-height: 100vh;
@@ -3312,11 +3312,9 @@ body
 /* тип */
 #title,
 #wa button,
-.ui-widget,
-.ui-accordion-header,
 .w2ui-form .w2ui-btn
 {
-  font-family: Tahoma, Geneva, sans-serif;
+  font-family: Segoe UI, Tahoma, Geneva, sans-serif;
   font-weight: bold;
 }
 .w2ui-grid-body .w2ui-grid-records td.w2ui-grid-data
