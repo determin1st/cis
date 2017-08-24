@@ -5,16 +5,12 @@ $('document').ready(function(){
   if (!w3ui) {
     return;
   }
-  /* [M]odel {{{
-  */
   M = {
-    authorized: false,
-    nav: PROXY({
+    nav: w3ui.PROXY({
       arch: [],
       data: [
         {
-          id: '',
-          panel: true
+          id: ''
         }, {
           id: ''
         }, {
@@ -36,7 +32,7 @@ $('document').ready(function(){
         for (i$ = 0, to$ = this.data.length - 1; i$ <= to$; ++i$) {
           a = i$;
           this.arch[a] = {
-            '': CLONE(this.data.slice(a + 1))
+            '': w3ui.CLONE(this.data.slice(a + 1))
           };
         }
         return true;
@@ -64,7 +60,7 @@ $('document').ready(function(){
         }
         a = obj.arch[p][v] && obj.restore ? v : '';
         obj.data.splice(p + 1, n);
-        obj.data = obj.data.concat(CLONE(obj.arch[p][a]));
+        obj.data = obj.data.concat(w3ui.CLONE(obj.arch[p][a]));
         obj.data[p].id = v;
         return true;
       },
@@ -78,118 +74,446 @@ $('document').ready(function(){
         }
         return obj.data[p];
       }
-    })
-  };
-  /** }}} */
-  /* [V]iew {{{
-  */
-  V = {
-    nav: M.nav.clone({
-      restore: false
     }),
-    state: 0,
-    timer: null,
+    authorized: true,
     init: function(){
-      var i$, ref$, len$, a;
-      for (i$ = 0, len$ = (ref$ = this.nav.data).length; i$ < len$; ++i$) {
-        a = ref$[i$];
-        a.id = '*';
+      return true;
+    }
+  };
+  V = {
+    color: w3ui.PROXY({
+      source: null,
+      Hue: '',
+      Saturation: '',
+      colors: null,
+      gradient: {},
+      init: function(){
+        var a, i$, b, c;
+        a = this.source
+          ? this.source
+          : $("html");
+        if (!a || a.length === 0) {
+          return false;
+        }
+        this.source = a;
+        a = window.getComputedStyle(a[0]);
+        this.Hue = a.getPropertyValue('--col-h').trim();
+        this.Saturation = a.getPropertyValue('--col-s').trim();
+        this.colors = {};
+        for (i$ = 0; i$ <= 99; ++i$) {
+          b = i$;
+          c = '--col' + b;
+          if (a.getPropertyValue(c)) {
+            this.colors[c] = b;
+          }
+          c = c + 'a';
+          if (a.getPropertyValue(c)) {
+            this.colors[c] = -b;
+          }
+        }
+        for (i$ = 0; i$ <= 99; ++i$) {
+          b = i$;
+          if (!(c = a.getPropertyValue('--gr' + b))) {
+            break;
+          }
+          this.gradient['gr' + b] = c.trim();
+        }
+        return this.select(this.Hue);
+      },
+      select: function(Hue, Saturation){
+        var a, b, ref$, c, d, e;
+        Saturation == null && (Saturation = this.Saturation);
+        if (!Hue || !Saturation || !this.source) {
+          return false;
+        }
+        this.Hue = Hue;
+        this.Saturation = Saturation;
+        a = window.getComputedStyle(this.source[0]);
+        for (b in ref$ = this.colors) {
+          c = ref$[b];
+          if (d = a.getPropertyValue(b)) {
+            if (c >= 0) {
+              e = 'hsla(' + Hue + ', ' + Saturation + '%, ' + c + '%, 1)';
+              if (e !== d.trim()) {
+                this.source[0].style.setProperty(b, e);
+              }
+            } else {
+              c = -c;
+              e = 'hsla(' + Hue + ', ' + Saturation + '%, ' + c + '%, 0)';
+              if (e !== d.trim()) {
+                this.source[0].style.setProperty(b, e);
+              }
+            }
+          }
+        }
+        for (b in this.gradient) {
+          this.source[0].style.setProperty('--' + b, this[b]);
+        }
+        return true;
       }
+    }, {
+      get: function(obj, p, prx){
+        var a;
+        if (typeof p !== 'string') {
+          a = null;
+        } else if (obj[p]) {
+          a = obj[p];
+        } else if (parseInt(p)) {
+          a = 'hsla(' + obj.Hue + ',' + obj.Saturation + '%,' + p + '%,1)';
+        } else if ('a' === p.charAt(0)) {
+          p = p.slice(1);
+          a = 'hsla(' + obj.Hue + ',' + obj.Saturation + '%,' + p + '%,0)';
+        } else if (obj.gradient[p]) {
+          a = obj.gradient[p];
+          a = a.replace(/(--col(\d{2})([a]?))/g, function(all, p1, p2, p3, pos, str){
+            var a;
+            a = p3 ? p3 + p2 : p2;
+            if (!(a = prx[a])) {
+              a = 'transparent';
+            }
+            return a;
+          });
+        } else {
+          a = '';
+        }
+        return a;
+      }
+    }),
+    svg: w3ui.PROXY({
+      data: null,
+      init: function(){
+        var a, i$, to$, b;
+        this.data = {};
+        a = $('#svg');
+        if (a.length === 0) {
+          return false;
+        }
+        a = $(a[0].content).find('div');
+        for (i$ = 0, to$ = a.length - 1; i$ <= to$; ++i$) {
+          b = i$;
+          this.data[a[b].id] = a[b].innerHTML;
+        }
+        return true;
+      }
+    }, {
+      get: function(obj, p, prx){
+        if (typeof p !== 'string' || !obj[p]) {
+          return '';
+        }
+        return obj[p];
+      }
+    }),
+    skel: w3ui.PROXY({
+      cfg: {
+        id: '#wa',
+        node: null,
+        parent: null,
+        level: 0,
+        init: function(id, parent, level){
+          var b, k, v;
+          id == null && (id = 'wa');
+          parent == null && (parent = null);
+          level == null && (level = 0);
+          if (!(b = V.skel[id])) {
+            return false;
+          }
+          b.cfg.id = '#' + id;
+          b.cfg.node = $('#' + id);
+          b.cfg.parent = parent;
+          b.cfg.level = level;
+          for (k in b) {
+            v = b[k];
+            if (k !== 'cfg' && v.cfg) {
+              this.init(k, b, level + 1);
+            }
+          }
+          return true;
+        },
+        refresh: function(){
+          var node, i$, a;
+          node = this.cfg.node;
+          for (i$ = M.nav.data.length; i$ >= 1; --i$) {
+            a = i$;
+            node.toggleClass('n' + a, !!M.nav[a - 1].id);
+          }
+          node.toggleClass('auth', !M.authorized);
+          if (0 + node[0].style.opacity < 0.99) {
+            TweenMax.to(node, 2, {
+              opacity: 1,
+              ease: Power1.easeOut
+            });
+          }
+          return true;
+        }
+      },
+      toolbar: {
+        cfg: {
+          refresh: function(){
+            var node, a, b, ref$, c, i$, ref1$, len$, e, d;
+            node = this.cfg.node;
+            node.toggleClass('ext', !!M.nav[this.cfg.level].id);
+            if (!this.title.node || !this.title.node.length) {
+              this.title.node = $(this.cfg.id + ' .title');
+            }
+            a = this.title.msg[this.title.num];
+            b = this.title.node.html();
+            if (a !== b) {
+              this.title.node.html(a);
+            }
+            for (a in ref$ = this.mode) {
+              b = ref$[a];
+              if (!b.node || !b.node.length) {
+                b.node = $(this.cfg.id + ' .' + a);
+              }
+              c = b.node.outerWidth();
+              for (i$ = 0, len$ = (ref1$ = b.list).length; i$ < len$; ++i$) {
+                e = i$;
+                d = ref1$[i$];
+                if (d[0] <= c) {
+                  break;
+                }
+              }
+              if (b.num === e) {
+                continue;
+              }
+              b.num = e;
+              b.node.html(d[1]
+                ? d[1]
+                : V.svg[a]);
+            }
+            return true;
+          }
+        },
+        mode: {
+          m1: {
+            num: -1,
+            list: [[128, 'Картотека'], [64, 'Карта'], [0, '']]
+          },
+          m2: {
+            num: -1,
+            list: [[128, 'Картотека'], [64, 'Карта'], [0, '']]
+          },
+          m3: {
+            num: -1,
+            list: [[128, 'Картотека'], [64, 'Карта'], [0, '']]
+          }
+        },
+        title: {
+          num: 0,
+          msg: ['Коммунальная Информационная Система', 'заголовок №1', 'заголовок №2', 'заголовок №3']
+        }
+      },
+      view: {
+        cfg: {
+          init: function(){
+            var me;
+            me = this;
+            me.func = {
+              attach: function(){
+                me.func.detach = function(){
+                  delete me.func.detach;
+                  return true;
+                };
+                return true;
+              },
+              refresh: function(){
+                me.show();
+                return true;
+              },
+              resize: function(){
+                return true;
+              }
+            };
+            return true;
+          }
+        },
+        auth: {
+          cfg: {
+            preInit: false
+          }
+        },
+        grid: {
+          cfg: {
+            preInit: false,
+            name: 'grid',
+            show: {
+              header: false,
+              toolbar: false,
+              footer: true,
+              columnHeaders: true,
+              lineNumbers: false,
+              expandColumn: false,
+              selectColumn: false,
+              emptyRecords: true,
+              toolbarReload: true,
+              toolbarColumns: true,
+              toolbarSearch: true,
+              toolbarAdd: true,
+              toolbarEdit: true,
+              toolbarDelete: true,
+              toolbarSave: true,
+              selectionBorder: true,
+              recordTitles: true,
+              skipRecords: true
+            }
+          },
+          m1v1f1g: {},
+          m2v2f1g: {
+            columns: [
+              {
+                caption: 'ID',
+                field: 'recid',
+                hidden: true
+              }, {
+                caption: '№ пачки',
+                field: 'rName',
+                size: '40%',
+                sortable: true
+              }, {
+                caption: 'тип',
+                field: 'rType',
+                size: '10%',
+                attr: 'align=center'
+              }, {
+                caption: 'количество',
+                field: 'rCnt',
+                size: '20%',
+                attr: 'align=right'
+              }, {
+                caption: 'сумма',
+                field: 'rSum',
+                size: '20%',
+                attr: 'align=right'
+              }, {
+                caption: 'дата',
+                field: 'rDate',
+                size: '10%',
+                sortable: true,
+                attr: 'align=center'
+              }
+            ],
+            sortData: [{
+              field: 'rName',
+              direction: 'ASC'
+            }],
+            records: [
+              {
+                recid: 1,
+                rName: 'XXXXXXXX',
+                rType: 'KZT',
+                rCnt: '733',
+                rSum: '3247192.22',
+                rDate: '2017/01/01'
+              }, {
+                recid: 2,
+                rName: 'YYYYYYYY',
+                rType: 'KZT',
+                rCnt: '433',
+                rSum: '156000.00',
+                rDate: '2016/12/30'
+              }, {
+                recid: 3,
+                rName: 'ZZZZZZZZ',
+                rType: 'KZT',
+                rCnt: '84',
+                rSum: '95000.00',
+                rDate: '2017/01/15'
+              }
+            ]
+          }
+        }
+      },
+      console: {
+        cfg: {
+          ifColor: {
+            n0: 'Цвет',
+            n1: '»',
+            animate: true,
+            disabled: false,
+            min: 0,
+            max: 360,
+            create: function(){
+              return true;
+            },
+            slide: function(e, ui){
+              V.note.text(ui.value);
+            },
+            stop: function(e, ui){
+              return true;
+            }
+          }
+        },
+        log: {
+          state: [],
+          error: ['Ошибка', 'в доступе отказано'],
+          warning: 'Предупреждение',
+          info: ['Статус', 'активирован тестовый режим', 'подключение к серверу установлено', 'подключение к серверу не установлено', 'загрузка ключевого контейнера', 'аутентификация', 'авторизация', 'доступ разрешен', 'авторизация завершена']
+        }
+      }
+    }, {
+      get: function(obj, id, prx){
+        var a, b, k, v, own$ = {}.hasOwnProperty;
+        if (!id || id === 'wa') {
+          return obj;
+        }
+        if (obj[id]) {
+          return obj[id];
+        }
+        if (!obj.cfg) {
+          return null;
+        }
+        a = [obj];
+        while (a.length) {
+          b = a.pop();
+          for (k in b) if (own$.call(b, k)) {
+            v = b[k];
+            if (k !== 'cfg' && v.cfg) {
+              if (v[id]) {
+                return v[id];
+              }
+              a.push(v);
+            }
+          }
+        }
+        return null;
+      }
+    }),
+    init: function(){
       if (!this.color.init()) {
         return false;
       }
-      if (this.init.state) {
-        return true;
+      if (!this.svg.init()) {
+        return false;
       }
-      this.init.state = true;
-      this.color.init();
-      this.skeleton.wa = $('#wa');
+      if (!this.skel.cfg.init()) {
+        return false;
+      }
       return true;
     },
-    refresh: function(onComplete){
-      var me;
-      me = this;
-      me.state++;
-      V.skeleton.run('refresh', this.nav.keys(), function(){
-        me.state--;
-        if (onComplete) {
-          onComplete();
-        }
+    refresh: function(){
+      this.go('wa', true, [], function(){
+        var a;
+        a = $(this.cfg.id);
+        this.cfg.node = a.length ? a : null;
       });
-      /*
-      t = t ++ [ # сброс + ожидание {{{
-          ->
-              # рабочая область (общий стиль)
-              # тип интерфейса
-              V.wa.removeClass \auth if not V.auth
-              V.wa.removeClass \std if V.auth
-              # навигация
-              for a,b in v when not a
-                  V.wa.removeClass 'n'+b
-              # левая панель
-              w2ui.wa.refresh \left
-              # ok
-              true
-      ]
-      # }}}
-      THREAD t ++ [ # {{{
-          ->
-              # тулбар
-              # заголовок
-              gs.setTitle if V.auth or not v.0
-                  then 1
-                  else if v.0
-                      then 2
-                      else 0
-              # главная панель
-              # фон
-              a = if v.2
-                  then ['' '']
-                  else if V.auth
-                      then ['gr2' '']
-                      else if v.1
-                          then ['gr0' 'gr1']
-                          else ['gr0' '']
-              gs.setBackground a, !->
-                  # грид
-                  if V.grid
-                      w2ui.grid.refresh! if w2ui.grid
-                      V.grid.show!
-                      V.gridControls.show!
-                  # авторизация
-                  if V.auth
-                      V.auth.show!
-              # рабочая область (общий стиль)
-              V.wa.toggleClass \ok, true # начальная установка
-              V.wa.toggleClass \auth, !V.auth # авторизация выполнена
-              # навигация
-              for a,b in v
-                  V.wa.toggleClass 'n'+b, !!a
-                  for own c of V.nav[b] when c != \id
-                      V.wa.toggleClass 'n'+b+''+c, !!V.nav[b][c]
-              # функция завершена
-              me.state = false
-              onComplete.apply me if onComplete
-              true
-      ] # }}}
-      */
+      this.go('wa', true, [], 'refresh');
       return true;
     },
     resize: function(delay, onComplete){
-      var me, fn;
-      me = this;
-      if (delay || me.state !== 0) {
-        fn = me.resize;
+      var fn, me;
+      if (delay || this.state !== 0) {
         if (!delay) {
           delay = 250;
         }
-        if (fn.timer) {
-          window.clearTimeout(fn.timer);
+        if (this.resize.timer) {
+          window.clearTimeout(this.resize.timer);
         }
-        fn.timer = window.setTimeout(PARTIAL(this, me, 0, onComplete), delay);
+        fn = w3ui.PARTIAL(this, this.resize, 0, onComplete);
+        this.resize.timer = window.setTimeout(fn, delay);
       } else {
-        me.state++;
-        V.skeleton.run('resize', this.nav.keys(), function(){
+        this.state++;
+        me = this;
+        V.skel.run('resize', this.nav.keys(), function(){
           me.state--;
           if (onComplete) {
             onComplete();
@@ -210,847 +534,6 @@ $('document').ready(function(){
       me.state = false
       */
     },
-    skeleton: PROXY({
-      cfg: {
-        cfg: {},
-        wa: {
-          init: function(){
-            var me, ls, i$, len$, a, b;
-            me = this;
-            ls = V.skeleton.list();
-            for (i$ = 0, len$ = ls.length; i$ < len$; ++i$) {
-              a = ls[i$];
-              if ((b = $('#' + a)).length !== 0) {
-                V.skeleton[a] = b;
-                V[a].hide({
-                  time: 0
-                });
-              }
-            }
-            $(window).on('resize.' + this[0].id, function(){
-              return V.resize(100, function(){
-                return V.refresh();
-              });
-            });
-            me.show(function(){
-              var i$, ref$, len$, a;
-              for (i$ = 0, len$ = (ref$ = ls).length; i$ < len$; ++i$) {
-                a = ref$[i$];
-                if (V[a]) {
-                  V[a].show();
-                }
-              }
-            });
-            return true;
-          }
-        },
-        toolbar: {
-          cfg: {
-            init: function(){
-              var me;
-              me = this;
-              me.pb = $('#toolbar .ui-progressbar').progressbar({
-                value: 0
-              });
-              return true;
-            }
-          },
-          mode: {
-            cfg: {
-              init: function(){
-                debugger;
-                var me;
-                me = this;
-                return true;
-              },
-              attach: function(){
-                var i$, ref$, len$, a;
-                for (i$ = 0, len$ = (ref$ = V.skeleton.list(this[0].id)).length; i$ < len$; ++i$) {
-                  a = ref$[i$];
-                  this[a].click(fn$);
-                }
-                return false;
-                function fn$(){
-                  return P.setNav(0, this.id);
-                }
-              },
-              detach: function(){
-                var i$, ref$, len$, a;
-                for (i$ = 0, len$ = (ref$ = V.skeleton.list(this[0].id)).length; i$ < len$; ++i$) {
-                  a = ref$[i$];
-                  this[a].off();
-                }
-                return false;
-              },
-              refresh: function(v, onComplete){
-                debugger;
-                /*
-                if v.0
-                    # устанавливаем стиль кноп
-                    for a,b in me.btn
-                        me.m_btn.eq(b).toggleClass \on,  a.id == v.0
-                        me.m_btn.eq(b).toggleClass \off, a.id != v.0
-                else
-                    # сбрасываем стиль
-                    s.m_btn.removeClass 'on off'
-                */
-                return true;
-              },
-              resize: function(v, onComplete){
-                debugger;
-                var i$, ref$, len$, a, b;
-                for (i$ = 0, len$ = (ref$ = V.skeleton.list(this[0].id)).length; i$ < len$; ++i$) {
-                  a = ref$[i$];
-                  b = this[a];
-                }
-                me.m_btn.outerWidth(function(index, width){
-                  var c;
-                  c = V[this.id].cfg;
-                  if (V.auth) {
-                    this.innerHTML = '';
-                  } else if (width > c.ss) {
-                    this.innerHTML = c.n;
-                  } else {
-                    this.innerHTML = c.sn;
-                  }
-                  return width;
-                });
-                return true;
-              }
-            },
-            m1: {
-              n: 'Управление',
-              sn: 'Упр',
-              ss: 130
-            },
-            m2: {
-              n: 'Входящие',
-              sn: 'Вхд',
-              ss: 130
-            },
-            m3: {
-              n: 'Исходящие',
-              sn: 'Исх',
-              ss: 130
-            }
-          },
-          title: {
-            cfg: {}
-          }
-        },
-        todo: {
-          panel: {
-            cfg: {
-              init: function(){
-                var me, id;
-                me = this;
-                id = this[0].id;
-                me.resizer = $('#layout_wa_resizer_left');
-                me.func = {
-                  attach: function(lv, m){
-                    if (!m[0]) {
-                      return false;
-                    }
-                    me.resizer.click(function(){
-                      P.nav(0, 'panel', !V.nav[0].panel);
-                    });
-                    if (m[2]) {
-                      me.a_sw.filter(function(){
-                        return this.id === m[2];
-                      }).prop('checked', true);
-                      me.resizer.on('mouseenter.' + id, function(){
-                        V.view.addClass('sel');
-                      });
-                      me.resizer.on('mouseleave.' + id, function(){
-                        V.view.removeClass('sel');
-                      });
-                    }
-                    me.func.detach = function(lv, m){
-                      lv[2] && me.resizer.off(id);
-                      lv[0] && me.hide(function(){
-                        me.off;
-                        me.a_sw.off();
-                        me.accordion('destroy');
-                        me.load();
-                      });
-                      delete me.func.detach;
-                      return true;
-                    };
-                    return true;
-                  },
-                  refresh: function(){
-                    var a, b, i$, ref$, len$;
-                    a = 'left';
-                    b = w2ui.wa.get(a).hidden;
-                    if (V.auth || !V.nav[0].id) {
-                      if (!b) {
-                        w2ui.wa.hide(a);
-                      }
-                      return true;
-                    }
-                    if (b) {
-                      w2ui.wa.show(a);
-                    }
-                    if (!V.nav[0].panel) {
-                      return true;
-                    }
-                    me.accordion('refresh');
-                    if (me.a_panel.length > 0) {
-                      me.a_panel.eq(0).addClass('top');
-                    }
-                    if (me.a_panel.length > 1) {
-                      me.a_panel.eq(-1).addClass('bottom');
-                    }
-                    a = v[1] ? V.skeleton.index(v[1]) : false;
-                    if (a !== false) {
-                      me.a_panel.addClass('faded');
-                      me.a_panel.filter(function(index, el){
-                        return index === a;
-                      }).removeClass('faded');
-                    } else {
-                      me.a_panel.removeClass('faded');
-                    }
-                    me.a_panel.removeClass('below');
-                    if (a !== false && a + 1 < me.a_panel.length - 1) {
-                      me.a_panel.eq(a + 1).addClass('below');
-                    }
-                    if (V.nav[2].id) {
-                      for (i$ = 0, len$ = (ref$ = me.a_box).length; i$ < len$; ++i$) {
-                        b = i$;
-                        a = ref$[i$];
-                        me.a_box.eq(b).toggleClass('on', a.checked);
-                        me.a_box.eq(b).toggleClass('off', !a.checked);
-                      }
-                    } else {
-                      me.a_box.removeClass('on off');
-                    }
-                    me.show();
-                    return true;
-                  },
-                  resize: function(){
-                    var v, a;
-                    if (!(v = V.nav[0]).id) {
-                      return true;
-                    }
-                    if (v.panel) {
-                      a = V.toolbar.m_box.outerWidth() + w2ui.wa.resizer + 4;
-                      if (me.reset) {
-                        me.accordion('refresh');
-                      }
-                    } else {
-                      a = 0;
-                    }
-                    if (Math.abs(me.outerWidth() - a) > 0) {
-                      w2ui.wa.sizeTo('left', a);
-                    }
-                    return true;
-                  }
-                };
-                return true;
-              },
-              create: function(){
-                var me;
-                me = V[this.id];
-                me.a_panel = $('#panel div.aPanel');
-                me.a_box = $('#panel label.swBox');
-                me.a_sw = $('#panel input.swInput');
-                me.reset = function(){
-                  me.hide(function(){
-                    me.off('.a');
-                    me.a_sw.off();
-                    me.accordion('destroy');
-                    delete me.reset;
-                    me.load();
-                  });
-                };
-                me.on('accordionbeforeactivate.a', function(e, ui){
-                  var a;
-                  if (P.sync.state) {
-                    e.stopPropagation();
-                    return false;
-                  }
-                  a = ui.newHeader.length === 0
-                    ? ''
-                    : ui.newHeader[0].id;
-                  P.setNav(1, a);
-                  return true;
-                });
-                me.a_sw.change(function(e){
-                  if (P.sync.state || V.refresh.state) {
-                    e.stopPropagation();
-                    return false;
-                  }
-                  if (this.type === 'radio') {
-                    P.setNav(2, this.id);
-                  }
-                  return true;
-                });
-                me.a_sw.click(function(e){
-                  if (P.sync.state || V.refresh.state) {
-                    e.stopPropagation();
-                    return false;
-                  }
-                  if (this.type === 'radio' && V.nav[2].id === this.id) {
-                    this.checked = false;
-                    P.setNav(2, this.id);
-                  }
-                  return true;
-                });
-                return true;
-              },
-              collapsible: true,
-              heightStyle: 'fill',
-              icons: false,
-              header: '.aPanel'
-            },
-            m1v1: {
-              cfg: {
-                n: '1'
-              },
-              m1v1f1: {
-                n: '1-1'
-              },
-              m1v1f2: {
-                n: '1-2'
-              }
-            },
-            m1v2: {
-              cfg: {
-                n: '2'
-              },
-              m1v2f1: {
-                n: '2-1'
-              },
-              m1v2f2: {
-                n: '2-2'
-              },
-              m1v2f3: {
-                n: '2-3'
-              },
-              m1v2f4: {
-                n: '2-4'
-              }
-            },
-            m2v1: {
-              cfg: {
-                n: 'Картотека'
-              },
-              m2v1f1: {
-                n: 'помещения'
-              },
-              m2v1f2: {
-                n: 'дома'
-              },
-              m2v1f3: {
-                n: 'микрорайоны/улицы'
-              },
-              m2v1f4: {
-                n: 'районы'
-              },
-              m2v1f5: {
-                n: 'города'
-              }
-            },
-            m2v4: {
-              cfg: {
-                n: 'Потребители'
-              },
-              m2v4f1: {
-                n: 'частные лица'
-              },
-              m2v4f2: {
-                n: 'организации'
-              }
-            },
-            m2v2: {
-              cfg: {
-                n: 'Оплата'
-              },
-              m2v2f1: {
-                n: 'касса'
-              },
-              m2v2f2: {
-                n: 'банк'
-              },
-              m2v2f3: {
-                n: 'взаимозачет'
-              },
-              m2v2f4: {
-                n: 'сторно'
-              }
-            },
-            m2v3: {
-              cfg: {
-                n: 'Объемы'
-              },
-              m2v3f1: {
-                n: '3-1'
-              },
-              m2v3f2: {
-                n: '3-2'
-              },
-              m2v3f3: {
-                n: '3-3'
-              }
-            },
-            m2v5: {
-              cfg: {
-                n: 'Поставщики'
-              },
-              m2v5f1: {
-                n: '5-1'
-              },
-              m2v5f2: {
-                n: '5-2'
-              }
-            },
-            m3v1: {
-              cfg: {
-                n: 'Отчеты'
-              },
-              m3v1f1: {
-                n: '1-1'
-              },
-              m3v1f2: {
-                n: '1-2'
-              }
-            },
-            m3v2: {
-              cfg: {
-                n: 'Запросы'
-              },
-              m3v2f1: {
-                n: '2-1'
-              },
-              m3v2f2: {
-                n: '2-2'
-              }
-            }
-          },
-          view: {
-            cfg: {
-              init: function(){
-                var me;
-                me = this;
-                me.func = {
-                  attach: function(){
-                    me.func.detach = function(){
-                      delete me.func.detach;
-                      return true;
-                    };
-                    return true;
-                  },
-                  refresh: function(){
-                    me.show();
-                    return true;
-                  },
-                  resize: function(){
-                    return true;
-                  }
-                };
-                return true;
-              }
-            },
-            auth: {
-              cfg: {
-                preInit: false
-              }
-            },
-            grid: {
-              cfg: {
-                preInit: false,
-                name: 'grid',
-                show: {
-                  header: false,
-                  toolbar: false,
-                  footer: true,
-                  columnHeaders: true,
-                  lineNumbers: false,
-                  expandColumn: false,
-                  selectColumn: false,
-                  emptyRecords: true,
-                  toolbarReload: true,
-                  toolbarColumns: true,
-                  toolbarSearch: true,
-                  toolbarAdd: true,
-                  toolbarEdit: true,
-                  toolbarDelete: true,
-                  toolbarSave: true,
-                  selectionBorder: true,
-                  recordTitles: true,
-                  skipRecords: true
-                }
-              },
-              m1v1f1g: {},
-              m2v2f1g: {
-                columns: [
-                  {
-                    caption: 'ID',
-                    field: 'recid',
-                    hidden: true
-                  }, {
-                    caption: '№ пачки',
-                    field: 'rName',
-                    size: '40%',
-                    sortable: true
-                  }, {
-                    caption: 'тип',
-                    field: 'rType',
-                    size: '10%',
-                    attr: 'align=center'
-                  }, {
-                    caption: 'количество',
-                    field: 'rCnt',
-                    size: '20%',
-                    attr: 'align=right'
-                  }, {
-                    caption: 'сумма',
-                    field: 'rSum',
-                    size: '20%',
-                    attr: 'align=right'
-                  }, {
-                    caption: 'дата',
-                    field: 'rDate',
-                    size: '10%',
-                    sortable: true,
-                    attr: 'align=center'
-                  }
-                ],
-                sortData: [{
-                  field: 'rName',
-                  direction: 'ASC'
-                }],
-                records: [
-                  {
-                    recid: 1,
-                    rName: 'XXXXXXXX',
-                    rType: 'KZT',
-                    rCnt: '733',
-                    rSum: '3247192.22',
-                    rDate: '2017/01/01'
-                  }, {
-                    recid: 2,
-                    rName: 'YYYYYYYY',
-                    rType: 'KZT',
-                    rCnt: '433',
-                    rSum: '156000.00',
-                    rDate: '2016/12/30'
-                  }, {
-                    recid: 3,
-                    rName: 'ZZZZZZZZ',
-                    rType: 'KZT',
-                    rCnt: '84',
-                    rSum: '95000.00',
-                    rDate: '2017/01/15'
-                  }
-                ]
-                /*
-                */
-              }
-            },
-            gridControls: {
-              cfg: {},
-              m2v2f1gc: {
-                list: [
-                  {
-                    n: 'добавить'
-                  }, {
-                    n: 'удалить'
-                  }, {
-                    n: 'изменить'
-                  }
-                ]
-              }
-            }
-          },
-          console: {
-            cfg: {
-              ifColor: {
-                n0: 'Цвет',
-                n1: '»',
-                animate: true,
-                disabled: false,
-                min: 0,
-                max: 360,
-                create: function(){
-                  return true;
-                },
-                slide: function(e, ui){
-                  V.note.text(ui.value);
-                },
-                stop: function(e, ui){
-                  return true;
-                }
-              }
-            },
-            note: {
-              cfg: {}
-            },
-            sliderBtn: {
-              cfg: {
-                init: function(cfg){
-                  var a;
-                  a = '#' + this[0].id;
-                  this.scale = $(a + ' div.ui-slider');
-                  this.handle = $(a + ' div.ui-slider .ui-slider-handle');
-                  this.btn0 = $(a + ' button.accept').button();
-                  this.btn1 = $(a + ' button.restore').button();
-                  this.btn0.text(cfg.n0);
-                  this.btn1.text(cfg.n1);
-                  this.scale.slider(cfg);
-                  return true;
-                }
-              }
-            }
-          }
-        }
-      },
-      _seek: function(cid, node, path, pid){
-        var a, b;
-        if (node.cfg) {
-          if (node[cid]) {
-            if (pid && path) {
-              path.unshift(pid);
-            }
-            return node[cid];
-          }
-          for (a in node) {
-            if (b = this._seek(cid, node[a], path, a)) {
-              if (pid && path) {
-                path.unshift(pid);
-              }
-              return b;
-            }
-          }
-        }
-        return null;
-      },
-      path: function(id){
-        var path;
-        path = [];
-        if (!id) {
-          return path;
-        }
-        this._seek(id, this.cfg, path);
-        return path;
-      },
-      list: function(id){
-        var a;
-        if (!id) {
-          a = Object.keys(this.cfg).filter(function(b){
-            return b !== 'wa' && b !== 'cfg';
-          });
-        } else {
-          if ((a = this._seek(id, this.cfg)) && a.cfg) {
-            a = Object.keys(a).filter(function(b){
-              return b !== 'cfg';
-            });
-          } else {
-            a = [];
-          }
-        }
-        return a;
-      },
-      index: function(id){
-        var a;
-        if (!id) {
-          return false;
-        }
-        if ((a = this.path(id)).length > 0) {
-          a = this.list(a.pop());
-        } else {
-          a = this.list();
-          true;
-        }
-        return a.indexOf(id);
-      },
-      run: function(method){
-        var i$, args, res$, j$, onComplete, me, x;
-        res$ = [];
-        for (j$ = 1 < (i$ = arguments.length - 1) ? 1 : (i$ = 1); j$ < i$; ++j$) {
-          res$.push(arguments[j$]);
-        }
-        args = res$; onComplete = arguments[i$];
-        me = this;
-        x = 0;
-        args.push(function(){
-          --x;
-        });
-        THREAD([
-          function(){
-            var i$, ref$, len$, a;
-            for (i$ = 0, len$ = (ref$ = me.list()).length; i$ < len$; ++i$) {
-              a = ref$[i$];
-              if (V[a]) {
-                x++;
-                V[a].func[method].apply(V[a], args);
-              }
-            }
-            return true;
-          }, function(){
-            return x === 0;
-          }, function(){
-            if (onComplete) {
-              onComplete();
-            }
-            return true;
-          }
-        ]);
-        return true;
-      }
-    }, {
-      get: function(obj, id, prx){
-        if (!id) {
-          return null;
-        }
-        if (obj[id]) {
-          return obj[id];
-        }
-        return obj._seek(id, obj.cfg);
-      },
-      set: function(obj, p, v, prx){
-        /*
-        *   p == имя элемента в дереве интерфейса
-        *   v == обертка элемента jQuery
-        */
-        var a, lst, path, templ, init, fn, node, i$, len$;
-        if (!p || !v || !(a = prx[p])) {
-          return false;
-        }
-        v.cfg = a.cfg ? a.cfg : a;
-        lst = obj.list(p);
-        path = obj.path(p);
-        templ = (a = $('#' + p + '-t')).length !== 0 ? a.html() : '';
-        init = function(id){
-          var params, i$, ref$, len$, a, b;
-          if (templ && id) {
-            params = function(cid, pid){
-              var a, b, c;
-              a = {
-                id: cid,
-                pid: pid
-              };
-              if (!pid && (b = $('#' + cid + '-t')).length === 1) {
-                a.html = b.html();
-              }
-              if (b = prx[cid]) {
-                if (b.cfg) {
-                  import$(a, b.cfg);
-                  a.body = [];
-                  for (c in b) {
-                    if (c !== 'cfg') {
-                      a.body.push(params(c, cid));
-                    }
-                  }
-                } else {
-                  import$(a, b);
-                }
-              }
-              return a;
-            };
-            v.html(Mustache.render(templ, params(id)));
-          } else if (templ) {
-            v.html(Mustache.render(templ, {}));
-            id = this[0].id;
-          } else {
-            id = this[0].id;
-          }
-          for (i$ = 0, len$ = (ref$ = obj.list(id)).length; i$ < len$; ++i$) {
-            a = ref$[i$];
-            if ((b = $('#' + a)).length !== 0) {
-              prx[a] = b;
-            }
-          }
-          if (v.cfg.init) {
-            return v.cfg.init.apply(v);
-          }
-          return true;
-        };
-        fn = function(method, dive){
-          var i$, args, res$, j$, onComplete, x, f1, f2, a;
-          res$ = [];
-          for (j$ = 2 < (i$ = arguments.length - 1) ? 2 : (i$ = 2); j$ < i$; ++j$) {
-            res$.push(arguments[j$]);
-          }
-          args = res$; onComplete = arguments[i$];
-          x = 0;
-          args.push(function(){
-            --x;
-          });
-          if (v.cfg[method]) {
-            f1 = [
-              function(){
-                if (v.cfg[method].apply(v, args)) {
-                  x++;
-                }
-                return true;
-              }, function(){
-                return x === 0;
-              }
-            ];
-          } else {
-            f1 = [];
-          }
-          f2 = [
-            function(){
-              var i$, ref$, len$, a;
-              for (i$ = 0, len$ = (ref$ = lst).length; i$ < len$; ++i$) {
-                a = ref$[i$];
-                if (v[a]) {
-                  if (v[a].func[method].apply(v, args)) {
-                    x++;
-                  }
-                }
-              }
-              return true;
-            }, function(){
-              return x === 0;
-            }
-          ];
-          a = dive
-            ? f1.concat(f2)
-            : f2.concat(f1);
-          THREAD(a.concat([function(){
-            if (onComplete) {
-              onComplete();
-            }
-            return true;
-          }]));
-          return true;
-        };
-        v.func = {
-          init: PARTIAL(v, init),
-          attach: PARTIAL(v, fn, 'attach', true),
-          detach: PARTIAL(v, fn, 'detach', false),
-          refresh: PARTIAL(v, fn, 'refresh', true),
-          resize: PARTIAL(v, fn, 'resize', false)
-        };
-        v.show = PARTIAL(v, V.GSAP.show);
-        v.hide = PARTIAL(v, function(a, b){
-          return V.GSAP.show.apply(v, [(a.show = false, a), b]);
-        });
-        node = V;
-        for (i$ = 0, len$ = path.length; i$ < len$; ++i$) {
-          a = path[i$];
-          if (!node[a]) {
-            break;
-          }
-          node = node[a];
-        }
-        node[p] = v;
-        if (path.length !== 0) {
-          for (i$ = 0, len$ = lst.length; i$ < len$; ++i$) {
-            a = lst[i$];
-            if (a !== p && node[a] && prx[a].cfg) {
-              node[a].remove();
-              delete node[a];
-            }
-          }
-        }
-        v.func.init();
-        return true;
-      }
-    }),
     GSAP: {
       busy: 0,
       show: function(args, onComplete){
@@ -1193,21 +676,6 @@ $('document').ready(function(){
         gs.busy += 1;
         a.play();
         return true;
-      },
-      setTitle: function(num){
-        var me, a;
-        num == null && (num = 0);
-        me = this.setTitle;
-        a = V.lang.title[num];
-        if (typeof a !== 'string') {
-          a = a();
-        }
-        if (me.txt === a) {
-          return false;
-        }
-        me.txt = a;
-        V.title.html(a);
-        return false;
       },
       setNote: function(num){
         var me, a;
@@ -1675,7 +1143,7 @@ $('document').ready(function(){
             m_enter();
           }
           dt.clicked = 1;
-          THREAD([
+          w3ui.THREAD(this, [
             function(){
               return dt.anim.hover.paused();
             }, function(){
@@ -1794,222 +1262,86 @@ $('document').ready(function(){
         return me.init();
       }
     },
-    color: PROXY({
-      Hue: '',
-      Saturation: '',
-      colors: null,
-      gradient: {},
-      root: null,
-      init: function(){
-        var a, i$, b, c;
-        if (this.root || (this.root = $('html')).length === 0) {
-          return false;
-        }
-        a = getComputedStyle(this.root[0]);
-        this.Hue = a.getPropertyValue('--col-h').trim();
-        this.Saturation = a.getPropertyValue('--col-s').trim();
-        this.colors = {};
-        for (i$ = 0; i$ <= 99; ++i$) {
-          b = i$;
-          c = '--col' + b;
-          if (a.getPropertyValue(c)) {
-            this.colors[c] = b;
-          }
-          c = c + 'a';
-          if (a.getPropertyValue(c)) {
-            this.colors[c] = -b;
-          }
-        }
-        for (i$ = 0; i$ <= 99; ++i$) {
-          b = i$;
-          if (!(c = a.getPropertyValue('--gr' + b))) {
-            break;
-          }
-          this.gradient['gr' + b] = c.trim();
-        }
-        return this.set(this.Hue);
-      },
-      set: function(Hue, Saturation){
-        var a, b, ref$, c, d, e;
-        Saturation == null && (Saturation = this.Saturation);
-        if (!Hue || !Saturation || !this.root) {
-          return false;
-        }
-        this.Hue = Hue;
-        this.Saturation = Saturation;
-        a = window.getComputedStyle(this.root[0]);
-        for (b in ref$ = this.colors) {
-          c = ref$[b];
-          if (d = a.getPropertyValue(b)) {
-            if (c >= 0) {
-              e = 'hsla(' + Hue + ', ' + Saturation + '%, ' + c + '%, 1)';
-              if (e !== d.trim()) {
-                this.root[0].style.setProperty(b, e);
-              }
-            } else {
-              c = -c;
-              e = 'hsla(' + Hue + ', ' + Saturation + '%, ' + c + '%, 0)';
-              if (e !== d.trim()) {
-                this.root[0].style.setProperty(b, e);
-              }
-            }
-          }
-        }
-        for (b in this.gradient) {
-          c = this[b];
-          this.root[0].style.setProperty('--' + b, c);
-        }
-        return true;
-      }
-    }, {
-      get: function(obj, p, prx){
-        var a;
-        if (typeof p !== 'string' || obj[p]) {
-          a = obj[p];
-        } else if (parseInt(p)) {
-          a = 'hsla(' + obj.Hue + ',' + obj.Saturation + '%,' + p + '%,1)';
-        } else if ('a' === p.charAt(0)) {
-          p = p.slice(1);
-          a = 'hsla(' + obj.Hue + ',' + obj.Saturation + '%,' + p + '%,0)';
-        } else if (obj.gradient[p]) {
-          a = obj.gradient[p];
-          a = a.replace(/(--col(\d{2})([a]?))/g, function(all, p1, p2, p3, pos, str){
-            var a;
-            a = p3 ? p3 + p2 : p2;
-            if (!(a = prx[a])) {
-              a = 'transparent';
-            }
-            return a;
-          });
-        } else {
-          a = false;
-        }
-        return a;
-      }
-    }),
-    lang: {
-      cfg: {},
-      title: [
-        '', 'Коммунальная Информационная Система', function(t){
-          /*
-          v = V.nav.keys!
-          if v.2
-              t = V.skeleton.getBoneCfg v.2, 'n'
-              a = V.skeleton.getBoneCfg v.1, 'n'
-          else if v.1
-              a = V.skeleton.getBoneCfg v.1, 'n'
-          else
-              a = V.skeleton.getBoneCfg v.0, 'n'
-          # ок
-          a+' :: '+t
-          */
-          t == null && (t = 'Статистика');
-          return 'rev';
-        }, 'Авторизация'
-      ],
-      note: ['', 'авторизация', 'активирован тестовый режим', 'подключение к серверу установлено', 'подключение к серверу не установлено', 'загрузка ключевого контейнера', 'аутентификация', 'в доступе отказано', 'доступ получен', 'ссылка', '', 'сплэш!', 'авторизация завершена'],
-      links: [['лаборатория', 'https://vk.com/tvp_lab']]
-    },
-    s: PROXY({
-      clearCache: function(){
-        this.cache = {};
-      },
-      cache: {},
-      data: {
-        main_panel: '#layout_wa_panel_main div.w2ui-panel-content',
-        canvas: '#view canvas',
-        auth_svg: '#auth svg',
-        auth_btn: '#authBtn'
-      }
-    }, {
-      get: function(obj, p, prx){
-        if (obj[p]) {
-          return obj[p];
-        }
-        if (!obj.data[p]) {
-          return null;
-        }
-        if (obj.cache[p]) {
-          return obj.cache[p];
-        }
-        return obj.cache[p] = $(obj.data[p]);
-      }
-    })
-  };
-  /* }}} */
-  /* [P]resenter {{{
-  */
-  P = {
-    init: function(){
-      var deps, a, b;
-      deps = {
-        Proxy: 'прокси-объект',
-        getComputedStyle: 'определение стиля',
-        requestAnimationFrame: 'метод анимации',
-        Mustache: 'шаблонизатор',
-        TweenMax: 'анимация greensock-js',
-        w2ui: 'фреймворк'
-      };
-      for (a in deps) {
-        b = deps[a];
-        if (!window[a]) {
-          console.log('отсутствует [' + b + '] ' + a);
-          return false;
-        }
-      }
-      if (!M || !V || !P) {
-        console.log('отсутствует объект MVP');
+    go: function(node, direction, args, method){
+      var commonMethod, a;
+      if (!(node = this.skel[node])) {
         return false;
       }
-      if (!V.init()) {
-        return false;
-      }
-      return this._sync();
-    },
-    _sync: function(onComplete){
-      var me, m, v, x, i$, len$, b, a, j$, to$, c, ref$, own$ = {}.hasOwnProperty;
-      me = this._sync;
-      if (V.state !== 0) {
-        BOUNCE(this, 100, [onComplete], me);
+      if (!node.cfg) {
         return true;
       }
-      V.state++;
-      m = M.nav.keys();
-      v = V.nav.keys();
-      x = [];
-      if (M.authorized) {
-        for (i$ = 0, len$ = m.length; i$ < len$; ++i$) {
-          b = i$;
-          a = m[i$];
-          if (x[b] = a !== v[b]) {
-            for (j$ = b + 1, to$ = m.length - 1; j$ <= to$; ++j$) {
-              c = j$;
-              x[a] = true;
-            }
-            break;
-          }
-          for (a in ref$ = M.nav.data[b]) if (own$.call(ref$, a)) {
-            c = ref$[a];
-            if (x[b] = c !== V.nav.data[b][a]) {
-              break;
-            }
-          }
-        }
-        for (i$ = 0, len$ = (ref$ = M.nav.data).length; i$ < len$; ++i$) {
-          b = i$;
-          a = ref$[i$];
-          V.nav.data[b] = CLONE(a);
+      commonMethod = typeof method === 'string';
+      if (commonMethod) {
+        if (node.cfg[method] && node.cfg.node) {
+          node.cfg[method].apply(node, args);
         }
       } else {
-        for (i$ = 0, len$ = (ref$ = V.nav.data).length; i$ < len$; ++i$) {
-          a = ref$[i$];
-          a.id = '';
-        }
-        a = m.length;
-        x = repeatArray$([true], a);
-        m = repeatArray$([''], a);
+        method.apply(node, args);
       }
-      /* {{{
+      if (direction) {
+        for (a in node) {
+          if (a !== 'cfg') {
+            this.go(a, direction, args, method);
+          }
+        }
+      } else {
+        while (a = node.cfg.parent) {
+          if (commonMethod) {
+            if (a.cfg[method] && a.cfg.node) {
+              a.cfg[method].apply(a, args);
+            }
+          } else {
+            method.apply(a, args);
+          }
+          node = a;
+        }
+      }
+      return true;
+    }
+  };
+  P = {
+    init: function(){
+      V.refresh();
+      /*
+      # wait for view
+      if V.state
+          w3ui.BOUNCE {scope: @, time: 100}, @init
+          return true
+      # lock
+      V.state++
+      # synchronize navigation
+      # {{{
+      if M.authorized
+          # determine changes
+          m = M.nav.keys!
+          v = V.nav.keys!
+          x = [false] * m.length
+          for a,b in m
+              # compare main factor (id)
+              # store result of comparison
+              if a != v[b]
+                  # change detected
+                  x[b] = true
+                  # propagate it to upper levels
+                  for c from b + 1 to m.length - 1
+                      x[c] = true
+                  # finish
+                  break
+              # compare additional factors
+              for own a,c of M.nav.data[b] when c != V.nav.data[b][a]
+                  # change detected
+                  # do not propagate it
+                  x[b] = true
+                  break
+          # synchronize
+          for a,b in M.nav.data
+              V.nav.data[b] = w3ui.CLONE a
+      else
+          # no navigation
+          m = [''] * a
+          x = [true] * m.length
+          V.nav.data.forEach (a) -> a.id = ''
+      # }}}
       lv.2 and t = t ++ [ # {{{
           ->
               if V.auth
@@ -2029,7 +1361,7 @@ $('document').ready(function(){
               V.panel.load m.0
               # определяем активную панель
               a = if m.1
-                  then V.skeleton.index m.1
+                  then V.skel.index m.1
                   else false
               # создаем
               V.panel.accordion V.panel.cfg <<< {active: a}
@@ -2048,8 +1380,8 @@ $('document').ready(function(){
               # формируем контент
               V.view.load \grid
               # создание
-              a = CLONE V.grid.cfg # общая конфигурация
-              b = V.skeleton.getBoneCfg m.2+'g' # частная конфигурация
+              a = w3ui.CLONE V.grid.cfg # общая конфигурация
+              b = V.skel.getBoneCfg m.2+'g' # частная конфигурация
               V.grid.w2grid a <<< b
               # метод удаления
               V.grid.reset = !->
@@ -2072,18 +1404,17 @@ $('document').ready(function(){
               true
       ]
       # }}}
-      }}} */
-      V.skeleton.run('detach', x, m, function(){
-        V.skeleton.run('attach', x, m, function(){
-          V.state--;
-          if (onComplete) {
-            onComplete();
-          }
-        });
-      });
+      # отстыковка
+      V.skel.run \detach, x, m, !->
+          # стыковка
+          V.skel.run \attach, x, m, !->
+              # завершено
+              V.state--
+              # завершающая функция
+              onComplete! if onComplete
+      */
       return true;
     },
-    sync: undefined,
     navigate: function(nav, onComplete){
       var i$, len$, b, a;
       if (!this.sync) {
@@ -2138,44 +1469,7 @@ $('document').ready(function(){
       return true;
     }
   };
-  /* }}} */
-  /* debug {{{
-  *
-  */
-  M.authorized = true;
-  /**/
-  $('#dbg0').click(function(){
-    M;
-    V;
-    P;
-    debugger;
-    /**/
-  });
-  $('#dbg1').click(function(){
-    M.authorized = !M.authorized;
-    P.init();
-    /**/
-  });
-  $('#dbg2').click(function(){
-    true;
-    /**/
-  });
-  $('#dbg9').click(function(){
-    P.init(['m2', 'm2v2', 'm2v2f1']);
-    true;
-    /**/
-  });
-  /**/
-  /* }}} */
-  return P.init();
+  if (M && V && P) {
+    return M.init() && V.init() && P.init();
+  }
 });
-function import$(obj, src){
-  var own = {}.hasOwnProperty;
-  for (var key in src) if (own.call(src, key)) obj[key] = src[key];
-  return obj;
-}
-function repeatArray$(arr, n){
-  for (var r = []; n > 0; (n >>= 1) && (arr = arr.concat(arr)))
-    if (n & 1) r.push.apply(r, arr);
-  return r;
-}

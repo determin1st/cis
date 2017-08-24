@@ -75,255 +75,893 @@ $ \document .ready ->
             # }}}
         }
         # }}}
-        ###
         authorized: true
-        ###
-        init: -> true
+        init: ->
+            true
     # }}}
     V = # view {{{
-        color: w3ui.PROXY { # {{{
+        /***
+        skel: w3ui.PROXY { # DOM interface skeleton {{{
+            cfg:
+                cfg: {}
+                wa: # {{{
+                    init: ->
+                        # подготовка
+                        me = @
+                        ls = V.skel.list!
+                        # выполняем инициализацию корневых элементов
+                        for a in ls when (b = $ '#' + a).length != 0
+                            # подключаем к интерфейсу
+                            V.skel[a] = b
+                            # скрыты по-умолчанию
+                            V[a].hide {time: 0}
+                        # стыкуем обработчкики
+                        # изменение размеров окна
+                        $ window .on 'resize.' + @0.id, ->
+                            V.resize 100, ->
+                                V.refresh!
+                        # рабочая область по-умолчанию скрыта,
+                        # отображаем
+                        me.show !->
+                            # отображаем корневые элементы
+                            for a in ls when V[a]
+                                V[a].show!
+                        # возврат
+                        true
+                # }}}
+                toolbar: # {{{
+                    cfg:
+                        init: -> # {{{
+                            # подготовка
+                            me = @
+                            # постоянные элементы
+                            me.pb = $ '#toolbar .ui-progressbar' .progressbar {value: 0}
+                            true
+                        # }}}
+                    # кнопы режима
+                    mode:
+                        cfg:
+                            init: -> # {{{
+                                # подготовка
+                                me = @
+                                # ...
+                                # возврат
+                                true
+                            # }}}
+                            attach: -> # {{{
+                                # переключение режима
+                                for a in V.skel.list @0.id
+                                    @[a].click ->
+                                        P.setNav 0, @id
+                                # возврат
+                                false
+                            # }}}
+                            detach: -> # {{{
+                                # отстыковка
+                                for a in V.skel.list @0.id
+                                    @[a].off!
+                                # возврат
+                                false
+                            # }}}
+                            refresh: (v, onComplete) -> # {{{
+                                # проверка
+                                #if v.0
+                                #    # устанавливаем стиль кноп
+                                #    for a,b in me.btn
+                                #        me.m_btn.eq(b).toggleClass \on,  a.id == v.0
+                                #        me.m_btn.eq(b).toggleClass \off, a.id != v.0
+                                #else
+                                #    # сбрасываем стиль
+                                #    s.m_btn.removeClass 'on off'
+                                # возврат
+                                true
+                            # }}}
+                            resize: (v, onComplete) -> # {{{
+                                # определяем текст
+                                for a in V.skel.list @0.id
+                                    b = @[a]
+
+                                me.m_btn.outerWidth (index, width) ->
+                                    # наименование
+                                    c = V[@id].cfg
+                                    if V.auth
+                                        @innerHTML = ''
+                                    else if width > c.ss
+                                        @innerHTML = c.n
+                                    else
+                                        @innerHTML = c.sn
+                                    # ok
+                                    width
+                                # возврат
+                                true
+                            # }}}
+                        ###
+                        m1:
+                            n: 'Управление'
+                            sn: 'Упр'
+                            ss: 130
+                        m2:
+                            n: 'Входящие'
+                            sn: 'Вхд'
+                            ss: 130
+                        m3:
+                            n: 'Исходящие'
+                            sn: 'Исх'
+                            ss: 130
+                    # заголовок
+                    title:
+                        cfg: {}
+                # }}}
+                TODO:
+                    panel: # панель навигации {{{
+                        cfg:
+                            init: -> # {{{
+                                # подготовка
+                                me = @
+                                id = @0.id
+                                # постоянные элементы
+                                me.resizer = $ '#layout_wa_resizer_left'
+                                # общие методы
+                                me.func = {
+                                    attach: (lv, m) -> # {{{
+                                        # проверка
+                                        return false if not m.0
+                                        # опрдеделяем обработчики событий
+                                        # сворачивание-разворачиванеие панели
+                                        me.resizer.click !->
+                                            P.nav 0, \panel, !V.nav.0.panel
+                                        # выбран переключатель
+                                        if m.2
+                                            # определяем выбранный
+                                            me.a_sw.filter ->
+                                                @id == m.2
+                                            .prop \checked, true
+                                            # устанавливаем дополнительный стиль
+                                            me.resizer.on 'mouseenter.' + id, !->
+                                                V.view.addClass \sel
+                                            me.resizer.on 'mouseleave.' + id, !->
+                                                V.view.removeClass \sel
+                                        ###
+                                        me.func.detach = (lv, m) -> # разборка {{{
+                                            # удаление вспомогательных обработчиков
+                                            lv.2 and me.resizer.off id
+                                            # удаление аккордеона
+                                            lv.0 and me.hide !->
+                                                # отстыковка обработчиков
+                                                me.off
+                                                me.a_sw.off!
+                                                # удаляем
+                                                me.accordion \destroy
+                                                # зачищаем контент
+                                                me.load!
+                                            # возврат
+                                            delete me.func.detach
+                                            true
+                                        # }}}
+                                        true
+                                    # }}}
+                                    refresh: -> # {{{
+                                        # панель
+                                        # скрываем
+                                        a = \left
+                                        b = w2ui.wa.get a .hidden
+                                        if V.auth or not V.nav.0.id
+                                            w2ui.wa.hide a if not b
+                                            return true
+                                        # отображаем
+                                        w2ui.wa.show a if b
+                                        # панель задвинута
+                                        return true if not V.nav.0.panel
+                                        # аккордеон
+                                        # пересчет стилей
+                                        me.accordion \refresh
+                                        # панели аккордеона
+                                        # верхняя
+                                        if me.a_panel.length > 0
+                                            me.a_panel.eq(0).addClass \top
+                                        # нижняя
+                                        if me.a_panel.length > 1
+                                            me.a_panel.eq(-1).addClass \bottom
+                                        # определяем активную панель
+                                        a = if v.1
+                                            then V.skel.index v.1
+                                            else false
+                                        # задаем стиль не-активных панелек
+                                        if a != false
+                                            me.a_panel.addClass \faded
+                                            me.a_panel.filter (index, el) ->
+                                                index == a
+                                            .removeClass \faded
+                                        else
+                                            me.a_panel.removeClass \faded
+                                        # под активной
+                                        me.a_panel.removeClass \below
+                                        if a != false and a + 1 < me.a_panel.length - 1
+                                            me.a_panel.eq(a + 1).addClass \below
+                                        # содержимое
+                                        # переключатели представления данных
+                                        if V.nav.2.id
+                                            for a,b in me.a_box
+                                                me.a_box.eq(b).toggleClass \on, a.checked
+                                                me.a_box.eq(b).toggleClass \off, not a.checked
+                                        else
+                                            me.a_box.removeClass 'on off'
+                                        # отображаем панель
+                                        me.show!
+                                        # возврат
+                                        true
+                                    # }}}
+                                    resize: -> # {{{
+                                        # подготовка
+                                        return true if not (v = V.nav.0).id
+                                        if v.panel
+                                            # панель выдвинута
+                                            a = V.toolbar.m_box.outerWidth! + w2ui.wa.resizer + 4
+                                            me.accordion \refresh if me.reset
+                                        else
+                                            # панель свернута
+                                            a = 0
+                                        # корректируем
+                                        # определяем размер панели
+                                        if Math.abs(me.outerWidth! - a) > 0
+                                            w2ui.wa.sizeTo \left, a
+                                        # возврат
+                                        true
+                                    # }}}
+                                }
+                                true
+                            # }}}
+                            create: -> # создание аккордеона {{{
+                                # подготовка
+                                me = V[@id]
+                                # дочерние элементы
+                                me.a_panel = $ '#panel div.aPanel' # панели-заголовки внутри аккордеона
+                                me.a_box = $ '#panel label.swBox' # контейнер переключателя
+                                me.a_sw = $ '#panel input.swInput' # переключатель
+                                # метод удаления/сброса
+                                me.reset = !->
+                                    me.hide !->
+                                        # отстыковка обработчиков
+                                        me.off '.a'
+                                        me.a_sw.off!
+                                        # удаляем
+                                        me.accordion \destroy
+                                        # удаляем метод
+                                        delete me.reset
+                                        # зачищаем контент
+                                        me.load!
+                                # стыковка обработчиков событий
+                                # активация панели аккордеона
+                                me.on 'accordionbeforeactivate.a', (e, ui) ->
+                                    # проверка
+                                    if P.sync.state
+                                        e.stopPropagation!
+                                        return false
+                                    # определяем идентификатор панели
+                                    a = if ui.newHeader.length == 0
+                                        then ''
+                                        else ui.newHeader.0.id
+                                    # действие
+                                    P.setNav 1, a
+                                    true
+                                # переключатели
+                                # выбор
+                                me.a_sw.change (e) ->
+                                    # проверка
+                                    if P.sync.state or V.refresh.state
+                                        e.stopPropagation!
+                                        return false
+                                    # действие
+                                    if @type == \radio
+                                        P.setNav 2, @id
+                                    # возврат
+                                    true
+                                # отключение всей группы
+                                me.a_sw.click (e) ->
+                                    # проверка
+                                    if P.sync.state or V.refresh.state
+                                        # отмена события
+                                        e.stopPropagation!
+                                        return false
+                                    # действие
+                                    if @type == \radio and V.nav.2.id == @id
+                                        @checked = false
+                                        P.setNav 2, @id
+                                    # возврат
+                                    true
+                                # возврат
+                                true
+                            # }}}
+                            ###
+                            collapsible: true
+                            heightStyle: \fill
+                            icons: false
+                            header: '.aPanel'
+                        # панели аккордеона
+                        m1v1:
+                            cfg:
+                                n: '1'
+                            m1v1f1:
+                                n: '1-1'
+                            m1v1f2:
+                                n: '1-2'
+                        m1v2:
+                            cfg:
+                                n: '2'
+                            m1v2f1:
+                                n: '2-1'
+                            m1v2f2:
+                                n: '2-2'
+                            m1v2f3:
+                                n: '2-3'
+                            m1v2f4:
+                                n: '2-4'
+                        m2v1:
+                            cfg:
+                                n: 'Картотека'
+                            m2v1f1:
+                                n: 'помещения'
+                            m2v1f2:
+                                n: 'дома'
+                            m2v1f3:
+                                n: 'микрорайоны/улицы'
+                            m2v1f4:
+                                n: 'районы'
+                            m2v1f5:
+                                n: 'города'
+                        m2v4:
+                            cfg:
+                                n: 'Потребители'
+                            m2v4f1:
+                                n: 'частные лица'
+                            m2v4f2:
+                                n: 'организации'
+                        m2v2:
+                            cfg:
+                                n: 'Оплата'
+                            m2v2f1:
+                                n: 'касса'
+                            m2v2f2:
+                                n: 'банк'
+                            m2v2f3:
+                                n: 'взаимозачет'
+                            m2v2f4:
+                                n: 'сторно'
+                        m2v3:
+                            cfg:
+                                n: 'Объемы'
+                            m2v3f1:
+                                n: '3-1'
+                            m2v3f2:
+                                n: '3-2'
+                            m2v3f3:
+                                n: '3-3'
+                        m2v5:
+                            cfg:
+                                n: 'Поставщики'
+                            m2v5f1:
+                                n: '5-1'
+                            m2v5f2:
+                                n: '5-2'
+                        m3v1:
+                            cfg:
+                                n: 'Отчеты'
+                            m3v1f1:
+                                n: '1-1'
+                            m3v1f2:
+                                n: '1-2'
+                        m3v2:
+                            cfg:
+                                n: 'Запросы'
+                            m3v2f1:
+                                n: '2-1'
+                            m3v2f2:
+                                n: '2-2'
+                    # }}}
+                    view: # представление данных {{{
+                        cfg:
+                            init: -> # {{{
+                                # подготовка
+                                me = @
+                                # постоянные элементы
+                                # ..
+                                # общие методы
+                                me.func = {
+                                    attach: -> # {{{
+                                        ###
+                                        # возврат
+                                        me.func.detach = -> # {{{
+                                            # возврат
+                                            delete me.func.detach
+                                            true
+                                        # }}}
+                                        true
+                                    # }}}
+                                    refresh: -> # {{{
+                                        # возврат
+                                        me.show!
+                                        true
+                                    # }}}
+                                    resize: -> # {{{
+                                        # возврат
+                                        true
+                                    # }}}
+                                }
+                                # возврат
+                                true
+                            # }}}
+                        auth: # авторизация {{{
+                            cfg:
+                                preInit: false
+                        # }}}
+                        grid: # грид {{{
+                            # конфигурация
+                            cfg:
+                                preInit: false
+                                name: \grid
+                                show:
+                                    header         : false # indicates if header is visible
+                                    toolbar        : false # indicates if toolbar is visible
+                                    footer         : true # indicates if footer is visible
+                                    columnHeaders  : true # indicates if columns is visible
+                                    lineNumbers    : false # indicates if line numbers column is visible
+                                    expandColumn   : false # indicates if expand column is visible
+                                    selectColumn   : false # indicates if select column is visible
+                                    emptyRecords   : true # indicates if empty records are visible
+                                    toolbarReload  : true # indicates if toolbar reload button is visible
+                                    toolbarColumns : true # indicates if toolbar columns button is visible
+                                    toolbarSearch  : true # indicates if toolbar search controls are visible
+                                    toolbarAdd     : true # indicates if toolbar add new button is visible
+                                    toolbarEdit    : true # indicates if toolbar edit button is visible
+                                    toolbarDelete  : true # indicates if toolbar delete button is visible
+                                    toolbarSave    : true # indicates if toolbar save button is visible
+                                    selectionBorder: true # display border around selection (for selectType = 'cell')
+                                    recordTitles   : true # indicates if to define titles for records
+                                    skipRecords    : true # indicates if skip records should be visible
+
+                            m1v1f1g: {}
+                            m2v2f1g:
+                                columns: [
+                                    {
+                                        caption: 'ID'
+                                        field: 'recid'
+                                        hidden: true
+                                    }
+                                    {
+                                        caption: '№ пачки'
+                                        field: 'rName'
+                                        size: '40%'
+                                        sortable: true
+                                    }
+                                    {
+                                        caption: 'тип'
+                                        field: 'rType'
+                                        size: '10%'
+                                        attr: 'align=center'
+                                    }
+                                    {
+                                        caption: 'количество'
+                                        field: 'rCnt'
+                                        size: '20%'
+                                        attr: 'align=right'
+                                    }
+                                    {
+                                        caption: 'сумма'
+                                        field: 'rSum'
+                                        size: '20%'
+                                        attr: 'align=right'
+                                    }
+                                    {
+                                        caption: 'дата'
+                                        field: 'rDate'
+                                        size: '10%'
+                                        sortable: true
+                                        attr: 'align=center'
+                                    }
+                                ]
+                                sortData: [
+                                    {
+                                        field: 'rName'
+                                        direction: 'ASC'
+                                    }
+                                ]
+                                records: [
+                                    {
+                                        recid: 1
+                                        rName: 'XXXXXXXX'
+                                        rType: 'KZT'
+                                        rCnt: '733'
+                                        rSum: '3247192.22'
+                                        rDate: '2017/01/01'
+                                    }
+                                    {
+                                        recid: 2
+                                        rName: 'YYYYYYYY'
+                                        rType: 'KZT'
+                                        rCnt: '433'
+                                        rSum: '156000.00'
+                                        rDate: '2016/12/30'
+                                    }
+                                    {
+                                        recid: 3
+                                        rName: 'ZZZZZZZZ'
+                                        rType: 'KZT'
+                                        rCnt: '84'
+                                        rSum: '95000.00'
+                                        rDate: '2017/01/15'
+                                    }
+                                ]
+                        # }}}
+                        gridControls: # контролы {{{
+                            cfg: {}
+                            m2v2f1gc:
+                                list: [
+                                    {n: \добавить}
+                                    {n: \удалить}
+                                    {n: \изменить}
+                                ]
+                        # }}}
+                        ##
+                    ######
+                    # }}}
+                    console: # консоль {{{
+                        cfg:
+                            # слайдер цвета
+                            ifColor:
+                                n0: 'Цвет'
+                                n1: '»'
+                                ##
+                                animate: true
+                                disabled: false
+                                min: 0
+                                max: 360
+                                create: ->
+                                    # подготовка контрола
+                                    true
+                                slide: (e, ui) !->
+                                    # слайдинг
+                                    # выводим текущее значение
+                                    V.note.text ui.value
+                                stop: (e, ui) ->
+                                    # слайдинг завершен
+                                    true
+                        # короткое сообщение
+                        note:
+                            cfg: {}
+                        # кнопа-слайдер
+                        sliderBtn:
+                            cfg:
+                                # метод инициализации
+                                init: (cfg) ->
+                                    # подключаем дочерние элементы
+                                    a = '#' + @0.id
+                                    @scale  = $ a + ' div.ui-slider'
+                                    @handle = $ a + ' div.ui-slider .ui-slider-handle'
+                                    @btn0   = $ a + ' button.accept' .button!
+                                    @btn1   = $ a + ' button.restore' .button!
+                                    # создаем
+                                    @btn0.text cfg.n0
+                                    @btn1.text cfg.n1
+                                    @scale.slider cfg
+                                    # ok
+                                    true
+                    # }}}
             ###
-            source: null
-            Hue: ''
-            Saturation: ''
-            colors: null
-            gradient: {}
+            _seek: (cid, node, path, pid) -> # поиск элемента {{{
+                #
+                # cid  - искомый идентификатор
+                # node - элемент-контейнер
+                # path - полный путь к искомому
+                # pid  - идентификатор предыдущей кости
+                #
+                # если отсутствует конфигурация, то
+                # данный элемент (pid) последний (лист дерева) и
+                # не является контейнером.
+                if node.cfg
+                    # проверяем текущий набор
+                    if node[cid]
+                        # найдено!
+                        path.unshift pid if pid and path
+                        return node[cid]
+                    # рекурсия
+                    # спускаемся вниз по дереву
+                    for a of node when b = @_seek cid, node[a], path, a
+                        path.unshift pid if pid and path
+                        return b
+                # объект не найден..
+                null
+            # }}}
             ###
-            init: -> # {{{
-                # get source
-                a = if @source
-                    then @source
-                    else $ "html"
-                # check
-                return false if not a or a.length == 0
-                # save
-                @source = a
-                # get styles
-                a = window.getComputedStyle a.0
-                # get color parameters
-                @Hue = a.getPropertyValue '--col-h' .trim!
-                @Saturation = a.getPropertyValue '--col-s' .trim!
-                # determine colors
-                @colors = {}
-                for b from 0 to 99
-                    # opaque
-                    c = '--col'+b
-                    @colors[c] = b if a.getPropertyValue c
-                    # transparent
-                    c = c+'a'
-                    @colors[c] = -b if a.getPropertyValue c
-                # determine gradients
-                for b from 0 to 99
-                    # continual numeration
-                    break if not c = a.getPropertyValue '--gr'+b
-                    @gradient['gr'+b] = c.trim!
-                # select color
-                @select @Hue
+            path: (id) -> # полный путь до элемента в дереве {{{
+                # подготовка
+                path = []
+                return path if not id
+                # поиск
+                @_seek id, @cfg, path
+                # возврат
+                path
             # }}}
-            select: (Hue, Saturation = @Saturation) -> # {{{
-                # check
-                if not Hue or not Saturation or not @source
-                    return false
-                # change
-                @Hue = Hue
-                @Saturation = Saturation
-                # get style
-                a = window.getComputedStyle @source.0
-                # set style
-                # install colors
-                for b,c of @colors when d = a.getPropertyValue b
-                    if c >= 0
-                        # opaque
-                        e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 1)'
-                        @source.0.style.setProperty b, e if e != d.trim!
-                    else
-                        # transparent
-                        c = -c
-                        e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 0)'
-                        @source.0.style.setProperty b, e if e != d.trim!
-                # install gradients
-                for b of @gradient
-                    @source.0.style.setProperty '--'+b, @[b]
-                # ok
-                true
-            # }}}
-        }, {
-            get: (obj, p, prx) -> # color by Hue {{{
-                if typeof p != 'string'
-                    # incorrect selector
-                    a = null
-                else if obj[p]
-                    # determined, return as is
-                    a = obj[p]
-                else if parseInt p
-                    # opaque
-                    a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,1)'
-                else if 'a' == p.charAt 0
-                    # transparent
-                    p = p.slice 1
-                    a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,0)'
-                else if obj.gradient[p]
-                    # gradient
-                    a = obj.gradient[p]
-                    # determine its color
-                    a = a.replace /(--col(\d{2})([a]?))/g, (all, p1, p2, p3, pos, str) ->
-                        # prepare
-                        a = if p3 then p3+p2 else p2
-                        # recurse
-                        a = 'transparent' if not a = prx[a]
-                        # done
-                        return a
+            list: (id) -> # список дочерних элементов {{{
+                if not id
+                    # корневые элементы
+                    # все, кроме рабочей области
+                    a = Object.keys @cfg .filter (b) ->
+                        b != \wa and b != \cfg
                 else
-                    # unknown
-                    a = ''
-                # finish
-                return a
+                    # извлекаем контейнер
+                    if (a = @_seek id, @cfg) and a.cfg
+                        # все, кроме конфигурации
+                        a = Object.keys a .filter (b) -> b != \cfg
+                    else
+                        # не контейнер
+                        a = []
+                # возврат
+                a
             # }}}
-        }
-        # }}}
-        svg: w3ui.PROXY { # {{{
-            data: null
-            ###
-            init: -> # {{{
-                # prepare
-                @data = {}
-                # get template
-                a = $ '#svg'
-                return false if a.length == 0
-                # get containers
-                a = $ a.0.content .find 'div'
-                # get contents
-                for b from 0 to a.length - 1
-                    # store
-                    @data[a[b].id] = a[b].innerHTML
-                # done
+            index: (id) -> # {{{
+                # проверка
+                return false if not id
+                # определяем список дочерних элементов родителя
+                if (a = @path id).length > 0
+                    a = @list a.pop!
+                else
+                    a = @list!
+                    true
+                # определяем собственный индекс в списке
+                # возврат
+                a.indexOf id
+            # }}}
+            run: (method, ...args, onComplete) -> # запуск общей функции {{{
+                # подготовка
+                me = @
+                # ..
+                x = 0
+                args.push !-> --x
+                # запускаем поток
+                w3ui.THREAD @, [
+                    ->
+                        # выполняем для корневых элементов
+                        for a in me.list! when V[a]
+                            x++
+                            V[a].func[method].apply V[a], args
+                        # далее
+                        true
+                    ->
+                        # ожидаем
+                        x == 0
+                    ->
+                        # метод выпoлнен
+                        onComplete! if onComplete
+                        true
+                ]
+                # возврат
                 true
             # }}}
         }, {
-            get: (obj, p, prx) -> # {{{
-                # check
-                # incorrect selector / unknown
-                if typeof p != 'string' or not obj[p]
-                    return ''
-                # okay
-                return obj[p]
+            get: (obj, id, prx) -> # извлечение {{{
+                # проверка
+                return null if not id
+                # возвращаем как есть
+                return obj[id] if obj[id]
+                # возврат
+                obj._seek id, obj.cfg
+            # }}}
+            set: (obj, p, v, prx) -> # загрузка {{{
+                #*   p == имя элемента в дереве интерфейса
+                #*   v == обертка элемента jQuery
+                # подготовка
+                # определяем конфигурацию элемента
+                return false if !p or !v or not a = prx[p]
+                v.cfg = if a.cfg then a.cfg else a
+                # список дочерних элементов
+                lst  = obj.list p
+                # путь до элемента
+                path = obj.path p
+                # шаблон
+                templ = if (a = $ '#'+p+'-t').length != 0
+                    then a.html!
+                    else ''
+                # определяем методы
+                init = (id) -> # инициализация {{{
+                    # проверка
+                    if templ and id
+                        # динамический элемент
+                        # функция определения параметров
+                        params = (cid, pid) ->
+                            # результирующая структура (дерево)
+                            a =
+                                id: cid     # идентификатор
+                                pid: pid    # родительский идентификатор
+                            # добавляем шаблон
+                            # только для искомого (первого) элемента
+                            if not pid and (b = $ '#'+cid+'-t').length == 1
+                                a.html = b.html!
+                            # извелкаем элемент из дерева
+                            if b = prx[cid]
+                                # добавляем параметры
+                                if b.cfg
+                                    # конфигурация
+                                    a <<< b.cfg
+                                    # определяем контейнер параметров дочерних элементов
+                                    a.body = []
+                                    for c of b when c != \cfg
+                                        # рекурсия
+                                        a.body.push params c, cid
+                                else
+                                    # все содержимое
+                                    a <<< b
+                            # возврат
+                            a
+                        # на основе шаблона и параметров,
+                        # формируем контент
+                        v.html Mustache.render templ, params id
+                        ###
+                    else if templ
+                        # динамический элемент
+                        # шаблон без параметров
+                        v.html Mustache.render templ, {}
+                        # идентификатор
+                        id = @0.id
+                    else
+                        # статичный элемент
+                        # идентификатор
+                        id = @0.id
+                    # сборка дочерних элементов
+                    for a in obj.list id when (b = $ '#' + a).length != 0
+                        # инициализация (рекурсия)
+                        prx[a] = b
+                    # контент загружен
+                    # выполняем частную инициализацию элемента
+                    if v.cfg.init
+                        return v.cfg.init.apply v
+                    # возврат
+                    true
+                # }}}
+                fn = (method, dive, ...args, onComplete) -> # функция-шаблон {{{
+                    # определяем счетчик
+                    x = 0
+                    args.push !-> --x # завершающая функция-декремент
+                    # определяем функции потока
+                    # текущий элемент
+                    if v.cfg[method]
+                        f1 = [
+                            ->
+                                # частный метод
+                                # положительный возврат гарантирует вызов завершающей функции
+                                x++ if v.cfg[method].apply v, args
+                                # далее
+                                true
+                            ->
+                                # ожидаем
+                                x == 0
+                        ]
+                    else
+                        f1 = []
+                    # дочерние элементы
+                    f2 = [
+                        ->
+                            # общий метод
+                            for a in lst when v[a]
+                                x++ if v[a].func[method].apply v, args
+                            # далее
+                            true
+                        ->
+                            # ожидаем
+                            x == 0
+                    ]
+                    # определяем порядок обхода
+                    # комбинируем
+                    a = if dive
+                        then f1 ++ f2 # погружение
+                        else f2 ++ f1 # всплытие
+                    # запускаем поток
+                    w3ui.THREAD @, a ++ [
+                        ->
+                            # завершено
+                            onComplete! if onComplete
+                            true
+                    ]
+                    # возврат
+                    true
+                # }}}
+                # подключаем методы
+                v.func =
+                    # инициализация
+                    init: w3ui.PARTIAL v, init
+                    # события
+                    attach: w3ui.PARTIAL v, fn, \attach, true
+                    detach: w3ui.PARTIAL v, fn, \detach, false
+                    # обновление
+                    refresh: w3ui.PARTIAL v, fn, \refresh, true
+                    # изменение размеров
+                    resize: w3ui.PARTIAL v, fn, \resize, false
+                # добавляем общие методы
+                # отображение
+                v.show = w3ui.PARTIAL v, V.GSAP.show
+                # скрытие
+                v.hide = w3ui.PARTIAL v, (a, b) ->
+                    V.GSAP.show.apply v, [a <<< {show:false}, b]
+                # методы подключены
+                # поиск контейнера
+                node = V
+                for a in path
+                    break if not node[a]
+                    node = node[a]
+                # вставка
+                node[p] = v
+                # не корневой контейнер в интерфейсе, может содержать
+                # в себе только один контейнер (один навигационный маршрут),
+                # остальные контейнеры следует отключить от интерфейса..
+                if path.length != 0
+                    for a in lst when a != p and node[a] and prx[a].cfg
+                        # отключаемые элементы являются контейнерами
+                        node[a].remove!
+                        delete node[a]
+                # инициализация
+                v.func.init!
+                # возврат
+                true
             # }}}
         }
         # }}}
         skel: w3ui.PROXY { # interface skeleton {{{
-            cfg: # {{{
+            cfg:
                 # common props
-                id: '#wa'       # selector
-                node: null      # jquery object -> DOM connection
                 parent: null    # backlink
-                level: 0        # node level in skeleton tree
-                ###
-                init: (id = 'wa', parent = null, level = 0) -> # {{{
-                    # get bone
-                    return false if not b = V.skel[id]
-                    # configure
-                    b.cfg.id     = '#'+id
-                    b.cfg.node   = $ '#'+id
-                    b.cfg.parent = parent
-                    b.cfg.level  = level
-                    # recurse to children
-                    for k,v of b when k != 'cfg' and v.cfg
-                        @init k, b, level + 1
-                    # complete
+                node: null      # jquery object -> DOM connection
+                # {{{
+                init: ->
+                    # подготовка
+                    me = @
+                    ls = V.skel.list!
+                    # выполняем инициализацию корневых элементов
+                    for a in ls when (b = $ '#' + a).length != 0
+                        # подключаем к интерфейсу
+                        V.skel[a] = b
+                        # скрыты по-умолчанию
+                        V[a].hide {time: 0}
+                    # стыкуем обработчкики
+                    # изменение размеров окна
+                    $ window .on 'resize.' + @0.id, ->
+                        V.resize 100, ->
+                            V.refresh!
+                    # рабочая область по-умолчанию скрыта,
+                    # отображаем
+                    me.show !->
+                        # отображаем корневые элементы
+                        for a in ls when V[a]
+                            V[a].show!
+                    # возврат
                     true
                 # }}}
-                refresh: -> # {{{
-                    # prepare
-                    node = @cfg.node
-                    # define style classes
-                    # navigation level
-                    for a from M.nav.data.length to 1 by -1
-                        node.toggleClass 'n'+a, !!M.nav[a - 1].id
-                    # autorization
-                    node.toggleClass 'auth', !M.authorized
-                    # show layout
-                    if 0 + node.0.style.opacity < 0.99
-                        TweenMax.to node, 2, {
-                            opacity: 1
-                            ease: Power1.easeOut
-                        }
-                    # done
-                    true
-                # }}}
-            # }}}
-            toolbar: # {{{
-                cfg:
-                    refresh: -> # {{{
-                        # prepare
-                        node = @cfg.node
-                        node.toggleClass 'ext', !!M.nav[@cfg.level].id
-                        # refresh title
-                        # {{{
-                        # collect DOM nodes
-                        if not @title.node or not @title.node.length
-                            @title.node = $ @cfg.id + ' .title'
-                        # determine state
-                        a = @title.msg[@title.num]
-                        b = @title.node.html!
-                        # update
-                        # TODO: animation
-                        if a != b
-                            @title.node.html a
-                        # }}}
-                        # refresh mode
-                        # {{{
-                        for a,b of @mode
-                            # determine node
-                            if not b.node or not b.node.length
-                                b.node = $ @cfg.id + ' .' + a
-                            # determine width
-                            c = b.node.outerWidth!
-                            # determine parameter set
-                            for d,e in b.list when d.0 <= c
-                                break
-                            # check
-                            continue if b.num == e
-                            # update state
-                            b.num = e
-                            # update content
-                            b.node.html if d.1
-                                then d.1        # text
-                                else V.svg[a]   # small icon
-                        # }}}
-                        # done
-                        true
-                    # }}}
+            toolbar:
+            # {{{
+                cfg: {}
                 ###
-                mode:
-                    m1:
-                        num: -1
-                        list:
-                            [128, 'Картотека']
-                            [64,  'Карта']
-                            [0,   '']
-                    m2:
-                        num: -1
-                        list:
-                            [128, 'Картотека']
-                            [64,  'Карта']
-                            [0,   '']
-                    m3:
-                        num: -1
-                        list:
-                            [128, 'Картотека']
-                            [64,  'Карта']
-                            [0,   '']
+                mode1:
+                    n: 'Картотека'
+                    sn: 'Карт'
+                    ss: 130
+                mode2:
+                    n: '~~'
+                    sn: '~'
+                    ss: 130
+                mode3:
+                    n: '~~'
+                    sn: '~'
+                    ss: 130
                 title:
                     num: 0
-                    msg:
-                        'Коммунальная Информационная Система'
+                    list:
+                        '~'
                         'заголовок №1'
                         'заголовок №2'
                         'заголовок №3'
             # }}}
-            view: # {{{
-                cfg: # {{{
-                    init: ->
+            view:
+            # {{{
+                cfg:
+                    init: -> # {{{
                         # подготовка
                         me = @
                         # постоянные элементы
@@ -352,7 +990,7 @@ $ \document .ready ->
                         }
                         # возврат
                         true
-                # }}}
+                    # }}}
                 auth: # авторизация {{{
                     cfg:
                         preInit: false
@@ -455,9 +1093,20 @@ $ \document .ready ->
                             }
                         ]
                 # }}}
+                gridControls: # контролы {{{
+                    cfg: {}
+                    m2v2f1gc:
+                        list: [
+                            {n: \добавить}
+                            {n: \удалить}
+                            {n: \изменить}
+                        ]
+                # }}}
             # }}}
-            console: # {{{
-                cfg: # {{{
+            console:
+            # {{{
+                cfg:
+                    # {{{
                     # слайдер цвета
                     ifColor:
                         n0: 'Цвет'
@@ -477,8 +1126,8 @@ $ \document .ready ->
                         stop: (e, ui) ->
                             # слайдинг завершен
                             true
-                # }}}
-                log: # {{{
+                    # }}}
+                log:
                     state: []
                     error:
                         'Ошибка'
@@ -495,7 +1144,6 @@ $ \document .ready ->
                         'авторизация'
                         'доступ разрешен'
                         'авторизация завершена'
-                # }}}
             # }}}
         }, {
             get: (obj, id, prx) -> # {{{
@@ -505,51 +1153,246 @@ $ \document .ready ->
                 return obj[id] if obj[id]
                 # check leaf node (no config)
                 return null if not obj.cfg
-                # initiate stack
-                a = [obj]
-                # iterative search
-                while a.length
-                    # extact node
-                    b = a.pop!
-                    # search in branches
-                    for own k,v of b when k != 'cfg' and v.cfg
-                        # found
-                        return v[id] if v[id]
-                        # add to stack
-                        a.push v
+                # get children
+                b = Object.keys obj .filter (a) -> a != \cfg
+                # search branches
+                for a in b when obj[a].cfg
+                    # recurse
+                    if c = prx.get obj[a], id, prx
+                        return c
                 # not found
                 return null
             # }}}
         }
         # }}}
+        /***/
+        color: w3ui.PROXY { # {{{
+            ###
+            source: null
+            Hue: ''
+            Saturation: ''
+            colors: null
+            gradient: {}
+            ###
+            init: -> # {{{
+                # get source
+                a = if @source
+                    then @source
+                    else $ "html"
+                # check
+                return false if not a or a.length == 0
+                # save
+                @source = a
+                # get styles
+                a = window.getComputedStyle a.0
+                # get color parameters
+                @Hue = a.getPropertyValue '--col-h' .trim!
+                @Saturation = a.getPropertyValue '--col-s' .trim!
+                # determine colors
+                @colors = {}
+                for b from 0 to 99
+                    # opaque
+                    c = '--col'+b
+                    @colors[c] = b if a.getPropertyValue c
+                    # transparent
+                    c = c+'a'
+                    @colors[c] = -b if a.getPropertyValue c
+                # determine gradients
+                for b from 0 to 99
+                    # continual numeration
+                    break if not c = a.getPropertyValue '--gr'+b
+                    @gradient['gr'+b] = c.trim!
+                # select color
+                @set @Hue
+            # }}}
+            set: (Hue, Saturation = @Saturation) -> # {{{
+                # check
+                if not Hue or not Saturation or not @source
+                    return false
+                # change
+                @Hue = Hue
+                @Saturation = Saturation
+                # get style
+                a = window.getComputedStyle @source.0
+                # set style
+                # install colors
+                for b,c of @colors when d = a.getPropertyValue b
+                    if c >= 0
+                        # opaque
+                        e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 1)'
+                        @source.0.style.setProperty b, e if e != d.trim!
+                    else
+                        # transparent
+                        c = -c
+                        e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 0)'
+                        @source.0.style.setProperty b, e if e != d.trim!
+                # install gradients
+                for b of @gradient
+                    @root.0.style.setProperty '--'+b, @[b]
+                # ok
+                true
+            # }}}
+        }, {
+            get: (obj, p, prx) -> # color by Hue {{{
+                if typeof p != 'string'
+                    # incorrect selector
+                    a = ''
+                else if obj[p]
+                    # determined
+                    a = obj[p]
+                else if parseInt p
+                    # opaque
+                    a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,1)'
+                else if 'a' == p.charAt 0
+                    # transparent
+                    p = p.slice 1
+                    a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,0)'
+                else if obj.gradient[p]
+                    # gradient
+                    a = obj.gradient[p]
+                    # determine its color
+                    a = a.replace /(--col(\d{2})([a]?))/g, (all, p1, p2, p3, pos, str) ->
+                        # prepare
+                        a = if p3 then p3+p2 else p2
+                        # recurse
+                        a = 'transparent' if not a = prx[a]
+                        # done
+                        return a
+                else
+                    # unknown
+                    a = ''
+                # finish
+                return a
+            # }}}
+        }
+        # }}}
         ###
         init: -> # {{{
-            # prepare colors
+            # load colors
             if not @color.init!
+                console.log "can't load interface color"
                 return false
-            # prepare svg
-            if not @svg.init!
-                return false
-            # prepare interface skeleton
-            if not @skel.cfg.init!
-                return false
+            # prepare skeleton tree
+            a = [@skel.wa]
+            while a.length
+                # get parent
+                b = a.pop!
+                # for each child branch,
+                # initialize parent backlink
+                for c,d of b when c != 'cfg' and d.cfg
+                    d.cfg.parent = b
+                    a.push d
             # done
             true
         # }}}
-        refresh: -> # {{{
-            # collect DOM nodes
-            @go 'wa', true, [], !->
-                # select
-                a = $ @cfg.id
-                # save
-                @cfg.node = if a.length
-                    then a
-                    else null
-            # initiate common refresh procedure
-            @go 'wa', true, [], 'refresh'
+        go: (node, direction, method, args = []) -> # {{{
+            # get start node
+            node = 'wa' if not node
+            if not node = @skel[node]
+                return false
+            # check
+            return true if not node.cfg
+            # execute method
+            debugger
+            if typeof method == 'string'
+                # common
+                node.cfg[method].apply node, args if node.cfg[method]
+            else
+                # custom
+                method.apply node, args
+            # check direction
+            if direction
+                # forward/up
+                # recurse for children
+                for a of node when a != 'cfg'
+                    @go a, direction, method, args
+            else
+                # backward/down
+                # only for parents
+                while a = node.cfg.parent
+                    # execute method
+                    if typeof method == 'string'
+                        # common
+                        a.cfg[method].apply a, args if a.cfg[method]
+                    else
+                        # custom
+                        method.apply a, args
+                    # switch
+                    node = a
             # done
             true
         # }}}
+        refresh: (onComplete) -> # {{{
+            # ..
+            # подготовка
+            me = @
+            me.state++
+            # запуск
+            V.skel.run \refresh, @nav.keys!, !->
+                # функция завершена
+                me.state--
+                onComplete! if onComplete
+            /*
+            t = t ++ [ # сброс + ожидание {{{
+                ->
+                    # рабочая область (общий стиль)
+                    # тип интерфейса
+                    V.wa.removeClass \auth if not V.auth
+                    V.wa.removeClass \std if V.auth
+                    # навигация
+                    for a,b in v when not a
+                        V.wa.removeClass 'n'+b
+                    # левая панель
+                    w2ui.wa.refresh \left
+                    # ok
+                    true
+            ]
+            # }}}
+            w3ui.THREAD @, t ++ [ # {{{
+                ->
+                    # тулбар
+                    # заголовок
+                    gs.setTitle if V.auth or not v.0
+                        then 1
+                        else if v.0
+                            then 2
+                            else 0
+                    # главная панель
+                    # фон
+                    a = if v.2
+                        then ['' '']
+                        else if V.auth
+                            then ['gr2' '']
+                            else if v.1
+                                then ['gr0' 'gr1']
+                                else ['gr0' '']
+                    gs.setBackground a, !->
+                        # грид
+                        if V.grid
+                            w2ui.grid.refresh! if w2ui.grid
+                            V.grid.show!
+                            V.gridControls.show!
+                        # авторизация
+                        if V.auth
+                            V.auth.show!
+                    # рабочая область (общий стиль)
+                    V.wa.toggleClass \ok, true # начальная установка
+                    V.wa.toggleClass \auth, !V.auth # авторизация выполнена
+                    # навигация
+                    for a,b in v
+                        V.wa.toggleClass 'n'+b, !!a
+                        for own c of V.nav[b] when c != \id
+                            V.wa.toggleClass 'n'+b+''+c, !!V.nav[b][c]
+                    # функция завершена
+                    me.state = false
+                    onComplete.apply me if onComplete
+                    true
+            ] # }}}
+            */
+            # возврат
+            true
+        # }}}
+        ###
         # TODO
         resize: (delay, onComplete) !-> # {{{
             # подготовка
@@ -730,6 +1573,21 @@ $ \document .ready ->
                 gs.busy += 1
                 a.play!
                 true
+            # }}}
+            setTitle: (num = 0) -> # задаем инфо-заголовок {{{
+                # подготовка
+                me = @setTitle
+                # определяем текст
+                a = V.lang.title[num]
+                a = a! if typeof a != 'string'
+                # проверяем необходимость
+                return false if me.txt == a
+                # запоминаем
+                me.txt = a
+                # анимация (TODO)
+                V.title.html a
+                # ok
+                false
             # }}}
             setNote: (num = 0) -> # задаем инфо-заметку {{{
                 # подготовка
@@ -1076,6 +1934,30 @@ $ \document .ready ->
                             d = 1.0
                             a.to V.view, d, {
                                 backgroundColor:V.color.90
+                # singleton!
+                # определяем корневой элемент
+                return false if @root or (@root = $ \html).length == 0
+                # определяем стили
+                a = getComputedStyle @root.0
+                # определяем параметры цвета
+                @Hue = a.getPropertyValue '--col-h' .trim!
+                @Saturation = a.getPropertyValue '--col-s' .trim!
+                # определяем используемые цвета
+                @colors = {}
+                for b from 0 to 99
+                    # непрозрачный
+                    c = '--col'+b
+                    @colors[c] = b if a.getPropertyValue c
+                    # прозрачный
+                    c = c+'a'
+                    @colors[c] = -b if a.getPropertyValue c
+                # определяем градиенты
+                for b from 0 to 99 
+                    # нумерация должна быть непрерывной
+                    break if not c = a.getPropertyValue '--gr'+b
+                    @gradient['gr'+b] = c.trim!
+                # устанавливаем цвет
+                @set @Hue
                                 ease:f
                             }, e
                             # убираем градиент общего фона
@@ -1427,56 +2309,72 @@ $ \document .ready ->
                 me.init!
             # }}}
         # }}}
-        ###
-        go: (node, direction, args, method) -> # {{{
-            # get start node
-            if not node = @skel[node]
-                return false
-            # check
-            return true if not node.cfg
-            # determine method type
-            commonMethod = typeof method == 'string'
-            # execute
-            if commonMethod
-                # common method/node must exist
-                if node.cfg[method] and node.cfg.node
-                    node.cfg[method].apply node, args
-            else
-                # custom
-                method.apply node, args
-            # go
-            # check direction
-            if direction
-                # forward/up
-                # recurse to children branches
-                for a of node when a != 'cfg'
-                    @go a, direction, args, method
-            else
-                # backward/down
-                # only for parents
-                while a = node.cfg.parent
-                    # execute
-                    if commonMethod
-                        # common
-                        if a.cfg[method] and a.cfg.node
-                            a.cfg[method].apply a, args
+        lang: # язык интерфейса {{{
+            # общая конфигурация сплита для анимации
+            cfg: {}
+            title: [ # заголовки {{{
+
+                '' #00
+                'Коммунальная Информационная Система' #01
+                (t = 'Статистика') -> #02
+                    # определяем префикс
+                    /*
+                    v = V.nav.keys!
+                    if v.2
+                        t = V.skel.getBoneCfg v.2, 'n'
+                        a = V.skel.getBoneCfg v.1, 'n'
+                    else if v.1
+                        a = V.skel.getBoneCfg v.1, 'n'
                     else
-                        # custom
-                        method.apply a, args
-                    # next
-                    node = a
-            # complete
-            true
+                        a = V.skel.getBoneCfg v.0, 'n'
+                    # ок
+                    a+' :: '+t
+                    */
+                    return 'rev'
+
+                'Авторизация' #03
+
+            ] # }}}
+            note: [ # заметки {{{
+                '' #00
+                'авторизация' #01
+                'активирован тестовый режим' #02
+                'подключение к серверу установлено' #03
+                'подключение к серверу не установлено' #04
+                'загрузка ключевого контейнера' #05
+                'аутентификация' #06
+                'в доступе отказано' #07
+                'доступ получен' #08
+                'ссылка' #09
+                '' #10
+                'сплэш!' #11
+                'авторизация завершена' #12
+            ] # }}}
+
         # }}}
+        s: w3ui.PROXY { # ссылки для быстрого доступа к DOM {{{
+            clearCache: !-> @cache = {}
+            cache: {}
+            data:
+                main_panel: '#layout_wa_panel_main div.w2ui-panel-content' # главная панель
+                canvas: '#view canvas' # канва для рисования
+                # авторизация
+                auth_svg: '#auth svg' # изображение
+                auth_btn: '#authBtn' # кнопа
+        }, {
+            get: (obj, p, prx) ->
+                return obj[p] if obj[p]
+                return null if not obj.data[p]
+                return obj.cache[p] if obj.cache[p]
+                obj.cache[p] = $ obj.data[p]
+        }
+        # }}}
+        ###
     # }}}
     P = # presenter {{{
-        ###
         init: -> # {{{
-            # refresh view
-            V.refresh!
-            # attach global events
-            # ..
-            /*
+            return true
+            debugger
             # wait for view
             if V.state
                 w3ui.BOUNCE {scope: @, time: 100}, @init
@@ -1516,6 +2414,7 @@ $ \document .ready ->
                 x = [true] * m.length
                 V.nav.data.forEach (a) -> a.id = ''
             # }}}
+            /*
             lv.2 and t = t ++ [ # {{{
                 ->
                     if V.auth
@@ -1578,6 +2477,7 @@ $ \document .ready ->
                     true
             ]
             # }}}
+            */
             # отстыковка
             V.skel.run \detach, x, m, !->
                 # стыковка
@@ -1586,11 +2486,15 @@ $ \document .ready ->
                     V.state--
                     # завершающая функция
                     onComplete! if onComplete
-            */
-            # complete
+            # возврат
             true
         # }}}
-        ###
+
+        # общий (метод не существует если функция выполняется)
+        sync: undefined
+        #
+        # [M] <== [P] <=> [V]
+        #
         navigate: (nav, onComplete) -> # навигация {{{
             # проверка
             return false if not @sync
@@ -1615,6 +2519,7 @@ $ \document .ready ->
             # возврат
             true
         # }}}
+        #setNav: (level, key, value, onComplete) -> # переключение навигации
         nav: (level, key, value, onComplete) -> # переключение навигации {{{
             # проверка
             return false if V.state != 0
