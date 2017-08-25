@@ -197,38 +197,23 @@ $('document').ready(function(){
       }
     }, {
       get: function(obj, p, prx){
-        if (typeof p !== 'string' || !obj[p]) {
-          return '';
+        if (typeof p === 'string') {
+          if (obj[p]) {
+            return obj[p];
+          }
+          if (obj.data[p]) {
+            return obj.data[p];
+          }
         }
-        return obj[p];
+        return '';
       }
     }),
     skel: w3ui.PROXY({
       cfg: {
-        id: '#wa',
+        id: 'wa',
         node: null,
         parent: null,
         level: 0,
-        init: function(id, parent, level){
-          var b, k, v;
-          id == null && (id = 'wa');
-          parent == null && (parent = null);
-          level == null && (level = 0);
-          if (!(b = V.skel[id])) {
-            return false;
-          }
-          b.cfg.id = '#' + id;
-          b.cfg.node = $('#' + id);
-          b.cfg.parent = parent;
-          b.cfg.level = level;
-          for (k in b) {
-            v = b[k];
-            if (k !== 'cfg' && v.cfg) {
-              this.init(k, b, level + 1);
-            }
-          }
-          return true;
-        },
         refresh: function(){
           var node, i$, a;
           node = this.cfg.node;
@@ -248,24 +233,44 @@ $('document').ready(function(){
       },
       toolbar: {
         cfg: {
-          refresh: function(){
-            var node, a, b, ref$, c, i$, ref1$, len$, e, d;
-            node = this.cfg.node;
-            node.toggleClass('ext', !!M.nav[this.cfg.level].id);
-            if (!this.title.node || !this.title.node.length) {
-              this.title.node = $(this.cfg.id + ' .title');
+          init: function(){
+            var a, ref$, b, i$, ref1$, len$, c;
+            this.title.node = w3ui.getNode('#' + this.cfg.id + ' .title div');
+            for (a in ref$ = this.mode) {
+              b = ref$[a];
+              b.node = w3ui.getNode('#' + this.cfg.id + ' .' + a);
+              for (i$ = 0, len$ = (ref1$ = b.list).length; i$ < len$; ++i$) {
+                c = ref1$[i$];
+                if (c[1]) {
+                  a = w3ui.measureText(c[1], b.node);
+                  if (a && a.width) {
+                    c[0] = a.width;
+                  }
+                }
+              }
             }
-            a = this.title.msg[this.title.num];
-            b = this.title.node.html();
-            if (a !== b) {
-              this.title.node.html(a);
+            return true;
+          },
+          refresh: function(){
+            var node, b, a, c, ref$, i$, ref1$, len$, e, d;
+            node = this.cfg.node;
+            b = this.title.current;
+            a = this.title.num.every(function(a, c){
+              return b[c] === a;
+            });
+            if (!a) {
+              a = this.title.num;
+              b = a[0] >= 0 ? this.title.line[a[0]][0] : '';
+              c = b && a[1] > 0 ? this.title.line[a[0]][a[1]] : '';
+              this.title.node.eq(0).html(b);
+              this.title.node.eq(1).html(c);
+              this.title.current = w3ui.CLONE(a);
             }
             for (a in ref$ = this.mode) {
               b = ref$[a];
-              if (!b.node || !b.node.length) {
-                b.node = $(this.cfg.id + ' .' + a);
-              }
-              c = b.node.outerWidth();
+              c = b.node.style;
+              c = c.paddingLeft + c.paddingRight;
+              c = b.node[0].clientWidth - c;
               for (i$ = 0, len$ = (ref1$ = b.list).length; i$ < len$; ++i$) {
                 e = i$;
                 d = ref1$[i$];
@@ -282,6 +287,9 @@ $('document').ready(function(){
                 : V.svg[a]);
             }
             return true;
+          },
+          resize: function(){
+            return this.cfg.refresh.apply(this);
           }
         },
         mode: {
@@ -291,16 +299,17 @@ $('document').ready(function(){
           },
           m2: {
             num: -1,
-            list: [[128, 'Картотека'], [64, 'Карта'], [0, '']]
+            list: [[128, ''], [64, ''], [0, '']]
           },
           m3: {
             num: -1,
-            list: [[128, 'Картотека'], [64, 'Карта'], [0, '']]
+            list: [[128, ''], [64, ''], [0, '']]
           }
         },
         title: {
-          num: 0,
-          msg: ['Коммунальная Информационная Система', 'заголовок №1', 'заголовок №2', 'заголовок №3']
+          num: [0, 1],
+          current: [-1, -1],
+          line: [['Коммунальная', 'Информационная Система'], ['']]
         }
       },
       view: {
@@ -478,61 +487,94 @@ $('document').ready(function(){
         return null;
       }
     }),
+    go: function(nodeName, direction, args, method){
+      var commonMethod, methodName, node, a;
+      commonMethod = typeof method === 'string';
+      methodName = commonMethod
+        ? method
+        : method.name;
+      if (!(node = this.skel[nodeName])) {
+        console.log('getting element [' + nodeName + '] failed');
+        return false;
+      }
+      if (!node.cfg) {
+        return true;
+      }
+      if (commonMethod) {
+        a = node.cfg[method] && node.cfg.node ? node.cfg[method].apply(node, args) : true;
+      } else {
+        a = method.apply(node, args);
+      }
+      if (!a) {
+        console.log('method [' + methodName + '] failed on element [' + nodeName + ']');
+        return false;
+      }
+      if (direction) {
+        for (a in node) {
+          if (a !== 'cfg') {
+            if (!this.go(a, direction, args, method)) {
+              return false;
+            }
+          }
+        }
+      } else {
+        a = node.cfg.parent;
+        if (a) {
+          if (!this.go(a, direction, args, method)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
     init: function(){
+      var f;
       if (!this.color.init()) {
+        console.log('color.init failed');
         return false;
       }
       if (!this.svg.init()) {
+        console.log('svg.init failed');
         return false;
       }
-      if (!this.skel.cfg.init()) {
-        return false;
-      }
-      return true;
+      f = function(id, parent, level){
+        var a, b, c;
+        id == null && (id = 'wa');
+        parent == null && (parent = null);
+        level == null && (level = 0);
+        if (!(a = this.skel[id])) {
+          console.log('getting element [' + id + '] failed');
+          return false;
+        }
+        a.cfg.id = id;
+        a.cfg.node = w3ui.getNode('#' + id);
+        a.cfg.parent = parent;
+        a.cfg.level = level;
+        for (b in a) {
+          c = a[b];
+          if (b !== 'cfg' && c.cfg) {
+            if (!f.apply(this, [b, c, level + 1])) {
+              return false;
+            }
+          }
+        }
+        return true;
+      };
+      return f.apply(this) && this.go('wa', true, [], 'init');
     },
     refresh: function(){
-      this.go('wa', true, [], function(){
-        var a;
-        a = $(this.cfg.id);
-        this.cfg.node = a.length ? a : null;
-      });
-      this.go('wa', true, [], 'refresh');
-      return true;
+      return this.go('wa', true, [], 'refresh');
     },
-    resize: function(delay, onComplete){
-      var fn, me;
-      if (delay || this.state !== 0) {
-        if (!delay) {
-          delay = 250;
-        }
-        if (this.resize.timer) {
-          window.clearTimeout(this.resize.timer);
-        }
-        fn = w3ui.PARTIAL(this, this.resize, 0, onComplete);
-        this.resize.timer = window.setTimeout(fn, delay);
-      } else {
-        this.state++;
-        me = this;
-        V.skel.run('resize', this.nav.keys(), function(){
-          me.state--;
-          if (onComplete) {
-            onComplete();
-          }
-        });
+    resize: function(){
+      var me, fn;
+      me = this.resize;
+      if (me.timer) {
+        window.clearTimeout(me.timer);
+        fn = w3ui.PARTIAL(this, me);
+        me.timer = window.setTimeout(fn, 250);
+        return;
       }
-      true;
-      /*
-      if @auth
-          # авторизация!
-          # определяем размер поля
-          a = V.s.canvas
-          a.outerWidth @view.outerWidth!
-          a.outerHeight @view.outerHeight!
-          # запуск
-          gs.auth.init!
-      # завершаем
-      me.state = false
-      */
+      this.go('wa', true, [], 'resize');
     },
     GSAP: {
       busy: 0,
@@ -1261,54 +1303,15 @@ $('document').ready(function(){
         }
         return me.init();
       }
-    },
-    go: function(node, direction, args, method){
-      var commonMethod, a;
-      if (!(node = this.skel[node])) {
-        return false;
-      }
-      if (!node.cfg) {
-        return true;
-      }
-      commonMethod = typeof method === 'string';
-      if (commonMethod) {
-        if (node.cfg[method] && node.cfg.node) {
-          node.cfg[method].apply(node, args);
-        }
-      } else {
-        method.apply(node, args);
-      }
-      if (direction) {
-        for (a in node) {
-          if (a !== 'cfg') {
-            this.go(a, direction, args, method);
-          }
-        }
-      } else {
-        while (a = node.cfg.parent) {
-          if (commonMethod) {
-            if (a.cfg[method] && a.cfg.node) {
-              a.cfg[method].apply(a, args);
-            }
-          } else {
-            method.apply(a, args);
-          }
-          node = a;
-        }
-      }
-      return true;
     }
   };
   P = {
     init: function(){
       V.refresh();
+      $(window).on('resize', function(){
+        return V.resize();
+      });
       /*
-      # wait for view
-      if V.state
-          w3ui.BOUNCE {scope: @, time: 100}, @init
-          return true
-      # lock
-      V.state++
       # synchronize navigation
       # {{{
       if M.authorized
@@ -1342,6 +1345,7 @@ $('document').ready(function(){
           x = [true] * m.length
           V.nav.data.forEach (a) -> a.id = ''
       # }}}
+      # ..
       lv.2 and t = t ++ [ # {{{
           ->
               if V.auth

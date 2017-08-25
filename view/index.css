@@ -1,20 +1,4 @@
 /* CSSv3 */
-/* html {{{ */
-html
-{
-  min-height: 100vh;
-  min-width: 100vw;
-  height: 100%;
-  width: 100%;
-}
-body
-{
-  height: 100vh;
-  width: 100vw;
-  margin: 0;
-  background-color: white;
-}
-/* }}} */
 /* colors {{{ */
 :root {
   /* default: ALICE BLUE */
@@ -22,6 +6,7 @@ body
   --col-h: 211;/* hue */
   --col-s:  92;/* saturation */
   /* opaque */
+  --col99: hsla(211, 92%, 99%, 1);
   --col95: hsla(211, 92%, 95%, 1);
   --col93: hsla(211, 92%, 93%, 1);
   --col92: hsla(211, 92%, 92%, 1);
@@ -56,8 +41,23 @@ body
   --gr3: radial-gradient(ellipse, --col90 25%, transparent 75%);
 }
 /* }}} */
+/* html {{{ */
+html
+{
+  min-height: 100vh;
+  min-width: 100vw;
+  height: 100%;
+  width: 100%;
+}
+body
+{
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  background-color: var(--col99);
+}
+/* }}} */
 /* fonts {{{ */
-/* types */
 #toolbar .mode button,
 #toolbar .title,
 #log.msg
@@ -69,14 +69,9 @@ body
 {
   font-family: "Arial Black", Gadget, sans-serif;
 }
-/* sizes */
-#toolbar .title
-{
-  font-size: 100%;
-}
 /* }}} */
 
-/* layout */
+/* workarea {{{ */
 #wa
 {
   position: absolute;
@@ -91,100 +86,113 @@ body
 /* toolbar {{{ */
 #toolbar
 {
-  height: 48px;
+  height: 8vh;
+  min-height: 32px;
+  max-height: 48px;
 }
-#toolbar.ext {
-  height: 64px;
-}
-#toolbar svg {
-  fill: var(--col30);
-}
-
-/* bar1 */
-#toolbar .bar1 {
+/* bar1 {{{ */
+#toolbar .bar1
+{
   height: 100%;
   display: flex;
-}
-#toolbar.ext .bar1 {
-  height: 50%
 }
 /* mode {{{ */
 #toolbar .mode
 {
-  flex: 1 1 25%;
+  flex: 1 1 30%;
   display: flex;
 }
-#toolbar .mode button {
-  flex: 1 1 33%;
-  cursor: pointer;
+/* }}} */
+/* title {{{ */
+#toolbar .title
+{
+  flex: 2 2 40%;
+  color: var(--col40);
+  padding: 0 4px;
+}
+#toolbar .title > div {
+  height: 50%;
+  display: flex;
+  justify-content: center;
+  white-space: nowrap;
+}
+#toolbar .title .t1 {
+  align-items: flex-end;
+}
+#toolbar .title .t2 {
+  align-items: flex-start;
+}
+/* }}} */
+/* user {{{ */
+#toolbar .user {
+  flex: 1 1 30%;
+  display: flex;
+}
+/* }}} */
+/* }}} */
+/* progress {{{ */
+#toolbar .progress {
+  height: 3px;
+  background-color: var(--col93);
+  border: 1px solid var(--col85);
+  margin: 2px 1px 2px 1px;
+}
+/* }}} */
+/* bar2 {{{ */
+#toolbar .bar2
+{
+  height: 0;
+}
+/* }}} */
+#toolbar button
+{
+  flex: 1 1 33.333%;
+  height: 100%;
+  min-width: 24px;
+  font-size: 100%;
+  padding: 4px;
+  margin: 0 1px 0 1px;
   background-color: var(--col93);
   color: var(--col40);
-  height: 100%;
-  margin: 0 1px 0 1px;
-  padding: 4px;
-  display: block;
   border: 1px solid var(--col85);
+  cursor: pointer;
   /* anim */
   transition-property: background-color, color, opacity;
   transition-duration: 0.6s;
   transition-timing-function: ease;
 }
-#toolbar .mode button:hover {
+#toolbar button:hover {
   background-color: var(--col82);
   color: var(--col20);
 }
 
-#toolbar .mode button.selected {
+#toolbar button.selected {
   background-color: var(--col85);
   border: 1px solid var(--col93);
   color: var(--col30);
 }
-#toolbar .mode button.selected:hover {
+#toolbar button.selected:hover {
   background-color: var(--col77);
   color: var(--col20);
 }
-
-/* }}} */
-/* title {{{ */
-#toolbar .title
-{
-  flex: 2 2 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: var(--col40);
-  padding: 0 4px;
-  white-space: nowrap;
+#toolbar svg {
+  fill: var(--col30);
+  height: 100%;
+  width: 100%;
+  min-width: 16px;
 }
-/* }}} */
-/* user {{{ */
-#toolbar .user {
-  flex: 1 1 25%;
-}
-/* }}} */
-
-/* bar2 */
-#toolbar .bar2 {
-  height: 0
-  display: flex;
-}
-#toolbar.ext .bar2 {
-  height: 50%
-}
-#toolbar .mode_ext {flex: 1 1 50%;}
-#toolbar .user_ext {flex: 1 1 50%;}
 /* }}} */
 /* view {{{ */
 #view {
-  height: 90%;
+  height: 90vh;
 }
 /* }}} */
 /* console {{{ */
 #console {
-  height: 10%;
+  height: 10vh;
 }
 /* }}} */
-
+/* }}} */
 
 /* custom */
 /* панель навигации {{{ */

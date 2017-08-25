@@ -6,7 +6,7 @@ $ \document .ready ->
     return if not w3ui
     ###
     M = # model {{{
-        nav: w3ui.PROXY { # {{{
+        nav: w3ui.PROXY { # TODO {{{
             arch: []
             data: [
                 {
@@ -202,36 +202,22 @@ $ \document .ready ->
         }, {
             get: (obj, p, prx) -> # {{{
                 # check
-                # incorrect selector / unknown
-                if typeof p != 'string' or not obj[p]
-                    return ''
-                # okay
-                return obj[p]
+                if typeof p == 'string'
+                    return obj[p] if obj[p]
+                    return obj.data[p] if obj.data[p]
+                # nothing
+                return ''
             # }}}
         }
         # }}}
         skel: w3ui.PROXY { # interface skeleton {{{
             cfg: # {{{
                 # common props
-                id: '#wa'       # selector
+                id: 'wa'        # node name/identifier
                 node: null      # jquery object -> DOM connection
                 parent: null    # backlink
                 level: 0        # node level in skeleton tree
                 ###
-                init: (id = 'wa', parent = null, level = 0) -> # {{{
-                    # get bone
-                    return false if not b = V.skel[id]
-                    # configure
-                    b.cfg.id     = '#'+id
-                    b.cfg.node   = $ '#'+id
-                    b.cfg.parent = parent
-                    b.cfg.level  = level
-                    # recurse to children
-                    for k,v of b when k != 'cfg' and v.cfg
-                        @init k, b, level + 1
-                    # complete
-                    true
-                # }}}
                 refresh: -> # {{{
                     # prepare
                     node = @cfg.node
@@ -253,31 +239,54 @@ $ \document .ready ->
             # }}}
             toolbar: # {{{
                 cfg:
+                    init: -> # {{{
+                        # title
+                        # collect DOM nodes
+                        @title.node = w3ui.getNode '#'+@cfg.id+' .title div'
+                        # mode
+                        for a,b of @mode
+                            # collect DOM nodes
+                            b.node = w3ui.getNode '#'+@cfg.id+' .'+a
+                            # determine text size
+                            for c in b.list when c.1
+                                a = w3ui.measureText c.1, b.node
+                                c.0 = a.width if a and a.width
+                        # done
+                        true
+                    # }}}
                     refresh: -> # {{{
                         # prepare
                         node = @cfg.node
-                        node.toggleClass 'ext', !!M.nav[@cfg.level].id
+                        #node.toggleClass 'ext', !!M.nav[@cfg.level].id
                         # refresh title
                         # {{{
-                        # collect DOM nodes
-                        if not @title.node or not @title.node.length
-                            @title.node = $ @cfg.id + ' .title'
-                        # determine state
-                        a = @title.msg[@title.num]
-                        b = @title.node.html!
+                        # check state
+                        b = @title.current
+                        a = @title.num.every (a,c) -> b[c] == a
                         # update
-                        # TODO: animation
-                        if a != b
-                            @title.node.html a
+                        if not a
+                            # get lines
+                            a = @title.num
+                            b = if a.0 >= 0
+                                then @title.line[a.0][0]
+                                else ''
+                            c = if b and a.1 > 0
+                                then @title.line[a.0][a.1]
+                                else ''
+                            # set title
+                            # TODO: animation
+                            @title.node.eq 0 .html b
+                            @title.node.eq 1 .html c
+                            # set state
+                            @title.current = w3ui.CLONE a
                         # }}}
                         # refresh mode
                         # {{{
                         for a,b of @mode
-                            # determine node
-                            if not b.node or not b.node.length
-                                b.node = $ @cfg.id + ' .' + a
-                            # determine width
-                            c = b.node.outerWidth!
+                            # determine internal width
+                            c = b.node.style
+                            c = c.paddingLeft + c.paddingRight
+                            c = b.node.0.clientWidth - c
                             # determine parameter set
                             for d,e in b.list when d.0 <= c
                                 break
@@ -293,6 +302,9 @@ $ \document .ready ->
                         # done
                         true
                     # }}}
+                    resize: -> # {{{
+                        @cfg.refresh.apply @
+                    # }}}
                 ###
                 mode:
                     m1:
@@ -304,22 +316,21 @@ $ \document .ready ->
                     m2:
                         num: -1
                         list:
-                            [128, 'Картотека']
-                            [64,  'Карта']
+                            [128, '']
+                            [64,  '']
                             [0,   '']
                     m3:
                         num: -1
                         list:
-                            [128, 'Картотека']
-                            [64,  'Карта']
+                            [128, '']
+                            [64,  '']
                             [0,   '']
                 title:
-                    num: 0
-                    msg:
-                        'Коммунальная Информационная Система'
-                        'заголовок №1'
-                        'заголовок №2'
-                        'заголовок №3'
+                    num: [0, 1]
+                    current: [-1, -1]
+                    line:
+                        ['Коммунальная', 'Информационная Система']
+                        ['']
             # }}}
             view: # {{{
                 cfg: # {{{
@@ -503,15 +514,16 @@ $ \document .ready ->
                 return obj if not id or id == 'wa'
                 # check root child
                 return obj[id] if obj[id]
-                # check leaf node (no config)
+                # check this node is a leaf
                 return null if not obj.cfg
+                # search in branch
                 # initiate stack
                 a = [obj]
-                # iterative search
+                # iterate
                 while a.length
                     # extact node
                     b = a.pop!
-                    # search in branches
+                    # check sub-branches
                     for own k,v of b when k != 'cfg' and v.cfg
                         # found
                         return v[id] if v[id]
@@ -523,68 +535,96 @@ $ \document .ready ->
         }
         # }}}
         ###
+        go: (nodeName, direction, args, method) -> # {{{
+            # prepare
+            # determine method type
+            commonMethod = typeof method == 'string'
+            methodName = if commonMethod
+                then method else method.name
+            # get start node
+            if not node = @skel[nodeName]
+                console.log 'getting element ['+nodeName+'] failed'
+                return false
+            # check
+            return true if not node.cfg
+            # execute
+            if commonMethod
+                # common method/node must exist
+                a = if node.cfg[method] and node.cfg.node
+                    then node.cfg[method].apply node, args
+                    else true
+            else
+                # custom
+                a = method.apply node, args
+            # check the result
+            if not a
+                console.log 'method ['+methodName+'] failed on element ['+nodeName+']'
+                return false
+            # recurse
+            # check direction
+            if direction
+                # forward/up
+                # go to all children branches
+                for a of node when a != 'cfg'
+                    return false if not @go a, direction, args, method
+            else
+                # backward/down
+                # go to parents
+                a = node.cfg.parent
+                if a
+                    return false if not @go a, direction, args, method
+            # completed
+            true
+        # }}}
+        ###
         init: -> # {{{
             # prepare colors
             if not @color.init!
+                console.log 'color.init failed'
                 return false
             # prepare svg
             if not @svg.init!
+                console.log 'svg.init failed'
                 return false
             # prepare interface skeleton
-            if not @skel.cfg.init!
-                return false
-            # done
-            true
+            # define procedure
+            f = (id = 'wa', parent = null, level = 0) ->
+                # get element
+                if not a = @skel[id]
+                    console.log 'getting element ['+id+'] failed'
+                    return false
+                # configure
+                a.cfg.id     = id
+                a.cfg.node   = w3ui.getNode '#'+id
+                a.cfg.parent = parent
+                a.cfg.level  = level
+                # recurse to children
+                for b,c of a when b != 'cfg' and c.cfg
+                    return false if not f.apply @, [b, c, level + 1]
+                # completed
+                true
+            # finish with combined init procedure
+            f.apply @ and @go 'wa', true, [], 'init'
         # }}}
         refresh: -> # {{{
-            # collect DOM nodes
-            @go 'wa', true, [], !->
-                # select
-                a = $ @cfg.id
-                # save
-                @cfg.node = if a.length
-                    then a
-                    else null
-            # initiate common refresh procedure
+            # initiate refresh procedure
             @go 'wa', true, [], 'refresh'
-            # done
-            true
+        # }}}
+        resize: !-> # {{{
+            # prepare
+            me = @resize
+            # activate debounce protection (delay)
+            if me.timer
+                # reset timer
+                window.clearTimeout me.timer
+                # set timer
+                fn = w3ui.PARTIAL @, me
+                me.timer = window.setTimeout fn, 250
+                return
+            # initiate resize procedure
+            @go 'wa', true, [], 'resize'
         # }}}
         # TODO
-        resize: (delay, onComplete) !-> # {{{
-            # подготовка
-            if delay or @state != 0
-                # исключаем повторный запуск и запуск во время обновления
-                # +защита от множественных срабатываний (+debounce)
-                # сброс таймера
-                delay = 250 if not delay
-                window.clearTimeout @resize.timer if @resize.timer
-                # задержка
-                fn = w3ui.PARTIAL @, @resize, 0, onComplete
-                @resize.timer = window.setTimeout fn, delay
-            else
-                # запуск
-                @state++
-                me = @
-                V.skel.run \resize, @nav.keys!, !->
-                    me.state--
-                    onComplete! if onComplete
-            # возврат
-            true
-            ##
-            /*
-            if @auth
-                # авторизация!
-                # определяем размер поля
-                a = V.s.canvas
-                a.outerWidth @view.outerWidth!
-                a.outerHeight @view.outerHeight!
-                # запуск
-                gs.auth.init!
-            # завершаем
-            me.state = false
-            */
-        # }}}
         GSAP: # greensock-js {{{
             # данные
             busy: 0 # счетчик активных анимаций
@@ -1428,61 +1468,15 @@ $ \document .ready ->
             # }}}
         # }}}
         ###
-        go: (node, direction, args, method) -> # {{{
-            # get start node
-            if not node = @skel[node]
-                return false
-            # check
-            return true if not node.cfg
-            # determine method type
-            commonMethod = typeof method == 'string'
-            # execute
-            if commonMethod
-                # common method/node must exist
-                if node.cfg[method] and node.cfg.node
-                    node.cfg[method].apply node, args
-            else
-                # custom
-                method.apply node, args
-            # go
-            # check direction
-            if direction
-                # forward/up
-                # recurse to children branches
-                for a of node when a != 'cfg'
-                    @go a, direction, args, method
-            else
-                # backward/down
-                # only for parents
-                while a = node.cfg.parent
-                    # execute
-                    if commonMethod
-                        # common
-                        if a.cfg[method] and a.cfg.node
-                            a.cfg[method].apply a, args
-                    else
-                        # custom
-                        method.apply a, args
-                    # next
-                    node = a
-            # complete
-            true
-        # }}}
     # }}}
     P = # presenter {{{
         ###
         init: -> # {{{
             # refresh view
             V.refresh!
-            # attach global events
-            # ..
+            # attach resize handler
+            $ window .on 'resize', -> V.resize!
             /*
-            # wait for view
-            if V.state
-                w3ui.BOUNCE {scope: @, time: 100}, @init
-                return true
-            # lock
-            V.state++
             # synchronize navigation
             # {{{
             if M.authorized
@@ -1516,6 +1510,7 @@ $ \document .ready ->
                 x = [true] * m.length
                 V.nav.data.forEach (a) -> a.id = ''
             # }}}
+            # ..
             lv.2 and t = t ++ [ # {{{
                 ->
                     if V.auth
@@ -1587,7 +1582,7 @@ $ \document .ready ->
                     # завершающая функция
                     onComplete! if onComplete
             */
-            # complete
+            # done
             true
         # }}}
         ###
