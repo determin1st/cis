@@ -231,40 +231,19 @@ $('document').ready(function(){
           return true;
         }
       },
-      toolbar: {
+      modebar: {
         cfg: {
           init: function(){
-            var a, ref$, b, i$, ref1$, len$, c;
-            this.title.node = w3ui.getNode('#' + this.cfg.id + ' .title div');
-            for (a in ref$ = this.mode) {
-              b = ref$[a];
-              b.node = w3ui.getNode('#' + this.cfg.id + ' .' + a);
-              for (i$ = 0, len$ = (ref1$ = b.list).length; i$ < len$; ++i$) {
-                c = ref1$[i$];
-                if (c[1]) {
-                  a = w3ui.measureText(c[1], b.node);
-                  if (a && a.width) {
-                    c[0] = a.width;
-                  }
-                }
-              }
-            }
+            this.node = w3ui('#' + this.cfg.id + ' .box2, #' + this.cfg.id + ' .mode');
             return true;
           },
           refresh: function(){
-            var node, b, a, c, ref$, i$, ref1$, len$, e, d;
+            var node, a, ref$, b, c, i$, ref1$, len$, e, d;
             node = this.cfg.node;
-            b = this.title.current;
-            a = this.title.num.every(function(a, c){
-              return b[c] === a;
-            });
-            if (!a) {
-              a = this.title.num;
-              b = a[0] >= 0 ? this.title.line[a[0]][0] : '';
-              c = b && a[1] > 0 ? this.title.line[a[0]][a[1]] : '';
-              this.title.node.eq(0).html(b);
-              this.title.node.eq(1).html(c);
-              this.title.current = w3ui.CLONE(a);
+            if (this.title.current !== this.title.num) {
+              this.title.current = this.title.num;
+              a = this.title.num >= 0 ? this.title.list[this.title.num] : '';
+              this.title.node.html(a);
             }
             for (a in ref$ = this.mode) {
               b = ref$[a];
@@ -289,147 +268,62 @@ $('document').ready(function(){
             return true;
           },
           resize: function(){
+            var a, ref$, b, c, d, i$, ref1$, len$;
+            for (a in ref$ = this.mode) {
+              b = ref$[a];
+              a = b.node.style;
+              c = a.paddingTop + a.paddingBottom;
+              c = b.node[0].clientHeight - c;
+              c = c / 2.0;
+              d = a.fontSizeMax;
+              if (c > d) {
+                c = d;
+              }
+              if (Math.abs(c - a.fontSize) > 0.0001) {
+                a.fontSize = c + "px";
+                a = true;
+              } else {
+                a = false;
+              }
+              if (a || b.num < 0) {
+                for (i$ = 0, len$ = (ref1$ = b.list).length; i$ < len$; ++i$) {
+                  c = ref1$[i$];
+                  if (c[1]) {
+                    a = w3ui.measureText(c[1], b.node);
+                    if (a && a.width) {
+                      c[0] = a.width;
+                    }
+                  }
+                }
+              }
+            }
             return this.cfg.refresh.apply(this);
           }
         },
         mode: {
-          m1: {
-            num: -1,
-            list: [[128, 'Картотека'], [64, 'Карта'], [0, '']]
-          },
-          m2: {
-            num: -1,
-            list: [[128, ''], [64, ''], [0, '']]
-          },
-          m3: {
-            num: -1,
-            list: [[128, ''], [64, ''], [0, '']]
-          }
+          num: -1,
+          list: []
         },
-        title: {
-          num: [0, 1],
-          current: [-1, -1],
-          line: [['Коммунальная', 'Информационная Система'], ['']]
+        conf: {
+          num: -1,
+          list: [[0, 'Настройки'], [0, 'Настр'], [0, '']]
         }
       },
       view: {
         cfg: {
           init: function(){
-            var me;
-            me = this;
-            me.func = {
-              attach: function(){
-                me.func.detach = function(){
-                  delete me.func.detach;
-                  return true;
-                };
-                return true;
-              },
-              refresh: function(){
-                me.show();
-                return true;
-              },
-              resize: function(){
-                return true;
-              }
-            };
+            return true;
+          },
+          refresh: function(){
+            return true;
+          },
+          resize: function(){
             return true;
           }
         },
-        auth: {
-          cfg: {
-            preInit: false
-          }
-        },
-        grid: {
-          cfg: {
-            preInit: false,
-            name: 'grid',
-            show: {
-              header: false,
-              toolbar: false,
-              footer: true,
-              columnHeaders: true,
-              lineNumbers: false,
-              expandColumn: false,
-              selectColumn: false,
-              emptyRecords: true,
-              toolbarReload: true,
-              toolbarColumns: true,
-              toolbarSearch: true,
-              toolbarAdd: true,
-              toolbarEdit: true,
-              toolbarDelete: true,
-              toolbarSave: true,
-              selectionBorder: true,
-              recordTitles: true,
-              skipRecords: true
-            }
-          },
-          m1v1f1g: {},
-          m2v2f1g: {
-            columns: [
-              {
-                caption: 'ID',
-                field: 'recid',
-                hidden: true
-              }, {
-                caption: '№ пачки',
-                field: 'rName',
-                size: '40%',
-                sortable: true
-              }, {
-                caption: 'тип',
-                field: 'rType',
-                size: '10%',
-                attr: 'align=center'
-              }, {
-                caption: 'количество',
-                field: 'rCnt',
-                size: '20%',
-                attr: 'align=right'
-              }, {
-                caption: 'сумма',
-                field: 'rSum',
-                size: '20%',
-                attr: 'align=right'
-              }, {
-                caption: 'дата',
-                field: 'rDate',
-                size: '10%',
-                sortable: true,
-                attr: 'align=center'
-              }
-            ],
-            sortData: [{
-              field: 'rName',
-              direction: 'ASC'
-            }],
-            records: [
-              {
-                recid: 1,
-                rName: 'XXXXXXXX',
-                rType: 'KZT',
-                rCnt: '733',
-                rSum: '3247192.22',
-                rDate: '2017/01/01'
-              }, {
-                recid: 2,
-                rName: 'YYYYYYYY',
-                rType: 'KZT',
-                rCnt: '433',
-                rSum: '156000.00',
-                rDate: '2016/12/30'
-              }, {
-                recid: 3,
-                rName: 'ZZZZZZZZ',
-                rType: 'KZT',
-                rCnt: '84',
-                rSum: '95000.00',
-                rDate: '2017/01/15'
-              }
-            ]
-          }
+        menu: {
+          title: 'Главное меню',
+          mode: [['card', 'Карта', 'Картотека'], ['', '2'], ['', '3'], ['', '4'], ['', '5'], ['', '6']]
         }
       },
       console: {
@@ -547,7 +441,7 @@ $('document').ready(function(){
           return false;
         }
         a.cfg.id = id;
-        a.cfg.node = w3ui.getNode('#' + id);
+        a.cfg.node = w3ui('#' + id);
         a.cfg.parent = parent;
         a.cfg.level = level;
         for (b in a) {
@@ -1307,6 +1201,10 @@ $('document').ready(function(){
   };
   P = {
     init: function(){
+      if (!M.init() || !V.init()) {
+        return false;
+      }
+      V.resize();
       V.refresh();
       $(window).on('resize', function(){
         return V.resize();
@@ -1474,6 +1372,6 @@ $('document').ready(function(){
     }
   };
   if (M && V && P) {
-    return M.init() && V.init() && P.init();
+    return P.init();
   }
 });

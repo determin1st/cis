@@ -217,6 +217,7 @@ $ \document .ready ->
                 node: null      # jquery object -> DOM connection
                 parent: null    # backlink
                 level: 0        # node level in skeleton tree
+                nav: null       # navigation for this level
                 ###
                 refresh: -> # {{{
                     # prepare
@@ -233,54 +234,43 @@ $ \document .ready ->
                             opacity: 1
                             ease: Power1.easeOut
                         }
+                    # update mode
+                    a = @cfg.nav.id
+                    if @modebar.mode.current != a
+                        @modebar.mode.current = a
+                        @modebar.mode.list = @view.menu.mode[
                     # done
                     true
                 # }}}
             # }}}
-            toolbar: # {{{
+            modebar: # {{{
                 cfg:
+                    mode: -1
+                    conf: -1
                     init: -> # {{{
-                        # title
                         # collect DOM nodes
-                        @title.node = w3ui.getNode '#'+@cfg.id+' .title div'
-                        # mode
-                        for a,b of @mode
-                            # collect DOM nodes
-                            b.node = w3ui.getNode '#'+@cfg.id+' .'+a
-                            # determine text size
-                            for c in b.list when c.1
-                                a = w3ui.measureText c.1, b.node
-                                c.0 = a.width if a and a.width
-                        # done
+                        @node = w3ui '#'+@cfg.id+' .box2, #'+@cfg.id+' .mode'
                         true
                     # }}}
                     refresh: -> # {{{
                         # prepare
                         node = @cfg.node
                         #node.toggleClass 'ext', !!M.nav[@cfg.level].id
-                        # refresh title
+                        # title
                         # {{{
                         # check state
-                        b = @title.current
-                        a = @title.num.every (a,c) -> b[c] == a
-                        # update
-                        if not a
-                            # get lines
-                            a = @title.num
-                            b = if a.0 >= 0
-                                then @title.line[a.0][0]
-                                else ''
-                            c = if b and a.1 > 0
-                                then @title.line[a.0][a.1]
+                        if @title.current != @title.num
+                            # update
+                            @title.current = @title.num
+                            # get line
+                            a = if @title.num >= 0
+                                then @title.list[@title.num]
                                 else ''
                             # set title
                             # TODO: animation
-                            @title.node.eq 0 .html b
-                            @title.node.eq 1 .html c
-                            # set state
-                            @title.current = w3ui.CLONE a
+                            @title.node.html a
                         # }}}
-                        # refresh mode
+                        # mode
                         # {{{
                         for a,b of @mode
                             # determine internal width
@@ -297,174 +287,72 @@ $ \document .ready ->
                             # update content
                             b.node.html if d.1
                                 then d.1        # text
-                                else V.svg[a]   # small icon
+                                else V.svg[a]   # icon
                         # }}}
-                        # done
                         true
                     # }}}
                     resize: -> # {{{
+                        # mode
+                        # {{{
+                        for a,b of @mode
+                            # determine internal height
+                            a = b.node.style
+                            c = a.paddingTop + a.paddingBottom
+                            c = b.node.0.clientHeight - c
+                            # determine font size
+                            c = c / 2.0
+                            # check limits
+                            d = a.fontSizeMax
+                            c = d if c > d
+                            # check current
+                            if (Math.abs c - a.fontSize) > 0.0001
+                                # change font size
+                                a.fontSize = c+"px"
+                                a = true
+                            else
+                                # no change
+                                a = false
+                            # measure text size
+                            if a or b.num < 0
+                                for c in b.list when c.1
+                                    a = w3ui.measureText c.1, b.node
+                                    c.0 = a.width if a and a.width
+                        # }}}
+                        # refresh
                         @cfg.refresh.apply @
                     # }}}
                 ###
-                mode:
-                    m1:
-                        num: -1
-                        list:
-                            [128, 'Картотека']
-                            [64,  'Карта']
-                            [0,   '']
-                    m2:
-                        num: -1
-                        list:
-                            [128, '']
-                            [64,  '']
-                            [0,   '']
-                    m3:
-                        num: -1
-                        list:
-                            [128, '']
-                            [64,  '']
-                            [0,   '']
                 title:
-                    num: [0, 1]
-                    current: [-1, -1]
-                    line:
-                        ['Коммунальная', 'Информационная Система']
-                        ['']
+                    menu: 'Главное меню'
+                mode: null
+                conf:
+                    [0 'Настройки']
+                    [0 'Настр']
+                    [0 '']
             # }}}
             view: # {{{
-                cfg: # {{{
-                    init: ->
-                        # подготовка
-                        me = @
-                        # постоянные элементы
-                        # ..
-                        # общие методы
-                        me.func = {
-                            attach: -> # {{{
-                                ###
-                                # возврат
-                                me.func.detach = -> # {{{
-                                    # возврат
-                                    delete me.func.detach
-                                    true
-                                # }}}
-                                true
-                            # }}}
-                            refresh: -> # {{{
-                                # возврат
-                                me.show!
-                                true
-                            # }}}
-                            resize: -> # {{{
-                                # возврат
-                                true
-                            # }}}
-                        }
-                        # возврат
+                cfg:
+                    init: -> # {{{
                         true
-                # }}}
-                auth: # авторизация {{{
-                    cfg:
-                        preInit: false
-                # }}}
-                grid: # грид {{{
-                    # конфигурация
-                    cfg:
-                        preInit: false
-                        name: \grid
-                        show:
-                            header         : false # indicates if header is visible
-                            toolbar        : false # indicates if toolbar is visible
-                            footer         : true # indicates if footer is visible
-                            columnHeaders  : true # indicates if columns is visible
-                            lineNumbers    : false # indicates if line numbers column is visible
-                            expandColumn   : false # indicates if expand column is visible
-                            selectColumn   : false # indicates if select column is visible
-                            emptyRecords   : true # indicates if empty records are visible
-                            toolbarReload  : true # indicates if toolbar reload button is visible
-                            toolbarColumns : true # indicates if toolbar columns button is visible
-                            toolbarSearch  : true # indicates if toolbar search controls are visible
-                            toolbarAdd     : true # indicates if toolbar add new button is visible
-                            toolbarEdit    : true # indicates if toolbar edit button is visible
-                            toolbarDelete  : true # indicates if toolbar delete button is visible
-                            toolbarSave    : true # indicates if toolbar save button is visible
-                            selectionBorder: true # display border around selection (for selectType = 'cell')
-                            recordTitles   : true # indicates if to define titles for records
-                            skipRecords    : true # indicates if skip records should be visible
-
-                    m1v1f1g: {}
-                    m2v2f1g:
-                        columns: [
-                            {
-                                caption: 'ID'
-                                field: 'recid'
-                                hidden: true
-                            }
-                            {
-                                caption: '№ пачки'
-                                field: 'rName'
-                                size: '40%'
-                                sortable: true
-                            }
-                            {
-                                caption: 'тип'
-                                field: 'rType'
-                                size: '10%'
-                                attr: 'align=center'
-                            }
-                            {
-                                caption: 'количество'
-                                field: 'rCnt'
-                                size: '20%'
-                                attr: 'align=right'
-                            }
-                            {
-                                caption: 'сумма'
-                                field: 'rSum'
-                                size: '20%'
-                                attr: 'align=right'
-                            }
-                            {
-                                caption: 'дата'
-                                field: 'rDate'
-                                size: '10%'
-                                sortable: true
-                                attr: 'align=center'
-                            }
-                        ]
-                        sortData: [
-                            {
-                                field: 'rName'
-                                direction: 'ASC'
-                            }
-                        ]
-                        records: [
-                            {
-                                recid: 1
-                                rName: 'XXXXXXXX'
-                                rType: 'KZT'
-                                rCnt: '733'
-                                rSum: '3247192.22'
-                                rDate: '2017/01/01'
-                            }
-                            {
-                                recid: 2
-                                rName: 'YYYYYYYY'
-                                rType: 'KZT'
-                                rCnt: '433'
-                                rSum: '156000.00'
-                                rDate: '2016/12/30'
-                            }
-                            {
-                                recid: 3
-                                rName: 'ZZZZZZZZ'
-                                rType: 'KZT'
-                                rCnt: '84'
-                                rSum: '95000.00'
-                                rDate: '2017/01/15'
-                            }
-                        ]
+                    # }}}
+                    refresh: -> # {{{
+                        true
+                    # }}}
+                    resize: -> # {{{
+                        true
+                    # }}}
+                ###
+                menu: # {{{
+                    card:
+                        [0 'Картотека']
+                        [0 'Карта']
+                        [0 '']
+                    m2:
+                        [0 '2']
+                        [0 '']
+                    m3:
+                        [0 '3']
+                        [0 '']
                 # }}}
             # }}}
             console: # {{{
@@ -595,9 +483,10 @@ $ \document .ready ->
                     return false
                 # configure
                 a.cfg.id     = id
-                a.cfg.node   = w3ui.getNode '#'+id
+                a.cfg.node   = w3ui '#'+id
                 a.cfg.parent = parent
                 a.cfg.level  = level
+                a.cfg.nav    = M.nav[level]
                 # recurse to children
                 for b,c of a when b != 'cfg' and c.cfg
                     return false if not f.apply @, [b, c, level + 1]
@@ -1472,7 +1361,11 @@ $ \document .ready ->
     P = # presenter {{{
         ###
         init: -> # {{{
-            # refresh view
+            # initialize
+            if not M.init! or not V.init!
+                return false
+            # update view
+            V.resize!
             V.refresh!
             # attach resize handler
             $ window .on 'resize', -> V.resize!
@@ -1640,6 +1533,6 @@ $ \document .ready ->
         # }}}
     # }}}
     ###
-    M.init! and V.init! and P.init! if M and V and P
+    P.init! if M and V and P
 #######
 
