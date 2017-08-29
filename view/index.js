@@ -76,6 +76,7 @@ $('document').ready(function(){
       }
     }),
     authorized: true,
+    mode: 0,
     init: function(){
       return true;
     }
@@ -214,6 +215,7 @@ $('document').ready(function(){
         node: null,
         parent: null,
         level: 0,
+        nav: null,
         refresh: function(){
           var node, i$, a;
           node = this.cfg.node;
@@ -222,6 +224,9 @@ $('document').ready(function(){
             node.toggleClass('n' + a, !!M.nav[a - 1].id);
           }
           node.toggleClass('auth', !M.authorized);
+          node.toggleClass('m0', M.mode === 0);
+          node.toggleClass('m1', M.mode === 1);
+          node.toggleClass('m2', M.mode === 2);
           if (0 + node[0].style.opacity < 0.99) {
             TweenMax.to(node, 2, {
               opacity: 1,
@@ -233,81 +238,115 @@ $('document').ready(function(){
       },
       modebar: {
         cfg: {
+          mode: {
+            node: null,
+            icon: '',
+            enabled: false,
+            box: [0, 0],
+            index: -1
+          },
+          title: {
+            node: null,
+            box: [0, 0],
+            current: -1,
+            index: 0
+          },
+          conf: {
+            node: null,
+            icon: '',
+            enabled: false,
+            box: [0, 0],
+            index: -1
+          },
           init: function(){
-            this.node = w3ui('#' + this.cfg.id + ' .box2, #' + this.cfg.id + ' .mode');
+            this.cfg.mode.node = w3ui('#' + this.cfg.id + ' .m1');
+            this.cfg.title.node = w3ui('#' + this.cfg.id + ' .box2');
+            this.cfg.conf.node = w3ui('#' + this.cfg.id + ' .m2');
+            this.cfg.conf.icon = V.svg.modebarConfig;
             return true;
           },
           refresh: function(){
-            var node, a, ref$, b, c, i$, ref1$, len$, e, d;
-            node = this.cfg.node;
-            if (this.title.current !== this.title.num) {
-              this.title.current = this.title.num;
-              a = this.title.num >= 0 ? this.title.list[this.title.num] : '';
-              this.title.node.html(a);
-            }
-            for (a in ref$ = this.mode) {
-              b = ref$[a];
-              c = b.node.style;
-              c = c.paddingLeft + c.paddingRight;
-              c = b.node[0].clientWidth - c;
-              for (i$ = 0, len$ = (ref1$ = b.list).length; i$ < len$; ++i$) {
-                e = i$;
-                d = ref1$[i$];
-                if (d[0] <= c) {
-                  break;
-                }
-              }
-              if (b.num === e) {
-                continue;
-              }
-              b.num = e;
-              b.node.html(d[1]
-                ? d[1]
-                : V.svg[a]);
+            var a, b;
+            a = this.cfg;
+            this.cfg.refreshCaption('mode', this.mode);
+            this.cfg.refreshCaption('conf', this.mode);
+            b = a.title.index;
+            if (a.title.current !== b) {
+              a.title.current = b;
+              a.title.node.html(this.title[b][1]);
             }
             return true;
           },
           resize: function(){
-            var a, ref$, b, c, d, i$, ref1$, len$;
-            for (a in ref$ = this.mode) {
-              b = ref$[a];
-              a = b.node.style;
-              c = a.paddingTop + a.paddingBottom;
-              c = b.node[0].clientHeight - c;
-              c = c / 2.0;
-              d = a.fontSizeMax;
-              if (c > d) {
-                c = d;
+            var a, b, c, d, results$ = [];
+            this.cfg.initCaption('mode', this.mode);
+            this.cfg.initCaption('title', this.title);
+            this.cfg.initCaption('conf', this.conf);
+            this.cfg.refresh.apply(this);
+            a = this.cfg.title;
+            b = this.title[a.index];
+            c = a.node.style.fontSize;
+            debugger;
+            while (c && (d = a.node.measureText(b)) && d.width) {
+              if (c <= 0 || c < d.width) {
+                break;
               }
-              if (Math.abs(c - a.fontSize) > 0.0001) {
-                a.fontSize = c + "px";
-                a = true;
-              } else {
-                a = false;
+              debugger;
+              c -= 0.5;
+              results$.push(a.node.style.fontSize = c);
+            }
+            return results$;
+          },
+          initCaption: function(name, list){
+            var a, b, c;
+            a = this[name];
+            b = a.node;
+            c = b.style;
+            a.box = [b[0].clientWidth - (c.paddingLeft + c.paddingRight), b[0].clientHeight - (c.paddingTop + c.paddingBottom)];
+            c = [a.box[1] / 2.0, a.fontSize, a.fontSizeMax];
+            if (c[2] && c[0] > c[2]) {
+              c[0] = c[2];
+            }
+            if (Math.abs(c[0] - c[1]) > 0.0001) {
+              a.fontSize = c[0] + 'px';
+            }
+            list && list.forEach(function(item, num){
+              if (!item[1]) {
+                return;
               }
-              if (a || b.num < 0) {
-                for (i$ = 0, len$ = (ref1$ = b.list).length; i$ < len$; ++i$) {
-                  c = ref1$[i$];
-                  if (c[1]) {
-                    a = w3ui.measureText(c[1], b.node);
-                    if (a && a.width) {
-                      c[0] = a.width;
-                    }
-                  }
-                }
+              num = a.node.measureText(item[1]);
+              if (num && num.width) {
+                item[0] = num.width;
+              }
+            });
+          },
+          refreshCaption: function(name, list){
+            var a, i$, len$, c, b;
+            a = this[name];
+            if (!a.enabled) {
+              a.node.html('');
+              return;
+            }
+            for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+              c = i$;
+              b = list[i$];
+              if (c[0] <= a.box[0]) {
+                break;
               }
             }
-            return this.cfg.refresh.apply(this);
+            if (a.index === b) {
+              return;
+            }
+            a.index = b;
+            if (!(c = list[b][1])) {
+              c = a.icon;
+            }
+            a.node.html(c);
           }
         },
-        mode: {
-          num: -1,
-          list: []
-        },
-        conf: {
-          num: -1,
-          list: [[0, 'Настройки'], [0, 'Настр'], [0, '']]
-        }
+        mode: null,
+        conf: [[0, 'Настройки'], [0, 'Настр'], [0, '']],
+        title: [[0, 'Главное меню'], [0, ''], [0, 'Конфигурация']]
       },
       view: {
         cfg: {
@@ -322,8 +361,9 @@ $('document').ready(function(){
           }
         },
         menu: {
-          title: 'Главное меню',
-          mode: [['card', 'Карта', 'Картотека'], ['', '2'], ['', '3'], ['', '4'], ['', '5'], ['', '6']]
+          card: [[0, 'Картотека'], [0, 'Карта'], [0, '']],
+          m2: [[0, '2'], [0, '']],
+          m3: [[0, '3'], [0, '']]
         }
       },
       console: {
@@ -370,7 +410,7 @@ $('document').ready(function(){
           b = a.pop();
           for (k in b) if (own$.call(b, k)) {
             v = b[k];
-            if (k !== 'cfg' && v.cfg) {
+            if (k !== 'cfg' && v && v.cfg) {
               if (v[id]) {
                 return v[id];
               }
@@ -387,11 +427,7 @@ $('document').ready(function(){
       methodName = commonMethod
         ? method
         : method.name;
-      if (!(node = this.skel[nodeName])) {
-        console.log('getting element [' + nodeName + '] failed');
-        return false;
-      }
-      if (!node.cfg) {
+      if (!(node = this.skel[nodeName]) || !node.cfg) {
         return true;
       }
       if (commonMethod) {
@@ -412,8 +448,7 @@ $('document').ready(function(){
           }
         }
       } else {
-        a = node.cfg.parent;
-        if (a) {
+        if (a = node.cfg.parent) {
           if (!this.go(a, direction, args, method)) {
             return false;
           }
@@ -444,9 +479,10 @@ $('document').ready(function(){
         a.cfg.node = w3ui('#' + id);
         a.cfg.parent = parent;
         a.cfg.level = level;
+        a.cfg.nav = M.nav[level];
         for (b in a) {
           c = a[b];
-          if (b !== 'cfg' && c.cfg) {
+          if (b !== 'cfg' && c && c.cfg) {
             if (!f.apply(this, [b, c, level + 1])) {
               return false;
             }
@@ -1204,11 +1240,11 @@ $('document').ready(function(){
       if (!M.init() || !V.init()) {
         return false;
       }
-      V.resize();
-      V.refresh();
       $(window).on('resize', function(){
         return V.resize();
       });
+      V.resize();
+      V.refresh();
       /*
       # synchronize navigation
       # {{{

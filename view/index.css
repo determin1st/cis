@@ -99,13 +99,14 @@ body
 #modebar > div
 {
   display: flex;
-  min-width: 0;/* default is auto for flexbox */
+  min-width: 24px;/* default is auto for flexbox */
 }
 #modebar button {
   align-self: center;
   height: 80%;
   min-width: 24px;
-  padding: 4px;
+  width: 100%;
+  padding: 2px;
   background-color: var(--col93);
   color: var(--col40);
   border: 1px solid var(--col85);
@@ -122,17 +123,23 @@ body
   background-color: var(--col82);
   color: var(--col20);
 }
-#modebar button.selected {
+/*
+#wa.m1 #modebar button.m1,
+#wa.m2 #modebar button.m2
+{
   align-self: flex-end;
   background-color: var(--col85);
   border: 1px solid var(--col93);
   color: var(--col30);
   border-radius: 6px 6px 0 0;
 }
-#modebar button.selected:hover {
+#wa.m1 #modebar button.m1:hover,
+#wa.m2 #modebar button.m2:hover
+{
   background-color: var(--col77);
   color: var(--col20);
 }
+*/
 #modebar svg {
   fill: var(--col30);
   height: 100%;
@@ -153,18 +160,17 @@ body
   --font-size-max: 24;
 }
 /* }}} */
-/* view ~ menu {{{ */
-#view
-{
-}
-/* }}} */
-
 /* toolbar {{{ */
 #toolbar
 {
   background-color: var(--col93);
   border: 1px solid var(--col85);
   border-radius: 2px;
+}
+/* }}} */
+/* view {{{ */
+#view
+{
 }
 /* }}} */
 /* progress {{{ */

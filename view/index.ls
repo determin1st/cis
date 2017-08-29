@@ -77,6 +77,7 @@ $ \document .ready ->
         # }}}
         ###
         authorized: true
+        mode: 0 # 0=menu, 1=work, 2=config
         ###
         init: -> true
     # }}}
@@ -228,107 +229,139 @@ $ \document .ready ->
                         node.toggleClass 'n'+a, !!M.nav[a - 1].id
                     # autorization
                     node.toggleClass 'auth', !M.authorized
-                    # show layout
+                    # mode
+                    node.toggleClass 'm0', M.mode == 0
+                    node.toggleClass 'm1', M.mode == 1
+                    node.toggleClass 'm2', M.mode == 2
+                    # show workarea
                     if 0 + node.0.style.opacity < 0.99
                         TweenMax.to node, 2, {
                             opacity: 1
                             ease: Power1.easeOut
                         }
-                    # update mode
-                    a = @cfg.nav.id
-                    if @modebar.mode.current != a
-                        @modebar.mode.current = a
-                        @modebar.mode.list = @view.menu.mode[
                     # done
                     true
                 # }}}
             # }}}
             modebar: # {{{
                 cfg:
-                    mode: -1
-                    conf: -1
+                    mode:
+                        node: null      # w3ui node
+                        icon: ''        # svg icon
+                        enabled: false  # state
+                        box: [0 0]      # internal width and height
+                        index: -1       # caption index
+                    title:
+                        node: null
+                        box: [0 0]
+                        current: -1     # current state
+                        index: 0        # external
+                    conf:
+                        node: null
+                        icon: ''
+                        enabled: false
+                        box: [0 0]
+                        index: -1
+                    ###
                     init: -> # {{{
                         # collect DOM nodes
-                        @node = w3ui '#'+@cfg.id+' .box2, #'+@cfg.id+' .mode'
+                        @cfg.mode.node  = w3ui '#'+@cfg.id+' .m1'
+                        @cfg.title.node = w3ui '#'+@cfg.id+' .box2'
+                        @cfg.conf.node  = w3ui '#'+@cfg.id+' .m2'
+                        # load config icon
+                        @cfg.conf.icon = V.svg.modebarConfig
                         true
                     # }}}
                     refresh: -> # {{{
                         # prepare
-                        node = @cfg.node
-                        #node.toggleClass 'ext', !!M.nav[@cfg.level].id
-                        # title
-                        # {{{
-                        # check state
-                        if @title.current != @title.num
-                            # update
-                            @title.current = @title.num
-                            # get line
-                            a = if @title.num >= 0
-                                then @title.list[@title.num]
-                                else ''
-                            # set title
-                            # TODO: animation
-                            @title.node.html a
-                        # }}}
-                        # mode
-                        # {{{
-                        for a,b of @mode
-                            # determine internal width
-                            c = b.node.style
-                            c = c.paddingLeft + c.paddingRight
-                            c = b.node.0.clientWidth - c
-                            # determine parameter set
-                            for d,e in b.list when d.0 <= c
-                                break
-                            # check
-                            continue if b.num == e
-                            # update state
-                            b.num = e
-                            # update content
-                            b.node.html if d.1
-                                then d.1        # text
-                                else V.svg[a]   # icon
-                        # }}}
+                        a = @cfg
+                        # set captions
+                        @cfg.refreshCaption 'mode', @mode
+                        @cfg.refreshCaption 'conf', @mode
+                        # refresh title
+                        # TODO: animation
+                        b = a.title.index
+                        if a.title.current != b
+                            a.title.current = b
+                            a.title.node.html @title[b][1]
+                        # done
                         true
                     # }}}
                     resize: -> # {{{
-                        # mode
-                        # {{{
-                        for a,b of @mode
-                            # determine internal height
-                            a = b.node.style
-                            c = a.paddingTop + a.paddingBottom
-                            c = b.node.0.clientHeight - c
-                            # determine font size
-                            c = c / 2.0
-                            # check limits
-                            d = a.fontSizeMax
-                            c = d if c > d
-                            # check current
-                            if (Math.abs c - a.fontSize) > 0.0001
-                                # change font size
-                                a.fontSize = c+"px"
-                                a = true
-                            else
-                                # no change
-                                a = false
-                            # measure text size
-                            if a or b.num < 0
-                                for c in b.list when c.1
-                                    a = w3ui.measureText c.1, b.node
-                                    c.0 = a.width if a and a.width
-                        # }}}
+                        # prepare captions
+                        @cfg.initCaption 'mode', @mode
+                        @cfg.initCaption 'title', @title
+                        @cfg.initCaption 'conf', @conf
                         # refresh
                         @cfg.refresh.apply @
+                        # fit title
+                        a = @cfg.title
+                        b = @title[a.index]
+                        c = a.node.style.fontSize
+                        debugger
+                        while c and (d = a.node.measureText b) and d.width
+                            # reduce font size
+                            break if c <= 0 or c < d.width
+                            debugger
+                            c -= 0.5
+                            a.node.style.fontSize = c
+                    # }}}
+                    ###
+                    initCaption: (name, list) !-> # {{{
+                        # prepare
+                        a = @[name]
+                        b = a.node
+                        c = b.style
+                        # determine internal width/height
+                        a.box =
+                            b.0.clientWidth - (c.paddingLeft + c.paddingRight)
+                            b.0.clientHeight - (c.paddingTop + c.paddingBottom)
+                        # determine font size
+                        # using height as a base
+                        c =
+                            a.box.1 / 2.0
+                            a.fontSize
+                            a.fontSizeMax
+                        # check
+                        c.0 = c.2 if c.2 and c.0 > c.2
+                        if (Math.abs c.0 - c.1) > 0.0001
+                            # change
+                            a.fontSize = c.0+'px'
+                        # determine captions size
+                        list and list.forEach (item, num) !->
+                            # skip empty
+                            return if not item.1
+                            # measure
+                            num = a.node.measureText item.1
+                            item.0 = num.width if num and num.width
+                    # }}}
+                    refreshCaption: (name, list) !-> # {{{
+                        # prepare
+                        a = @[name]
+                        # check disabled
+                        if not a.enabled
+                            a.node.html ''
+                            return
+                        # select caption
+                        for b,c in list when c.0 <= a.box.0
+                            break
+                        # check state
+                        return if a.index == b
+                        # update
+                        a.index = b
+                        c = a.icon if not c = list[b][1]
+                        a.node.html c
                     # }}}
                 ###
-                title:
-                    menu: 'Главное меню'
                 mode: null
                 conf:
                     [0 'Настройки']
                     [0 'Настр']
                     [0 '']
+                title:
+                    [0 'Главное меню']
+                    [0 '']
+                    [0 'Конфигурация']
             # }}}
             view: # {{{
                 cfg:
@@ -342,7 +375,8 @@ $ \document .ready ->
                         true
                     # }}}
                 ###
-                menu: # {{{
+                menu:
+                # {{{
                     card:
                         [0 'Картотека']
                         [0 'Карта']
@@ -412,7 +446,7 @@ $ \document .ready ->
                     # extact node
                     b = a.pop!
                     # check sub-branches
-                    for own k,v of b when k != 'cfg' and v.cfg
+                    for own k,v of b when k != 'cfg' and v and v.cfg
                         # found
                         return v[id] if v[id]
                         # add to stack
@@ -430,11 +464,8 @@ $ \document .ready ->
             methodName = if commonMethod
                 then method else method.name
             # get start node
-            if not node = @skel[nodeName]
-                console.log 'getting element ['+nodeName+'] failed'
-                return false
-            # check
-            return true if not node.cfg
+            if not (node = @skel[nodeName]) or not node.cfg
+                return true
             # execute
             if commonMethod
                 # common method/node must exist
@@ -458,8 +489,7 @@ $ \document .ready ->
             else
                 # backward/down
                 # go to parents
-                a = node.cfg.parent
-                if a
+                if a = node.cfg.parent
                     return false if not @go a, direction, args, method
             # completed
             true
@@ -488,7 +518,7 @@ $ \document .ready ->
                 a.cfg.level  = level
                 a.cfg.nav    = M.nav[level]
                 # recurse to children
-                for b,c of a when b != 'cfg' and c.cfg
+                for b,c of a when b != 'cfg' and c and c.cfg
                     return false if not f.apply @, [b, c, level + 1]
                 # completed
                 true
@@ -1364,11 +1394,11 @@ $ \document .ready ->
             # initialize
             if not M.init! or not V.init!
                 return false
+            # attach resize handler
+            $ window .on 'resize', -> V.resize!
             # update view
             V.resize!
             V.refresh!
-            # attach resize handler
-            $ window .on 'resize', -> V.resize!
             /*
             # synchronize navigation
             # {{{
