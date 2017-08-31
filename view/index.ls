@@ -245,24 +245,24 @@ $ \document .ready ->
             # }}}
             modebar: # {{{
                 cfg:
+                    # {{{
                     mode:
                         node: null      # w3ui node
                         icon: ''        # svg icon
                         enabled: false  # state
-                        box: [0 0]      # internal width and height
+                        size: null      # captions width in pixels
                         index: -1       # caption index
                     title:
                         node: null
-                        box: [0 0]
-                        current: -1     # current state
-                        index: 0        # external
+                        size: null
+                        index: 0        # not dynamic, external
                     conf:
                         node: null
                         icon: ''
                         enabled: false
-                        box: [0 0]
+                        size: null
                         index: -1
-                    ###
+                    # }}}
                     init: -> # {{{
                         # collect DOM nodes
                         @cfg.mode.node  = w3ui '#'+@cfg.id+' .m1'
@@ -273,95 +273,91 @@ $ \document .ready ->
                         true
                     # }}}
                     refresh: -> # {{{
-                        # prepare
-                        a = @cfg
                         # set captions
-                        @cfg.refreshCaption 'mode', @mode
-                        @cfg.refreshCaption 'conf', @mode
-                        # refresh title
-                        # TODO: animation
-                        b = a.title.index
-                        if a.title.current != b
-                            a.title.current = b
-                            a.title.node.html @title[b][1]
+                        ['mode' 'conf'].forEach (name) !->
+                            # prepare
+                            a = @[name]
+                            b = @cfg[name]
+                            # check disabled
+                            if not b.enabled
+                                b.node.html ''
+                                return
+                            # select
+                            a = if b.index >= 0 and a[b.index]
+                                then a[b.index]
+                                else b.icon
+                            # set
+                            b.node.html a
+                        , @
+                        # set title
+                        a = @cfg.title
+                        a.node.html @title[a.index]
                         # done
                         true
                     # }}}
                     resize: -> # {{{
-                        # prepare captions
-                        @cfg.initCaption 'mode', @mode
-                        @cfg.initCaption 'title', @title
-                        @cfg.initCaption 'conf', @conf
-                        # refresh
-                        @cfg.refresh.apply @
-                        # fit title
-                        a = @cfg.title
-                        b = @title[a.index]
-                        c = a.node.style.fontSize
-                        debugger
-                        while c and (d = a.node.measureText b) and d.width
-                            # reduce font size
-                            break if c <= 0 or c < d.width
-                            debugger
-                            c -= 0.5
-                            a.node.style.fontSize = c
-                    # }}}
-                    ###
-                    initCaption: (name, list) !-> # {{{
-                        # prepare
-                        a = @[name]
-                        b = a.node
-                        c = b.style
-                        # determine internal width/height
-                        a.box =
-                            b.0.clientWidth - (c.paddingLeft + c.paddingRight)
-                            b.0.clientHeight - (c.paddingTop + c.paddingBottom)
+                        # for each caption
                         # determine font size
-                        # using height as a base
-                        c =
-                            a.box.1 / 2.0
-                            a.fontSize
-                            a.fontSizeMax
-                        # check
-                        c.0 = c.2 if c.2 and c.0 > c.2
-                        if (Math.abs c.0 - c.1) > 0.0001
-                            # change
-                            a.fontSize = c.0+'px'
-                        # determine captions size
-                        list and list.forEach (item, num) !->
-                            # skip empty
-                            return if not item.1
-                            # measure
-                            num = a.node.measureText item.1
-                            item.0 = num.width if num and num.width
-                    # }}}
-                    refreshCaption: (name, list) !-> # {{{
-                        # prepare
-                        a = @[name]
-                        # check disabled
-                        if not a.enabled
-                            a.node.html ''
-                            return
-                        # select caption
-                        for b,c in list when c.0 <= a.box.0
-                            break
-                        # check state
-                        return if a.index == b
-                        # update
-                        a.index = b
-                        c = a.icon if not c = list[b][1]
-                        a.node.html c
+                        for a in Object.keys @ when a != 'cfg'
+                            # prepare
+                            b = @cfg[a]     # state
+                            a = @[a]        # data
+                            c =
+                                parseInt b.node.style.fontSizeMin
+                                parseInt b.node.style.fontSizeMax
+                            # correct
+                            c.0 = 0  if isNaN c.0
+                            c.1 = 64 if isNaN c.1
+                            # check
+                            continue if not a
+                            # define
+                            b.size = a.map (text) ->
+                                # skip empty
+                                return 0 if not text
+                                # determine maximal value
+                                a = b.node.textMeasureFont text
+                                # check and correct
+                                a = c.0 if a < c.0
+                                a = c.1 if a > c.1
+                                # done
+                                return a
+                        # for dynamic captions
+                        # determine index and set font size
+                        ['mode' 'conf'].forEach (name) !->
+                            # prepare
+                            a = @cfg[name]
+                            b = @[name]
+                            # check
+                            if not b
+                                a.index = -1
+                                return
+                            # determine index
+                            # with maximal font size
+                            c = Math.max.apply null, a.size
+                            a.index = a.size.findIndex (val) ->
+                                val - c < 0.0001
+                            # set font size
+                            b = a.size[a.index]
+                            a.node.style.fontSize = b+'px'
+                        , @
+                        # set font size for title
+                        a = @cfg.title
+                        b = a.size[a.index]
+                        debugger
+                        a.node.style.fontSize = b+'px'
+                        # done
+                        true
                     # }}}
                 ###
                 mode: null
                 conf:
-                    [0 'Настройки']
-                    [0 'Настр']
-                    [0 '']
+                    'Настройки'
+                    'Настр'
+                    ''
                 title:
-                    [0 'Главное меню']
-                    [0 '']
-                    [0 'Конфигурация']
+                    'Главное меню'
+                    ''
+                    'Конфигурация'
             # }}}
             view: # {{{
                 cfg:
@@ -375,44 +371,26 @@ $ \document .ready ->
                         true
                     # }}}
                 ###
-                menu:
-                # {{{
+                menu: # {{{
                     card:
-                        [0 'Картотека']
-                        [0 'Карта']
-                        [0 '']
+                        'Картотека'
+                        'Карта'
+                        ''
                     m2:
-                        [0 '2']
-                        [0 '']
+                        '2'
+                        ''
                     m3:
-                        [0 '3']
-                        [0 '']
+                        '3'
+                        ''
                 # }}}
             # }}}
             console: # {{{
-                cfg: # {{{
-                    # слайдер цвета
-                    ifColor:
-                        n0: 'Цвет'
-                        n1: '»'
-                        ##
-                        animate: true
-                        disabled: false
-                        min: 0
-                        max: 360
-                        create: ->
-                            # подготовка контрола
-                            true
-                        slide: (e, ui) !->
-                            # слайдинг
-                            # выводим текущее значение
-                            V.note.text ui.value
-                        stop: (e, ui) ->
-                            # слайдинг завершен
-                            true
-                # }}}
+                cfg:
+                    # {{{
+                    empty: true
+                    # }}}
+                ###
                 log: # {{{
-                    state: []
                     error:
                         'Ошибка'
                         'в доступе отказано'
@@ -494,7 +472,6 @@ $ \document .ready ->
             # completed
             true
         # }}}
-        ###
         init: -> # {{{
             # prepare colors
             if not @color.init!
@@ -530,16 +507,6 @@ $ \document .ready ->
             @go 'wa', true, [], 'refresh'
         # }}}
         resize: !-> # {{{
-            # prepare
-            me = @resize
-            # activate debounce protection (delay)
-            if me.timer
-                # reset timer
-                window.clearTimeout me.timer
-                # set timer
-                fn = w3ui.PARTIAL @, me
-                me.timer = window.setTimeout fn, 250
-                return
             # initiate resize procedure
             @go 'wa', true, [], 'resize'
         # }}}
@@ -1386,7 +1353,6 @@ $ \document .ready ->
                 me.init!
             # }}}
         # }}}
-        ###
     # }}}
     P = # presenter {{{
         ###
@@ -1394,14 +1360,12 @@ $ \document .ready ->
             # initialize
             if not M.init! or not V.init!
                 return false
+            # update
+            P.updateView!
             # attach resize handler
-            $ window .on 'resize', -> V.resize!
-            # update view
-            V.resize!
-            V.refresh!
-            /*
-            # synchronize navigation
-            # {{{
+            $ window .on 'resize', !-> P.windowResize!
+            /***
+            # synchronize navigation {{{
             if M.authorized
                 # determine changes
                 m = M.nav.keys!
@@ -1433,80 +1397,29 @@ $ \document .ready ->
                 x = [true] * m.length
                 V.nav.data.forEach (a) -> a.id = ''
             # }}}
-            # ..
-            lv.2 and t = t ++ [ # {{{
-                ->
-                    if V.auth
-                        V.auth.hide !->
-                            gs.setBackground []
-                    else if v.2
-                        gs.setBackground []
-                    V.grid and V.grid.hide !->
-                        V.grid.reset! if V.grid.reset
-                    # ok
-                    true
-            ] # }}}
-            lv.0 and m.0 and t = t ++ [ # {{{
-                ->
-                    # аккордеон
-                    # генерируем содержимое
-                    V.panel.load m.0
-                    # определяем активную панель
-                    a = if m.1
-                        then V.skel.index m.1
-                        else false
-                    # создаем
-                    V.panel.accordion V.panel.cfg <<< {active: a}
-                    true
-            ]
-            # }}}
-            lv.1 and m.1 and t = t ++ [ # {{{
-                ->
-                    # ok
-                    true
-            ]
-            # }}}
-            lv.2 and m.2 and t = t ++ [ # {{{
-                ->
-                    # грид
-                    # формируем контент
-                    V.view.load \grid
-                    # создание
-                    a = w3ui.CLONE V.grid.cfg # общая конфигурация
-                    b = V.skel.getBoneCfg m.2+'g' # частная конфигурация
-                    V.grid.w2grid a <<< b
-                    # метод удаления
-                    V.grid.reset = !->
-                        # удаляем грид
-                        w2ui.grid.destroy!
-                        # удаляем контролы
-                        V.gridControls.controlgroup \destroy
-                        # удаляем метод
-                        delete V.grid.reset
-                        # зачищаем контент
-                        V.view.load!
-                    # контролы грида
-                    # создаем
-                    V.gridControls.load m.2 + \gc
-                    V.gridControls.controlgroup {
-                        items:
-                            button: \button
-                    }
-                    # ok
-                    true
-            ]
-            # }}}
-            # отстыковка
-            V.skel.run \detach, x, m, !->
-                # стыковка
-                V.skel.run \attach, x, m, !->
-                    # завершено
-                    V.state--
-                    # завершающая функция
-                    onComplete! if onComplete
-            */
+            /***/
             # done
             true
+        # }}}
+        ###
+        updateView: !-> # {{{
+            # first
+            V.resize!
+            # second
+            V.refresh!
+        # }}}
+        windowResize: !-> # {{{
+            # prepare
+            me = @windowResize
+            # activate debounce protection (delay)
+            if me.timer
+                # reset timer
+                window.clearTimeout me.timer
+                # set timer
+                f = w3ui.PARTIAL @, me
+                me.timer = window.setTimeout f, 250
+            else
+                @updateView!
         # }}}
         ###
         navigate: (nav, onComplete) -> # навигация {{{

@@ -242,20 +242,19 @@ $('document').ready(function(){
             node: null,
             icon: '',
             enabled: false,
-            box: [0, 0],
+            size: null,
             index: -1
           },
           title: {
             node: null,
-            box: [0, 0],
-            current: -1,
+            size: null,
             index: 0
           },
           conf: {
             node: null,
             icon: '',
             enabled: false,
-            box: [0, 0],
+            size: null,
             index: -1
           },
           init: function(){
@@ -266,87 +265,83 @@ $('document').ready(function(){
             return true;
           },
           refresh: function(){
-            var a, b;
-            a = this.cfg;
-            this.cfg.refreshCaption('mode', this.mode);
-            this.cfg.refreshCaption('conf', this.mode);
-            b = a.title.index;
-            if (a.title.current !== b) {
-              a.title.current = b;
-              a.title.node.html(this.title[b][1]);
-            }
+            var a;
+            ['mode', 'conf'].forEach(function(name){
+              var a, b;
+              a = this[name];
+              b = this.cfg[name];
+              if (!b.enabled) {
+                b.node.html('');
+                return;
+              }
+              a = b.index >= 0 && a[b.index]
+                ? a[b.index]
+                : b.icon;
+              b.node.html(a);
+            }, this);
+            a = this.cfg.title;
+            a.node.html(this.title[a.index]);
             return true;
           },
           resize: function(){
-            var a, b, c, d, results$ = [];
-            this.cfg.initCaption('mode', this.mode);
-            this.cfg.initCaption('title', this.title);
-            this.cfg.initCaption('conf', this.conf);
-            this.cfg.refresh.apply(this);
-            a = this.cfg.title;
-            b = this.title[a.index];
-            c = a.node.style.fontSize;
-            debugger;
-            while (c && (d = a.node.measureText(b)) && d.width) {
-              if (c <= 0 || c < d.width) {
-                break;
+            var i$, ref$, len$, a, b, c;
+            for (i$ = 0, len$ = (ref$ = Object.keys(this)).length; i$ < len$; ++i$) {
+              a = ref$[i$];
+              if (a !== 'cfg') {
+                b = this.cfg[a];
+                a = this[a];
+                c = [parseInt(b.node.style.fontSizeMin), parseInt(b.node.style.fontSizeMax)];
+                if (isNaN(c[0])) {
+                  c[0] = 0;
+                }
+                if (isNaN(c[1])) {
+                  c[1] = 64;
+                }
+                if (!a) {
+                  continue;
+                }
+                b.size = a.map(fn$);
               }
-              debugger;
-              c -= 0.5;
-              results$.push(a.node.style.fontSize = c);
             }
-            return results$;
-          },
-          initCaption: function(name, list){
-            var a, b, c;
-            a = this[name];
-            b = a.node;
-            c = b.style;
-            a.box = [b[0].clientWidth - (c.paddingLeft + c.paddingRight), b[0].clientHeight - (c.paddingTop + c.paddingBottom)];
-            c = [a.box[1] / 2.0, a.fontSize, a.fontSizeMax];
-            if (c[2] && c[0] > c[2]) {
-              c[0] = c[2];
-            }
-            if (Math.abs(c[0] - c[1]) > 0.0001) {
-              a.fontSize = c[0] + 'px';
-            }
-            list && list.forEach(function(item, num){
-              if (!item[1]) {
+            ['mode', 'conf'].forEach(function(name){
+              var a, b, c;
+              a = this.cfg[name];
+              b = this[name];
+              if (!b) {
+                a.index = -1;
                 return;
               }
-              num = a.node.measureText(item[1]);
-              if (num && num.width) {
-                item[0] = num.width;
+              c = Math.max.apply(null, a.size);
+              a.index = a.size.findIndex(function(val){
+                return val - c < 0.0001;
+              });
+              b = a.size[a.index];
+              a.node.style.fontSize = b + 'px';
+            }, this);
+            a = this.cfg.title;
+            b = a.size[a.index];
+            debugger;
+            a.node.style.fontSize = b + 'px';
+            return true;
+            function fn$(text){
+              var a;
+              if (!text) {
+                return 0;
               }
-            });
-          },
-          refreshCaption: function(name, list){
-            var a, i$, len$, c, b;
-            a = this[name];
-            if (!a.enabled) {
-              a.node.html('');
-              return;
-            }
-            for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
-              c = i$;
-              b = list[i$];
-              if (c[0] <= a.box[0]) {
-                break;
+              a = b.node.textMeasureFont(text);
+              if (a < c[0]) {
+                a = c[0];
               }
+              if (a > c[1]) {
+                a = c[1];
+              }
+              return a;
             }
-            if (a.index === b) {
-              return;
-            }
-            a.index = b;
-            if (!(c = list[b][1])) {
-              c = a.icon;
-            }
-            a.node.html(c);
           }
         },
         mode: null,
-        conf: [[0, 'Настройки'], [0, 'Настр'], [0, '']],
-        title: [[0, 'Главное меню'], [0, ''], [0, 'Конфигурация']]
+        conf: ['Настройки', 'Настр', ''],
+        title: ['Главное меню', '', 'Конфигурация']
       },
       view: {
         cfg: {
@@ -361,33 +356,16 @@ $('document').ready(function(){
           }
         },
         menu: {
-          card: [[0, 'Картотека'], [0, 'Карта'], [0, '']],
-          m2: [[0, '2'], [0, '']],
-          m3: [[0, '3'], [0, '']]
+          card: ['Картотека', 'Карта', ''],
+          m2: ['2', ''],
+          m3: ['3', '']
         }
       },
       console: {
         cfg: {
-          ifColor: {
-            n0: 'Цвет',
-            n1: '»',
-            animate: true,
-            disabled: false,
-            min: 0,
-            max: 360,
-            create: function(){
-              return true;
-            },
-            slide: function(e, ui){
-              V.note.text(ui.value);
-            },
-            stop: function(e, ui){
-              return true;
-            }
-          }
+          empty: true
         },
         log: {
-          state: [],
           error: ['Ошибка', 'в доступе отказано'],
           warning: 'Предупреждение',
           info: ['Статус', 'активирован тестовый режим', 'подключение к серверу установлено', 'подключение к серверу не установлено', 'загрузка ключевого контейнера', 'аутентификация', 'авторизация', 'доступ разрешен', 'авторизация завершена']
@@ -496,14 +474,6 @@ $('document').ready(function(){
       return this.go('wa', true, [], 'refresh');
     },
     resize: function(){
-      var me, fn;
-      me = this.resize;
-      if (me.timer) {
-        window.clearTimeout(me.timer);
-        fn = w3ui.PARTIAL(this, me);
-        me.timer = window.setTimeout(fn, 250);
-        return;
-      }
       this.go('wa', true, [], 'resize');
     },
     GSAP: {
@@ -1240,14 +1210,12 @@ $('document').ready(function(){
       if (!M.init() || !V.init()) {
         return false;
       }
+      P.updateView();
       $(window).on('resize', function(){
-        return V.resize();
+        P.windowResize();
       });
-      V.resize();
-      V.refresh();
-      /*
-      # synchronize navigation
-      # {{{
+      /***
+      # synchronize navigation {{{
       if M.authorized
           # determine changes
           m = M.nav.keys!
@@ -1279,79 +1247,23 @@ $('document').ready(function(){
           x = [true] * m.length
           V.nav.data.forEach (a) -> a.id = ''
       # }}}
-      # ..
-      lv.2 and t = t ++ [ # {{{
-          ->
-              if V.auth
-                  V.auth.hide !->
-                      gs.setBackground []
-              else if v.2
-                  gs.setBackground []
-              V.grid and V.grid.hide !->
-                  V.grid.reset! if V.grid.reset
-              # ok
-              true
-      ] # }}}
-      lv.0 and m.0 and t = t ++ [ # {{{
-          ->
-              # аккордеон
-              # генерируем содержимое
-              V.panel.load m.0
-              # определяем активную панель
-              a = if m.1
-                  then V.skel.index m.1
-                  else false
-              # создаем
-              V.panel.accordion V.panel.cfg <<< {active: a}
-              true
-      ]
-      # }}}
-      lv.1 and m.1 and t = t ++ [ # {{{
-          ->
-              # ok
-              true
-      ]
-      # }}}
-      lv.2 and m.2 and t = t ++ [ # {{{
-          ->
-              # грид
-              # формируем контент
-              V.view.load \grid
-              # создание
-              a = w3ui.CLONE V.grid.cfg # общая конфигурация
-              b = V.skel.getBoneCfg m.2+'g' # частная конфигурация
-              V.grid.w2grid a <<< b
-              # метод удаления
-              V.grid.reset = !->
-                  # удаляем грид
-                  w2ui.grid.destroy!
-                  # удаляем контролы
-                  V.gridControls.controlgroup \destroy
-                  # удаляем метод
-                  delete V.grid.reset
-                  # зачищаем контент
-                  V.view.load!
-              # контролы грида
-              # создаем
-              V.gridControls.load m.2 + \gc
-              V.gridControls.controlgroup {
-                  items:
-                      button: \button
-              }
-              # ok
-              true
-      ]
-      # }}}
-      # отстыковка
-      V.skel.run \detach, x, m, !->
-          # стыковка
-          V.skel.run \attach, x, m, !->
-              # завершено
-              V.state--
-              # завершающая функция
-              onComplete! if onComplete
-      */
+      /***/
       return true;
+    },
+    updateView: function(){
+      V.resize();
+      V.refresh();
+    },
+    windowResize: function(){
+      var me, f;
+      me = this.windowResize;
+      if (me.timer) {
+        window.clearTimeout(me.timer);
+        f = w3ui.PARTIAL(this, me);
+        me.timer = window.setTimeout(f, 250);
+      } else {
+        this.updateView();
+      }
     },
     navigate: function(nav, onComplete){
       var i$, len$, b, a;
