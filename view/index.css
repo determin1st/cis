@@ -14,6 +14,7 @@
   --col93: hsla(211, 92%, 93%, 1);
   --col92: hsla(211, 92%, 92%, 1);
   --col90: hsla(211, 92%, 90%, 1);
+  --col88: hsla(211, 92%, 88%, 1);
   --col87: hsla(211, 92%, 87%, 1);
   --col85: hsla(211, 92%, 85%, 1);
   --col84: hsla(211, 92%, 84%, 1);
@@ -44,8 +45,12 @@
   --gr3: radial-gradient(ellipse, --col90 25%, transparent 75%);
   /* }}} */
   /* fonts {{{ */
-  --f1: "Segoe UI, Tahoma, Geneva, sans-serif";
-  --f2: "Arial Black, Gadget, sans-serif";
+  /***
+  /***/
+  --f1: Segoe UI, Tahoma, Geneva, sans-serif;
+  --f1-size-max: 36; /* updated automaticly */
+  --f1-size-menu: calc(1px * (var(--f1-size-max) - 8));
+  --f1-size-menu-hover: calc(1px * (var(--f1-size-max) - 4));
   /* }}} */
 }
 /* }}} */
@@ -63,6 +68,7 @@ body
   width: 100vw;
   margin: 0;
   background-color: var(--col99);/**/
+  color: var(--col40);
 }
 /* }}} */
 
@@ -70,10 +76,10 @@ body
 #wa
 {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  bottom: 2px;
-  right: 2px;
+  top: 1px;
+  left: 1px;
+  bottom: 1px;
+  right: 1px;
   overflow: hidden;
   background-color: var(--col95);
   /**/
@@ -114,7 +120,7 @@ body
   /* anim */
   transition: all 0.6s ease;
   /* custom */
-  --font-size-max: 20
+  --font-size-max: 24
 }
 /* enabled */
 #modebar button:not([disabled]) {
@@ -132,29 +138,14 @@ body
   background-color: var(--col94);
   border: 1px solid var(--col90);
 }
-/*
-#wa.m1 #modebar button.m1,
-#wa.m2 #modebar button.m2
-{
-  align-self: flex-end;
-  background-color: var(--col85);
-  border: 1px solid var(--col93);
-  color: var(--col30);
-  border-radius: 6px 6px 0 0;
-}
-#wa.m1 #modebar button.m1:hover,
-#wa.m2 #modebar button.m2:hover
-{
-  background-color: var(--col77);
-  color: var(--col20);
-}
-*/
+/* icon */
 #modebar svg {
   fill: var(--col30);
   height: 100%;
   width: 100%;
   min-width: 16px;
 }
+/* title */
 #modebar .box2
 {
   display: flex;
@@ -166,7 +157,7 @@ body
   font-weight: bold;
   white-space: nowrap;
   /* custom */
-  --font-size-max: 32;
+  --font-size-max: 36;
 }
 /* }}} */
 /* toolbar {{{ */
@@ -180,6 +171,52 @@ body
 /* view {{{ */
 #view
 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#view > div {
+  margin: 0 2px;
+}
+/* }}} */
+/* view .menu {{{ */
+#view .menu
+{
+  width: 100%;
+  height: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+#view .menu > div
+{
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60%;
+  max-height: 64px;
+  margin: 1px 0;
+  background-color: var(--col90);
+  border: 1px solid var(--col85);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--f1);
+  font-weight: bold;
+  font-size: var(--f1-size-menu);
+  /* anim */
+  transition: All 0.6s ease;
+}
+#view .menu > div:hover
+{
+  flex: 1 1 110%;
+  max-height: 96px;
+  background-color: var(--col92);
+  color: var(--col30);
+  font-size: var(--f1-size-menu-hover);
+  width: 65%;
 }
 /* }}} */
 /* progress {{{ */

@@ -189,9 +189,9 @@ $ \document .ready ->
                 # prepare
                 @data = {}
                 # get template
-                a = $ '#svg'
-                return false if a.length == 0
-                # get containers
+                if not (a = $ '#t-svg') or a.length == 0
+                    return false
+                # get nodes
                 a = $ a.0.content .find 'div'
                 # get contents
                 for b from 0 to a.length - 1
@@ -220,6 +220,9 @@ $ \document .ready ->
                 level: 0        # node level in skeleton tree
                 nav: null       # navigation for this level
                 ###
+                init: -> # {{{
+                    true
+                # }}}
                 refresh: -> # {{{
                     # prepare
                     node = @cfg.node
@@ -233,6 +236,7 @@ $ \document .ready ->
                     node.toggleClass 'm0', M.mode == 0
                     node.toggleClass 'm1', M.mode == 1
                     node.toggleClass 'm2', M.mode == 2
+                    # ..
                     # show workarea
                     if 0 + node.0.style.opacity < 0.99
                         TweenMax.to node, 2, {
@@ -345,6 +349,8 @@ $ \document .ready ->
                         a = @cfg.title
                         b = a.size[a.index]
                         a.node.style.fontSize = b+'px'
+                        # determine global font size
+                        @cfg.root.style.f1SizeMax = a.size.0
                         # done
                         true
                     # }}}
@@ -362,6 +368,19 @@ $ \document .ready ->
             view: # {{{
                 cfg:
                     init: -> # {{{
+                        # select template
+                        switch M.mode
+                        | 0 =>
+                            a = 'menu'
+                        | 1 =>
+                            return true
+                        | 2 =>
+                            return true
+                        | otherwise =>
+                            return false
+                        # render
+                        @cfg.render a
+                        # done
                         true
                     # }}}
                     refresh: -> # {{{
@@ -372,15 +391,39 @@ $ \document .ready ->
                     # }}}
                 ###
                 menu: # {{{
+                    cfg:
+                        resize: -> # {{{
+                            # s
+                            true
+                        # }}}
+                    list:
+                        {
+                            id: 'card'
+                            name: 'Картотека'
+                        }
+                        {
+                            id: 'm2'
+                            name: '2'
+                        }
+                        {
+                            id: 'm3'
+                            name: '3'
+                        }
+                        {
+                            id: 'm4'
+                            name: '4'
+                        }
+                        {
+                            id: 'm5'
+                            name: '5'
+                        }
+                        {
+                            id: 'm6'
+                            name: '6'
+                        }
                     card:
                         'Картотека'
                         'Карта'
-                        ''
-                    m2:
-                        '2'
-                        ''
-                    m3:
-                        '3'
                         ''
                 # }}}
             # }}}
@@ -481,6 +524,8 @@ $ \document .ready ->
             if not @svg.init!
                 console.log 'svg.init failed'
                 return false
+            # get root node
+            root = w3ui 'html'
             # prepare interface skeleton
             # define procedure
             f = (id = 'wa', parent = null, level = 0) ->
@@ -492,8 +537,29 @@ $ \document .ready ->
                 a.cfg.id     = id
                 a.cfg.node   = w3ui '#'+id
                 a.cfg.parent = parent
+                a.cfg.root   = root
                 a.cfg.level  = level
                 a.cfg.nav    = M.nav[level]
+                a.cfg.render = (id) -> # {{{
+                    # prepare
+                    # get template
+                    if not (b = $ '#t-'+a.cfg.id) or b.length == 0
+                        # okay, no template
+                        return true
+                    # construct HTML
+                    if id
+                        # get template content
+                        b = $ b.0.content .find '#'+id
+                        # render
+                        b = b.0.innerHTML
+                        b = Mustache.render b, a[id]
+                    else
+                        # no render required
+                        b = b.0.content
+                    # inject
+                    a.cfg.node.html b
+                    true
+                # }}}
                 # recurse to children
                 for b,c of a when b != 'cfg' and c and c.cfg
                     return false if not f.apply @, [b, c, level + 1]

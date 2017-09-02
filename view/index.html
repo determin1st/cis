@@ -26,7 +26,7 @@
     </div>
     <!-- templates -->
     <!-- svg {{{ -->
-    <template id="svg">
+    <template id="t-svg">
       <!-- icons -->
       <div id="modebarConfig">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 54 54">
@@ -43,15 +43,16 @@
     </template>
     <!-- }}} -->
     <!-- view {{{ -->
-    <template id="view">
+    <template id='t-view'>
       <!-- main menu -->
-      <div id="menu">
+      <div id='menu'>
         <div class='menu'>
         {{#list}}
-          <div class="item {{id}}"><span>{{name}}</span></div>
+          <div class='{{id}}'>{{name}}</div>
         {{/list}}
         </div>
       </div>
+      <!-- card -->
     </template>
     <!-- }}} -->
     <!-- toolbar {{{ -->

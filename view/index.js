@@ -185,8 +185,7 @@ $('document').ready(function(){
       init: function(){
         var a, i$, to$, b;
         this.data = {};
-        a = $('#svg');
-        if (a.length === 0) {
+        if (!(a = $('#t-svg')) || a.length === 0) {
           return false;
         }
         a = $(a[0].content).find('div');
@@ -216,6 +215,9 @@ $('document').ready(function(){
         parent: null,
         level: 0,
         nav: null,
+        init: function(){
+          return true;
+        },
         refresh: function(){
           var node, i$, a;
           node = this.cfg.node;
@@ -322,6 +324,7 @@ $('document').ready(function(){
             a = this.cfg.title;
             b = a.size[a.index];
             a.node.style.fontSize = b + 'px';
+            this.cfg.root.style.f1SizeMax = a.size[0];
             return true;
             function fn$(text){
               var a;
@@ -346,6 +349,19 @@ $('document').ready(function(){
       view: {
         cfg: {
           init: function(){
+            var a;
+            switch (M.mode) {
+            case 0:
+              a = 'menu';
+              break;
+            case 1:
+              return true;
+            case 2:
+              return true;
+            default:
+              return false;
+            }
+            this.cfg.render(a);
             return true;
           },
           refresh: function(){
@@ -356,9 +372,33 @@ $('document').ready(function(){
           }
         },
         menu: {
-          card: ['Картотека', 'Карта', ''],
-          m2: ['2', ''],
-          m3: ['3', '']
+          cfg: {
+            resize: function(){
+              return true;
+            }
+          },
+          list: [
+            {
+              id: 'card',
+              name: 'Картотека'
+            }, {
+              id: 'm2',
+              name: '2'
+            }, {
+              id: 'm3',
+              name: '3'
+            }, {
+              id: 'm4',
+              name: '4'
+            }, {
+              id: 'm5',
+              name: '5'
+            }, {
+              id: 'm6',
+              name: '6'
+            }
+          ],
+          card: ['Картотека', 'Карта', '']
         }
       },
       console: {
@@ -435,7 +475,7 @@ $('document').ready(function(){
       return true;
     },
     init: function(){
-      var f;
+      var root, f;
       if (!this.color.init()) {
         console.log('color.init failed');
         return false;
@@ -444,6 +484,7 @@ $('document').ready(function(){
         console.log('svg.init failed');
         return false;
       }
+      root = w3ui('html');
       f = function(id, parent, level){
         var a, b, c;
         id == null && (id = 'wa');
@@ -456,8 +497,24 @@ $('document').ready(function(){
         a.cfg.id = id;
         a.cfg.node = w3ui('#' + id);
         a.cfg.parent = parent;
+        a.cfg.root = root;
         a.cfg.level = level;
         a.cfg.nav = M.nav[level];
+        a.cfg.render = function(id){
+          var b;
+          if (!(b = $('#t-' + a.cfg.id)) || b.length === 0) {
+            return true;
+          }
+          if (id) {
+            b = $(b[0].content).find('#' + id);
+            b = b[0].innerHTML;
+            b = Mustache.render(b, a[id]);
+          } else {
+            b = b[0].content;
+          }
+          a.cfg.node.html(b);
+          return true;
+        };
         for (b in a) {
           c = a[b];
           if (b !== 'cfg' && c && c.cfg) {
