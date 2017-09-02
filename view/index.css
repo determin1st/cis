@@ -10,6 +10,7 @@
   /* opaque */
   --col99: hsla(211, 92%, 99%, 1);
   --col95: hsla(211, 92%, 95%, 1);
+  --col94: hsla(211, 92%, 94%, 1);
   --col93: hsla(211, 92%, 93%, 1);
   --col92: hsla(211, 92%, 92%, 1);
   --col90: hsla(211, 92%, 90%, 1);
@@ -93,9 +94,9 @@ body
 {
   display: flex;
 }
-#modebar .box1 {flex: 1 1 10%;}
-#modebar .box2 {flex: 8 8 80%;}
-#modebar .box3 {flex: 1 1 10%;}
+#modebar .box1 {flex: 1.5 1.5 15%;}
+#modebar .box2 {flex: 7 7 70%;}
+#modebar .box3 {flex: 1.5 1.5 15%;}
 #modebar > div
 {
   display: flex;
@@ -107,21 +108,29 @@ body
   min-width: 24px;
   width: 100%;
   padding: 2px;
-  background-color: var(--col93);
-  color: var(--col40);
-  border: 1px solid var(--col85);
   border-radius: 6px;
-  cursor: pointer;
   font-family: var(--f1);
   font-weight: bold;
   /* anim */
   transition: all 0.6s ease;
   /* custom */
-  --font-size-max: 18
+  --font-size-max: 20
 }
-#modebar button:hover {
+/* enabled */
+#modebar button:not([disabled]) {
+  background-color: var(--col93);
+  border: 1px solid var(--col85);
+  color: var(--col40);
+  cursor: pointer;
+}
+#modebar button:not([disabled]):hover {
   background-color: var(--col82);
   color: var(--col20);
+}
+/* disabled */
+#modebar button[disabled] {
+  background-color: var(--col94);
+  border: 1px solid var(--col90);
 }
 /*
 #wa.m1 #modebar button.m1,
@@ -151,13 +160,13 @@ body
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0 8px;
+  padding: 4px 8px;
   color: var(--col40);
   font-family: var(--f1);
   font-weight: bold;
   white-space: nowrap;
   /* custom */
-  --font-size-max: 24;
+  --font-size-max: 32;
 }
 /* }}} */
 /* toolbar {{{ */

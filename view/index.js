@@ -270,6 +270,7 @@ $('document').ready(function(){
               var a, b;
               a = this[name];
               b = this.cfg[name];
+              b.node.prop('disabled', !b.enabled);
               if (!b.enabled) {
                 b.node.html('');
                 return;
@@ -320,7 +321,6 @@ $('document').ready(function(){
             }, this);
             a = this.cfg.title;
             b = a.size[a.index];
-            debugger;
             a.node.style.fontSize = b + 'px';
             return true;
             function fn$(text){

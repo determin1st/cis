@@ -279,6 +279,7 @@ $ \document .ready ->
                             a = @[name]
                             b = @cfg[name]
                             # check disabled
+                            b.node.prop 'disabled', not b.enabled
                             if not b.enabled
                                 b.node.html ''
                                 return
@@ -343,7 +344,6 @@ $ \document .ready ->
                         # set font size for title
                         a = @cfg.title
                         b = a.size[a.index]
-                        debugger
                         a.node.style.fontSize = b+'px'
                         # done
                         true
