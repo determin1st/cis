@@ -5,82 +5,68 @@ $('document').ready(function(){
   if (!w3ui) {
     return;
   }
-  M = {
-    nav: w3ui.PROXY({
-      arch: [],
-      data: [
-        {
-          id: ''
-        }, {
-          id: ''
-        }, {
-          id: ''
-        }, {
-          id: ''
-        }
-      ],
-      restore: true,
-      keys: function(){
-        var this$ = this;
-        return this.data.map(function(it){
-          return it.id;
-        });
+  M = w3ui.PROXY({
+    nav: [
+      {
+        id: 'wa'
+      }, {
+        id: ''
+      }, {
+        id: ''
+      }, {
+        id: ''
       }
-    }, {
-      init: function(){
-        var i$, to$, a;
-        for (i$ = 0, to$ = this.data.length - 1; i$ <= to$; ++i$) {
-          a = i$;
-          this.arch[a] = {
-            '': w3ui.CLONE(this.data.slice(a + 1))
-          };
-        }
-        return true;
-      },
-      set: function(obj, p, v, prx){
-        var n, w, a;
-        if (typeof p !== 'string' || isNaN(parseInt(p))) {
-          obj[p] = v;
-          return true;
-        }
-        p = +p;
-        n = obj.data.length;
-        if (p < 0 || p >= n) {
-          return true;
-        }
-        w = obj.data[p].id;
-        if (w === v && v === '') {
-          return true;
-        }
-        if (v === w) {
-          v = '';
-        }
-        if (w) {
-          obj.arch[p][w] = obj.data.slice(p + 1, n);
-        }
-        a = obj.arch[p][v] && obj.restore ? v : '';
-        obj.data.splice(p + 1, n);
-        obj.data = obj.data.concat(w3ui.CLONE(obj.arch[p][a]));
-        obj.data[p].id = v;
-        return true;
-      },
-      get: function(obj, p, prx){
-        if (typeof p !== 'string' || isNaN(parseInt(p))) {
-          return obj[p];
-        }
-        p = +p;
-        if (p < 0 || p >= obj.data.length) {
-          return null;
-        }
-        return obj.data[p];
-      }
-    }),
+    ],
+    sav: [{}, {}, {}],
     authorized: true,
-    mode: 0,
     init: function(){
+      var a;
+      a = this.nav;
+      this.sav.forEach(function(save, level){
+        save[''] = w3ui.CLONE(a.slice(level + 1));
+      });
       return true;
     }
-  };
+  }, {
+    set: function(obj, k, v, prx){
+      var a, b, c, d;
+      if (typeof k === 'string') {
+        obj[k] = v;
+        return true;
+      }
+      a = obj.nav;
+      b = obj.sav;
+      c = a[k];
+      d = k < b.length ? b[k] : null;
+      if (c.id === v && v === '') {
+        return true;
+      }
+      if (c.id === v) {
+        v = '';
+      }
+      if (d) {
+        d[c.id] = a.slice(k + 1);
+        a.splice(k + 1);
+        a = a.concat(w3ui.CLONE(d[v]));
+      }
+      c.id = v;
+      return true;
+    },
+    get: function(obj, p, prx){
+      var k;
+      if (typeof p !== 'string') {
+        return null;
+      }
+      k = parseInt(p);
+      if (!isNaN(k)) {
+        return obj.nav[k].id;
+      }
+      if (p in obj) {
+        return obj[p];
+      }
+      return null;
+    }
+  });
   V = {
     color: w3ui.PROXY({
       source: null,
@@ -208,213 +194,187 @@ $('document').ready(function(){
         return '';
       }
     }),
+    root: w3ui('html'),
     skel: w3ui.PROXY({
       cfg: {
-        id: 'wa',
-        node: null,
+        id: '',
+        node: w3ui('#skel'),
+        root: w3ui('html'),
         parent: null,
         level: 0,
         nav: null,
-        init: function(){
-          return true;
-        },
-        refresh: function(){
-          var node, i$, a;
-          node = this.cfg.node;
-          for (i$ = M.nav.data.length; i$ >= 1; --i$) {
-            a = i$;
-            node.toggleClass('n' + a, !!M.nav[a - 1].id);
-          }
-          node.toggleClass('auth', !M.authorized);
-          node.toggleClass('m0', M.mode === 0);
-          node.toggleClass('m1', M.mode === 1);
-          node.toggleClass('m2', M.mode === 2);
-          if (0 + node[0].style.opacity < 0.99) {
-            TweenMax.to(node, 2, {
-              opacity: 1,
-              ease: Power1.easeOut
-            });
-          }
-          return true;
-        }
+        render: true
       },
-      modebar: {
+      wa: {
         cfg: {
-          mode: {
-            node: null,
-            icon: '',
-            enabled: false,
-            size: null,
-            index: -1
-          },
-          title: {
-            node: null,
-            size: null,
-            index: 0
-          },
-          conf: {
-            node: null,
-            icon: '',
-            enabled: false,
-            size: null,
-            index: -1
-          },
           init: function(){
-            this.cfg.mode.node = w3ui('#' + this.cfg.id + ' .m1');
-            this.cfg.title.node = w3ui('#' + this.cfg.id + ' .box2');
-            this.cfg.conf.node = w3ui('#' + this.cfg.id + ' .m2');
-            this.cfg.conf.icon = V.svg.modebarConfig;
-            return true;
-          },
-          refresh: function(){
             var a;
-            ['mode', 'conf'].forEach(function(name){
-              var a, b;
-              a = this[name];
-              b = this.cfg[name];
-              b.node.prop('disabled', !b.enabled);
-              if (!b.enabled) {
-                b.node.html('');
-                return;
-              }
-              a = b.index >= 0 && a[b.index]
-                ? a[b.index]
-                : b.icon;
-              b.node.html(a);
-            }, this);
-            a = this.cfg.title;
-            a.node.html(this.title[a.index]);
-            return true;
-          },
-          resize: function(){
-            var i$, ref$, len$, a, b, c;
-            for (i$ = 0, len$ = (ref$ = Object.keys(this)).length; i$ < len$; ++i$) {
-              a = ref$[i$];
-              if (a !== 'cfg') {
-                b = this.cfg[a];
-                a = this[a];
-                c = [parseInt(b.node.style.fontSizeMin), parseInt(b.node.style.fontSizeMax)];
-                if (isNaN(c[0])) {
-                  c[0] = 0;
-                }
-                if (isNaN(c[1])) {
-                  c[1] = 64;
-                }
-                if (!a) {
-                  continue;
-                }
-                b.size = a.map(fn$);
-              }
-            }
-            ['mode', 'conf'].forEach(function(name){
-              var a, b, c;
-              a = this.cfg[name];
-              b = this[name];
-              if (!b) {
-                a.index = -1;
-                return;
-              }
-              c = Math.max.apply(null, a.size);
-              a.index = a.size.findIndex(function(val){
-                return val - c < 0.0001;
+            a = this.cfg.node;
+            if (0 + a[0].style.opacity < 0.99) {
+              TweenMax.to(a, 2, {
+                opacity: 1,
+                ease: Power1.easeOut
               });
+            }
+            return true;
+          }
+        },
+        modebar: {
+          cfg: {
+            mode: {
+              node: null,
+              icon: '',
+              enabled: false,
+              size: null,
+              index: -1
+            },
+            title: {
+              node: null,
+              size: null,
+              index: 0
+            },
+            conf: {
+              node: null,
+              icon: '',
+              enabled: false,
+              size: null,
+              index: -1
+            },
+            init: function(){
+              this.cfg.mode.node = w3ui('#' + this.cfg.id + ' .m1');
+              this.cfg.title.node = w3ui('#' + this.cfg.id + ' .box2');
+              this.cfg.conf.node = w3ui('#' + this.cfg.id + ' .m2');
+              return true;
+            },
+            refresh: function(){
+              var a;
+              ['mode', 'conf'].forEach(function(name){
+                var a, b;
+                a = this[name];
+                b = this.cfg[name];
+                b.node.prop('disabled', !b.enabled);
+                if (!b.enabled) {
+                  b.node.html('');
+                  return;
+                }
+                a = b.index >= 0 && a[b.index]
+                  ? a[b.index]
+                  : b.icon;
+                b.node.html(a);
+              }, this);
+              a = this.cfg.title;
+              a.node.html(this.title[a.index]);
+              return true;
+            },
+            resize: function(){
+              var i$, ref$, len$, a, b, c;
+              for (i$ = 0, len$ = (ref$ = Object.keys(this)).length; i$ < len$; ++i$) {
+                a = ref$[i$];
+                if (a !== 'cfg') {
+                  b = this.cfg[a];
+                  a = this[a];
+                  c = [parseInt(b.node.style.fontSizeMin), parseInt(b.node.style.fontSizeMax)];
+                  if (isNaN(c[0])) {
+                    c[0] = 0;
+                  }
+                  if (isNaN(c[1])) {
+                    c[1] = 64;
+                  }
+                  if (!a) {
+                    continue;
+                  }
+                  b.size = a.map(fn$);
+                }
+              }
+              ['mode', 'conf'].forEach(function(name){
+                var a, b, c;
+                a = this.cfg[name];
+                b = this[name];
+                if (!b) {
+                  a.index = -1;
+                  return;
+                }
+                c = Math.max.apply(null, a.size);
+                a.index = a.size.findIndex(function(val){
+                  return val - c < 0.0001;
+                });
+                b = a.size[a.index];
+                a.node.style.fontSize = b + 'px';
+              }, this);
+              a = this.cfg.title;
               b = a.size[a.index];
               a.node.style.fontSize = b + 'px';
-            }, this);
-            a = this.cfg.title;
-            b = a.size[a.index];
-            a.node.style.fontSize = b + 'px';
-            this.cfg.root.style.f1SizeMax = a.size[0];
-            return true;
-            function fn$(text){
-              var a;
-              if (!text) {
-                return 0;
-              }
-              a = b.node.textMeasureFont(text);
-              if (a < c[0]) {
-                a = c[0];
-              }
-              if (a > c[1]) {
-                a = c[1];
-              }
-              return a;
-            }
-          }
-        },
-        mode: null,
-        conf: ['Настройки', 'Настр', ''],
-        title: ['Главное меню', '', 'Конфигурация']
-      },
-      view: {
-        cfg: {
-          init: function(){
-            var a;
-            switch (M.mode) {
-            case 0:
-              a = 'menu';
-              break;
-            case 1:
+              this.cfg.root.style.f1SizeMax = a.size[0];
               return true;
-            case 2:
-              return true;
-            default:
-              return false;
+              function fn$(text){
+                var a;
+                if (!text) {
+                  return 0;
+                }
+                a = b.node.textMeasureFont(text);
+                if (a < c[0]) {
+                  a = c[0];
+                }
+                if (a > c[1]) {
+                  a = c[1];
+                }
+                return a;
+              }
             }
-            this.cfg.render(a);
-            return true;
           },
-          refresh: function(){
-            return true;
-          },
-          resize: function(){
-            return true;
-          }
+          mode: null,
+          conf: ['Настройки', 'Настр', ''],
+          title: ['Главное меню', '', 'Конфигурация']
         },
-        menu: {
+        view: {
           cfg: {
-            resize: function(){
-              return true;
-            }
+            render: true
           },
-          list: [
-            {
-              id: 'card',
-              name: 'Картотека'
-            }, {
-              id: 'm2',
-              name: '2'
-            }, {
-              id: 'm3',
-              name: '3'
-            }, {
-              id: 'm4',
-              name: '4'
-            }, {
-              id: 'm5',
-              name: '5'
-            }, {
-              id: 'm6',
-              name: '6'
-            }
-          ],
-          card: ['Картотека', 'Карта', '']
-        }
-      },
-      console: {
-        cfg: {
-          empty: true
+          menu: {
+            cfg: {
+              init: function(){
+                return true;
+              }
+            },
+            list: [
+              {
+                id: 'card',
+                name: 'Картотека'
+              }, {
+                id: 'm2',
+                name: '2'
+              }, {
+                id: 'm3',
+                name: '3'
+              }, {
+                id: 'm4',
+                name: '4'
+              }, {
+                id: 'm5',
+                name: '5'
+              }, {
+                id: 'm6',
+                name: '6'
+              }
+            ],
+            card: ['Картотека', 'Карта', '']
+          }
         },
-        log: {
-          error: ['Ошибка', 'в доступе отказано'],
-          warning: 'Предупреждение',
-          info: ['Статус', 'активирован тестовый режим', 'подключение к серверу установлено', 'подключение к серверу не установлено', 'загрузка ключевого контейнера', 'аутентификация', 'авторизация', 'доступ разрешен', 'авторизация завершена']
+        console: {
+          cfg: {
+            empty: true
+          },
+          log: {
+            error: ['Ошибка', 'в доступе отказано'],
+            warning: 'Предупреждение',
+            info: ['Статус', 'активирован тестовый режим', 'подключение к серверу установлено', 'подключение к серверу не установлено', 'загрузка ключевого контейнера', 'аутентификация', 'авторизация', 'доступ разрешен', 'авторизация завершена']
+          }
         }
       }
     }, {
       get: function(obj, id, prx){
         var a, b, k, v, own$ = {}.hasOwnProperty;
-        if (!id || id === 'wa') {
+        if (!id) {
           return obj;
         }
         if (obj[id]) {
@@ -439,99 +399,98 @@ $('document').ready(function(){
         return null;
       }
     }),
-    go: function(nodeName, direction, args, method){
-      var commonMethod, methodName, node, a;
-      commonMethod = typeof method === 'string';
-      methodName = commonMethod
-        ? method
-        : method.name;
-      if (!(node = this.skel[nodeName]) || !node.cfg) {
-        return true;
-      }
-      if (commonMethod) {
-        a = node.cfg[method] && node.cfg.node ? node.cfg[method].apply(node, args) : true;
-      } else {
-        a = method.apply(node, args);
-      }
-      if (!a) {
-        console.log('method [' + methodName + '] failed on element [' + nodeName + ']');
+    init: function(id, parent, level){
+      var a, b, c;
+      id == null && (id = '');
+      parent == null && (parent = null);
+      level == null && (level = 0);
+      if (!(a = this.skel[id])) {
+        console.log('getting of "' + id + '" failed');
         return false;
       }
-      if (direction) {
-        for (a in node) {
-          if (a !== 'cfg') {
-            if (!this.go(a, direction, args, method)) {
-              return false;
-            }
-          }
+      if (id) {
+        a.cfg.id = id;
+        a.cfg.parent = parent;
+        if (parent) {
+          a.cfg.root = parent.cfg.root;
         }
-      } else {
-        if (a = node.cfg.parent) {
-          if (!this.go(a, direction, args, method)) {
+        a.cfg.level = level;
+        if (a.cfg.render) {
+          a.cfg.render = w3ui.PARTIAL(this, this.render, id);
+        }
+      }
+      for (b in a) {
+        c = a[b];
+        if (b !== 'cfg' && c && c.cfg) {
+          if (!this.init(b, a, level + 1)) {
             return false;
           }
         }
       }
       return true;
     },
-    init: function(){
-      var root, f;
-      if (!this.color.init()) {
-        console.log('color.init failed');
+    walk: function(id, direction, func){
+      debugger;
+      var a, walk, b;
+      if (!(a = this.skel[id])) {
         return false;
       }
-      if (!this.svg.init()) {
-        console.log('svg.init failed');
-        return false;
+      walk = [];
+      b = [a];
+      while (b.length) {
+        walk.push(b);
+        b = b.map(fn$);
+        b = b.reduce(fn1$, []);
       }
-      root = w3ui('html');
-      f = function(id, parent, level){
-        var a, b, c;
-        id == null && (id = 'wa');
-        parent == null && (parent = null);
-        level == null && (level = 0);
-        if (!(a = this.skel[id])) {
-          console.log('getting element [' + id + '] failed');
-          return false;
-        }
-        a.cfg.id = id;
-        a.cfg.node = w3ui('#' + id);
-        a.cfg.parent = parent;
-        a.cfg.root = root;
-        a.cfg.level = level;
-        a.cfg.nav = M.nav[level];
-        a.cfg.render = function(id){
-          var b;
-          if (!(b = $('#t-' + a.cfg.id)) || b.length === 0) {
+      walk = walk.reduce(function(a, level){
+        a = a.concat(b);
+      }, []);
+      if (!direction) {
+        walk.reverse();
+      }
+      if (typeof func === 'string') {
+        a = walk.every(function(node){
+          if (node.cfg[func] && node.cfg.node) {
+            return node.cfg[func].apply(node);
+          } else {
             return true;
           }
-          if (id) {
-            b = $(b[0].content).find('#' + id);
-            b = b[0].innerHTML;
-            b = Mustache.render(b, a[id]);
-          } else {
-            b = b[0].content;
-          }
-          a.cfg.node.html(b);
-          return true;
-        };
-        for (b in a) {
-          c = a[b];
-          if (b !== 'cfg' && c && c.cfg) {
-            if (!f.apply(this, [b, c, level + 1])) {
-              return false;
-            }
+        });
+      } else {
+        a = walk.every(function(node){
+          return func.apply(node);
+        });
+      }
+      return a;
+      function fn$(node){
+        var c, a, b;
+        c = [];
+        for (a in node) {
+          b = node[a];
+          if (a !== 'cfg' && b && b.cfg) {
+            c.push(b);
           }
         }
+        return c;
+      }
+      function fn1$(a, b){
+        a = a.concat(b);
+      }
+    },
+    render: function(id){
+      var a, b;
+      if (!(a = $('template')) || a.length === 0) {
         return true;
-      };
-      return f.apply(this) && this.go('wa', true, [], 'init');
-    },
-    refresh: function(){
-      return this.go('wa', true, [], 'refresh');
-    },
-    resize: function(){
-      this.go('wa', true, [], 'resize');
+      }
+      a = $(a[0].content).find('#t-' + id);
+      a = a[0].innerHTML;
+      b = this[id];
+      a = Mustache.render(a, b);
+      this.cfg.node.html(a);
+      if (b.cfg) {
+        b.cfg.node = w3ui('#' + id);
+      }
+      return true;
     },
     GSAP: {
       busy: 0,
@@ -1265,115 +1224,35 @@ $('document').ready(function(){
   P = {
     init: function(){
       if (!M.init() || !V.init()) {
+        console.log('init() failed');
         return false;
       }
-      P.updateView();
+      if (!P.update(M[0])) {
+        console.log('update() failed');
+        return false;
+      }
       $(window).on('resize', function(){
-        P.windowResize();
+        P.resize();
       });
-      /***
-      # synchronize navigation {{{
-      if M.authorized
-          # determine changes
-          m = M.nav.keys!
-          v = V.nav.keys!
-          x = [false] * m.length
-          for a,b in m
-              # compare main factor (id)
-              # store result of comparison
-              if a != v[b]
-                  # change detected
-                  x[b] = true
-                  # propagate it to upper levels
-                  for c from b + 1 to m.length - 1
-                      x[c] = true
-                  # finish
-                  break
-              # compare additional factors
-              for own a,c of M.nav.data[b] when c != V.nav.data[b][a]
-                  # change detected
-                  # do not propagate it
-                  x[b] = true
-                  break
-          # synchronize
-          for a,b in M.nav.data
-              V.nav.data[b] = w3ui.CLONE a
-      else
-          # no navigation
-          m = [''] * a
-          x = [true] * m.length
-          V.nav.data.forEach (a) -> a.id = ''
-      # }}}
-      /***/
       return true;
     },
-    updateView: function(){
-      V.resize();
-      V.refresh();
-    },
-    windowResize: function(){
+    resize: function(){
       var me, f;
-      me = this.windowResize;
+      me = this.resizeWindow;
       if (me.timer) {
         window.clearTimeout(me.timer);
         f = w3ui.PARTIAL(this, me);
         me.timer = window.setTimeout(f, 250);
-      } else {
-        this.updateView();
+        return;
       }
-    },
-    navigate: function(nav, onComplete){
-      var i$, len$, b, a;
-      if (!this.sync) {
-        return false;
-      }
-      if (nav && M.authorized) {
-        M.nav.restore = false;
-        for (i$ = 0, len$ = nav.length; i$ < len$; ++i$) {
-          b = i$;
-          a = nav[i$];
-          M.nav.data[b].id = a;
-          V.nav.data[b].id = '';
-        }
-        M.nav.restore = true;
-      }
-      this.sync(function(){
-        V.resize(0, function(){
-          V.refresh();
-          if (onComplete) {
-            onComplete();
-          }
-        });
+      ['resize', 'refresh'].every(function(method){
+        return V.walk(M[0], true, method);
       });
-      return true;
     },
-    nav: function(level, key, value, onComplete){
-      if (V.state !== 0) {
-        return false;
-      }
-      if (key === 'id') {
-        M.nav[level] = value;
-        this.navigate(false, onComplete);
-      } else {
-        M.nav[level][key] = value;
-        V.nav[level][key] = value;
-        V.resize(0, function(){
-          V.refresh(onComplete);
-        });
-      }
-      return true;
-    },
-    switchNavOpt: function(level, opt){
-      var a;
-      if (P.sync.state || !M.authorized) {
-        return false;
-      }
-      a = !M.nav[level][opt];
-      M.nav[level][opt] = a;
-      V.nav[level][opt] = a;
-      V.resize(false);
-      V.refresh();
-      return true;
+    update: function(id){
+      return ['render', 'init', 'resize', 'refresh'].every(function(method){
+        return V.walk(id, true, method);
+      });
     }
   };
   if (M && V && P) {

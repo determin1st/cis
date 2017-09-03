@@ -5,81 +5,67 @@ $ \document .ready ->
     ###
     return if not w3ui
     ###
-    M = # model {{{
-        nav: w3ui.PROXY { # TODO {{{
-            arch: []
-            data: [
-                {
-                    id: ''
-                }
-                {
-                    id: ''
-                }
-                {
-                    id: ''
-                }
-                {
-                    id: ''
-                }
-            ]
-            restore: true
-            keys: -> @data.map (.id)
-        }, {
-            init: -> # {{{
-                for a from 0 to @data.length - 1
-                    @arch[a] = {'': w3ui.CLONE @data.slice a + 1}
-                true
-            # }}}
-            set: (obj, p, v, prx) -> # {{{
-                # проверка
-                if typeof p != 'string' or isNaN parseInt p
-                    # свойство не является числовым, сохраняем как есть
-                    obj[p] = v
-                    return true
-                # определяем номер уровня
-                p = +p
-                n = obj.data.length
-                return true if p < 0 or p >= n
-                # определяем ключевое значение уровня
-                w = obj.data[p].id
-                return true if w == v == ''
-                # сбрасываем значение при совпадении!
-                v = '' if v == w
-                # сохраняем данные вышестоящих уровней в архив
-                # только для непустого ключа!
-                if w
-                    obj.arch[p][w] = obj.data.slice p + 1, n
-                # восстанавливаем данные
-                # определяем ключ
-                a = if obj.arch[p][v] and obj.restore
-                    then v
-                    else '' # пустой ключ существует всегда!
-                # удаляем вышестоящие уровни
-                obj.data.splice p + 1, n
-                # дополняем из архива
-                obj.data = obj.data ++ w3ui.CLONE obj.arch[p][a]
-                # сохраняем новое значение
-                obj.data[p].id = v
-                true
-            # }}}
-            get: (obj, p, prx) -> # {{{
-                # проверка
-                if typeof p != 'string' or isNaN parseInt p
-                    # возвращаем как есть
-                    return obj[p]
-                # определяем номер уровня
-                p = +p
-                return null if p < 0 or p >= obj.data.length
-                # возврат уровня
-                obj.data[p]
-            # }}}
-        }
-        # }}}
+    M = w3ui.PROXY { # model {{{
+        # navigation
+        nav: [
+            {id: 'wa'}
+            {id: ''}
+            {id: ''}
+            {id: ''}
+        ]
+        sav: [{} {} {}]
         ###
         authorized: true
-        mode: 0 # 0=menu, 1=work, 2=config
         ###
-        init: -> true
+        init: -> # {{{
+            # initialize navigation save
+            a = @nav
+            @sav.forEach (save, level) !->
+                save[''] = w3ui.CLONE a.slice level + 1
+            # done
+            true
+        # }}}
+    }, {
+        set: (obj, k, v, prx) -> # {{{
+            # set model data
+            if typeof k == 'string'
+                obj[k] = v
+                return true
+            # set navigation
+            # prepare
+            a = obj.nav
+            b = obj.sav
+            c = a[k]
+            d = if k < b.length
+                then b[k]
+                else null
+            # no change
+            return true if c.id == v == ''
+            # reset
+            v = '' if c.id == v
+            # backup/restore
+            if d
+                # save current navigation
+                d[c.id] = a.slice k + 1
+                # remove higher levels
+                a.splice k + 1
+                # add higher levels from save
+                a = a ++ w3ui.CLONE d[v]
+            # change
+            c.id = v
+            true
+        # }}}
+        get: (obj, p, prx) -> # {{{
+            # check
+            return null if typeof p != 'string'
+            # get navigation object
+            k = parseInt p
+            return obj.nav[k].id if not isNaN k
+            # return as is
+            return obj[p] if p of obj
+            return null
+        # }}}
+    }
     # }}}
     V = # view {{{
         color: w3ui.PROXY { # {{{
@@ -211,250 +197,216 @@ $ \document .ready ->
             # }}}
         }
         # }}}
+        root: w3ui 'html'
+        ###
         skel: w3ui.PROXY { # interface skeleton {{{
             cfg: # {{{
                 # common props
-                id: 'wa'        # node name/identifier
-                node: null      # jquery object -> DOM connection
-                parent: null    # backlink
-                level: 0        # node level in skeleton tree
-                nav: null       # navigation for this level
-                ###
-                init: -> # {{{
-                    true
-                # }}}
-                refresh: -> # {{{
-                    # prepare
-                    node = @cfg.node
-                    # define style classes
-                    # navigation level
-                    for a from M.nav.data.length to 1 by -1
-                        node.toggleClass 'n'+a, !!M.nav[a - 1].id
-                    # autorization
-                    node.toggleClass 'auth', !M.authorized
-                    # mode
-                    node.toggleClass 'm0', M.mode == 0
-                    node.toggleClass 'm1', M.mode == 1
-                    node.toggleClass 'm2', M.mode == 2
-                    # ..
-                    # show workarea
-                    if 0 + node.0.style.opacity < 0.99
-                        TweenMax.to node, 2, {
-                            opacity: 1
-                            ease: Power1.easeOut
-                        }
-                    # done
-                    true
-                # }}}
+                id: ''              # DOM node identifier
+                node: w3ui '#skel'  # DOM node object
+                root: w3ui 'html'   # DOM root
+                parent: null        # backlink
+                level: 0            # node level in skeleton tree
+                nav: null           # level navigation
+                render: true        # render flag-function
             # }}}
-            modebar: # {{{
-                cfg:
-                    # {{{
-                    mode:
-                        node: null      # w3ui node
-                        icon: ''        # svg icon
-                        enabled: false  # state
-                        size: null      # captions width in pixels
-                        index: -1       # caption index
-                    title:
-                        node: null
-                        size: null
-                        index: 0        # not dynamic, external
-                    conf:
-                        node: null
-                        icon: ''
-                        enabled: false
-                        size: null
-                        index: -1
-                    # }}}
+            wa:
+                cfg: # {{{
                     init: -> # {{{
-                        # collect DOM nodes
-                        @cfg.mode.node  = w3ui '#'+@cfg.id+' .m1'
-                        @cfg.title.node = w3ui '#'+@cfg.id+' .box2'
-                        @cfg.conf.node  = w3ui '#'+@cfg.id+' .m2'
-                        # load config icon
-                        @cfg.conf.icon = V.svg.modebarConfig
-                        true
-                    # }}}
-                    refresh: -> # {{{
-                        # set captions
-                        ['mode' 'conf'].forEach (name) !->
-                            # prepare
-                            a = @[name]
-                            b = @cfg[name]
-                            # check disabled
-                            b.node.prop 'disabled', not b.enabled
-                            if not b.enabled
-                                b.node.html ''
-                                return
-                            # select
-                            a = if b.index >= 0 and a[b.index]
-                                then a[b.index]
-                                else b.icon
-                            # set
-                            b.node.html a
-                        , @
-                        # set title
-                        a = @cfg.title
-                        a.node.html @title[a.index]
+                        # prepare
+                        # show workarea
+                        a = @cfg.node
+                        if 0 + a.0.style.opacity < 0.99
+                            TweenMax.to a, 2, {
+                                opacity: 1
+                                ease: Power1.easeOut
+                            }
                         # done
                         true
                     # }}}
-                    resize: -> # {{{
-                        # for each caption
-                        # determine font size
-                        for a in Object.keys @ when a != 'cfg'
-                            # prepare
-                            b = @cfg[a]     # state
-                            a = @[a]        # data
-                            c =
-                                parseInt b.node.style.fontSizeMin
-                                parseInt b.node.style.fontSizeMax
-                            # correct
-                            c.0 = 0  if isNaN c.0
-                            c.1 = 64 if isNaN c.1
-                            # check
-                            continue if not a
-                            # define
-                            b.size = a.map (text) ->
-                                # skip empty
-                                return 0 if not text
-                                # determine maximal value
-                                a = b.node.textMeasureFont text
-                                # check and correct
-                                a = c.0 if a < c.0
-                                a = c.1 if a > c.1
-                                # done
-                                return a
-                        # for dynamic captions
-                        # determine index and set font size
-                        ['mode' 'conf'].forEach (name) !->
-                            # prepare
-                            a = @cfg[name]
-                            b = @[name]
-                            # check
-                            if not b
-                                a.index = -1
-                                return
-                            # determine index
-                            # with maximal font size
-                            c = Math.max.apply null, a.size
-                            a.index = a.size.findIndex (val) ->
-                                val - c < 0.0001
-                            # set font size
-                            b = a.size[a.index]
-                            a.node.style.fontSize = b+'px'
-                        , @
-                        # set font size for title
-                        a = @cfg.title
-                        b = a.size[a.index]
-                        a.node.style.fontSize = b+'px'
-                        # determine global font size
-                        @cfg.root.style.f1SizeMax = a.size.0
-                        # done
-                        true
-                    # }}}
-                ###
-                mode: null
-                conf:
-                    'Настройки'
-                    'Настр'
-                    ''
-                title:
-                    'Главное меню'
-                    ''
-                    'Конфигурация'
-            # }}}
-            view: # {{{
-                cfg:
-                    init: -> # {{{
-                        # select template
-                        switch M.mode
-                        | 0 =>
-                            a = 'menu'
-                        | 1 =>
-                            return true
-                        | 2 =>
-                            return true
-                        | otherwise =>
-                            return false
-                        # render
-                        @cfg.render a
-                        # done
-                        true
-                    # }}}
-                    refresh: -> # {{{
-                        true
-                    # }}}
-                    resize: -> # {{{
-                        true
-                    # }}}
-                ###
-                menu: # {{{
+                # }}}
+                modebar: # {{{
                     cfg:
-                        resize: -> # {{{
-                            # s
+                        # state {{{
+                        mode:
+                            node: null      # w3ui node
+                            icon: ''        # svg icon
+                            enabled: false  # state
+                            size: null      # captions width in pixels
+                            index: -1       # caption index
+                        title:
+                            node: null
+                            size: null
+                            index: 0        # not dynamic, external
+                        conf:
+                            node: null
+                            icon: ''
+                            enabled: false
+                            size: null
+                            index: -1
+                        # }}}
+                        init: -> # {{{
+                            # collect DOM nodes
+                            @cfg.mode.node  = w3ui '#'+@cfg.id+' .m1'
+                            @cfg.title.node = w3ui '#'+@cfg.id+' .box2'
+                            @cfg.conf.node  = w3ui '#'+@cfg.id+' .m2'
                             true
                         # }}}
-                    list:
-                        {
-                            id: 'card'
-                            name: 'Картотека'
-                        }
-                        {
-                            id: 'm2'
-                            name: '2'
-                        }
-                        {
-                            id: 'm3'
-                            name: '3'
-                        }
-                        {
-                            id: 'm4'
-                            name: '4'
-                        }
-                        {
-                            id: 'm5'
-                            name: '5'
-                        }
-                        {
-                            id: 'm6'
-                            name: '6'
-                        }
-                    card:
-                        'Картотека'
-                        'Карта'
+                        refresh: -> # {{{
+                            # set captions
+                            ['mode' 'conf'].forEach (name) !->
+                                # prepare
+                                a = @[name]
+                                b = @cfg[name]
+                                # check disabled
+                                b.node.prop 'disabled', not b.enabled
+                                if not b.enabled
+                                    b.node.html ''
+                                    return
+                                # select
+                                a = if b.index >= 0 and a[b.index]
+                                    then a[b.index]
+                                    else b.icon
+                                # set
+                                b.node.html a
+                            , @
+                            # set title
+                            a = @cfg.title
+                            a.node.html @title[a.index]
+                            # done
+                            true
+                        # }}}
+                        resize: -> # {{{
+                            # for each caption
+                            # determine font size
+                            for a in Object.keys @ when a != 'cfg'
+                                # prepare
+                                b = @cfg[a]     # state
+                                a = @[a]        # data
+                                c =
+                                    parseInt b.node.style.fontSizeMin
+                                    parseInt b.node.style.fontSizeMax
+                                # correct
+                                c.0 = 0  if isNaN c.0
+                                c.1 = 64 if isNaN c.1
+                                # check
+                                continue if not a
+                                # define
+                                b.size = a.map (text) ->
+                                    # skip empty
+                                    return 0 if not text
+                                    # determine maximal value
+                                    a = b.node.textMeasureFont text
+                                    # check and correct
+                                    a = c.0 if a < c.0
+                                    a = c.1 if a > c.1
+                                    # done
+                                    return a
+                            # for dynamic captions
+                            # determine index and set font size
+                            ['mode' 'conf'].forEach (name) !->
+                                # prepare
+                                a = @cfg[name]
+                                b = @[name]
+                                # check
+                                if not b
+                                    a.index = -1
+                                    return
+                                # determine index
+                                # with maximal font size
+                                c = Math.max.apply null, a.size
+                                a.index = a.size.findIndex (val) ->
+                                    val - c < 0.0001
+                                # set font size
+                                b = a.size[a.index]
+                                a.node.style.fontSize = b+'px'
+                            , @
+                            # set font size for title
+                            a = @cfg.title
+                            b = a.size[a.index]
+                            a.node.style.fontSize = b+'px'
+                            # determine global font size
+                            @cfg.root.style.f1SizeMax = a.size.0
+                            # done
+                            true
+                        # }}}
+                    ###
+                    mode: null
+                    conf:
+                        'Настройки'
+                        'Настр'
                         ''
+                    title:
+                        'Главное меню'
+                        ''
+                        'Конфигурация'
                 # }}}
-            # }}}
-            console: # {{{
-                cfg:
-                    # {{{
-                    empty: true
+                view: # {{{
+                    cfg: 
+                        render: true
+                    ###
+                    menu: # {{{
+                        cfg:
+                            init: -> # {{{
+                                true
+                            # }}}
+                        list:
+                            {
+                                id: 'card'
+                                name: 'Картотека'
+                            }
+                            {
+                                id: 'm2'
+                                name: '2'
+                            }
+                            {
+                                id: 'm3'
+                                name: '3'
+                            }
+                            {
+                                id: 'm4'
+                                name: '4'
+                            }
+                            {
+                                id: 'm5'
+                                name: '5'
+                            }
+                            {
+                                id: 'm6'
+                                name: '6'
+                            }
+                        card:
+                            'Картотека'
+                            'Карта'
+                            ''
                     # }}}
-                ###
-                log: # {{{
-                    error:
-                        'Ошибка'
-                        'в доступе отказано'
-                    warning:
-                        'Предупреждение'
-                    info:
-                        'Статус'
-                        'активирован тестовый режим'
-                        'подключение к серверу установлено'
-                        'подключение к серверу не установлено'
-                        'загрузка ключевого контейнера'
-                        'аутентификация'
-                        'авторизация'
-                        'доступ разрешен'
-                        'авторизация завершена'
                 # }}}
-            # }}}
+                console: # {{{
+                    cfg:
+                        empty: true
+                    ###
+                    log: # {{{
+                        error:
+                            'Ошибка'
+                            'в доступе отказано'
+                        warning:
+                            'Предупреждение'
+                        info:
+                            'Статус'
+                            'активирован тестовый режим'
+                            'подключение к серверу установлено'
+                            'подключение к серверу не установлено'
+                            'загрузка ключевого контейнера'
+                            'аутентификация'
+                            'авторизация'
+                            'доступ разрешен'
+                            'авторизация завершена'
+                    # }}}
+                # }}}
         }, {
             get: (obj, id, prx) -> # {{{
                 # check root
-                return obj if not id or id == 'wa'
+                return obj if not id
                 # check root child
                 return obj[id] if obj[id]
                 # check this node is a leaf
@@ -478,103 +430,86 @@ $ \document .ready ->
         }
         # }}}
         ###
-        go: (nodeName, direction, args, method) -> # {{{
-            # prepare
-            # determine method type
-            commonMethod = typeof method == 'string'
-            methodName = if commonMethod
-                then method else method.name
-            # get start node
-            if not (node = @skel[nodeName]) or not node.cfg
-                return true
-            # execute
-            if commonMethod
-                # common method/node must exist
-                a = if node.cfg[method] and node.cfg.node
-                    then node.cfg[method].apply node, args
-                    else true
-            else
-                # custom
-                a = method.apply node, args
-            # check the result
-            if not a
-                console.log 'method ['+methodName+'] failed on element ['+nodeName+']'
+        init: (id = '', parent = null, level = 0) -> # {{{
+            # get node
+            if not a = @skel[id]
+                console.log 'getting of "'+id+'" failed'
                 return false
-            # recurse
-            # check direction
-            if direction
-                # forward/up
-                # go to all children branches
-                for a of node when a != 'cfg'
-                    return false if not @go a, direction, args, method
-            else
-                # backward/down
-                # go to parents
-                if a = node.cfg.parent
-                    return false if not @go a, direction, args, method
+            # initialize
+            if id
+                a.cfg.id     = id
+                a.cfg.parent = parent
+                a.cfg.root   = parent.cfg.root if parent
+                a.cfg.level  = level
+                a.cfg.render = w3ui.PARTIAL @, @render, id if a.cfg.render
+            # recurse to children
+            for b,c of a when b != 'cfg' and c and c.cfg
+                return false if not @init b, a, level + 1
             # completed
             true
         # }}}
-        init: -> # {{{
-            # prepare colors
-            if not @color.init!
-                console.log 'color.init failed'
-                return false
-            # prepare svg
-            if not @svg.init!
-                console.log 'svg.init failed'
-                return false
-            # get root node
-            root = w3ui 'html'
-            # prepare interface skeleton
-            # define procedure
-            f = (id = 'wa', parent = null, level = 0) ->
-                # get element
-                if not a = @skel[id]
-                    console.log 'getting element ['+id+'] failed'
-                    return false
-                # configure
-                a.cfg.id     = id
-                a.cfg.node   = w3ui '#'+id
-                a.cfg.parent = parent
-                a.cfg.root   = root
-                a.cfg.level  = level
-                a.cfg.nav    = M.nav[level]
-                a.cfg.render = (id) -> # {{{
-                    # prepare
-                    # get template
-                    if not (b = $ '#t-'+a.cfg.id) or b.length == 0
-                        # okay, no template
-                        return true
-                    # construct HTML
-                    if id
-                        # get template content
-                        b = $ b.0.content .find '#'+id
-                        # render
-                        b = b.0.innerHTML
-                        b = Mustache.render b, a[id]
-                    else
-                        # no render required
-                        b = b.0.content
-                    # inject
-                    a.cfg.node.html b
-                    true
-                # }}}
-                # recurse to children
-                for b,c of a when b != 'cfg' and c and c.cfg
-                    return false if not f.apply @, [b, c, level + 1]
-                # completed
-                true
-            # finish with combined init procedure
-            f.apply @ and @go 'wa', true, [], 'init'
+        walk: (id, direction, func) -> # {{{
+            # prepare
+            # get start node
+            debugger
+            return false if not a = @skel[id]
+            # create walk array
+            walk = []
+            b = [a]
+            while b.length
+                # add step
+                walk.push b
+                # collect children from last step
+                b = b.map (node) ->
+                    # collect
+                    c = []
+                    for a,b of node when a != 'cfg' and b and b.cfg
+                        c.push b
+                    # done
+                    c
+                # merge
+                b = b.reduce (a, b) !->
+                    a = a ++ b
+                , []
+            # now we have two-dimensional walk array,
+            # lets flatten it
+            walk = walk.reduce (a, level) !->
+                a = a ++ b
+            , []
+            # check direction
+            walk.reverse! if not direction
+            # walk
+            # check function
+            if typeof func == 'string'
+                # internal
+                a = walk.every (node) ->
+                    if node.cfg[func] and node.cfg.node
+                        then node.cfg[func].apply node
+                        else true
+            else
+                # external
+                a = walk.every (node) -> func.apply node
+            # done
+            a
         # }}}
-        refresh: -> # {{{
-            # initiate refresh procedure
-            @go 'wa', true, [], 'refresh'
-        # }}}
-        resize: !-> # {{{
-            # initiate resize procedure
-            @go 'wa', true, [], 'resize'
+        render: (id) -> # {{{
+            # prepare
+            # get templates
+            if not (a = $ 'template') or a.length == 0
+                return true
+            # select template
+            a = $ a.0.content .find '#t-'+id
+            a = a.0.innerHTML
+            # select data
+            b = @[id]
+            # construct HTML
+            a = Mustache.render a, b
+            # inject
+            @cfg.node.html a
+            # add DOM node
+            b.cfg.node = w3ui '#'+id if b.cfg
+            # done
+            true
         # }}}
         # TODO
         GSAP: # greensock-js {{{
@@ -1421,62 +1356,23 @@ $ \document .ready ->
         # }}}
     # }}}
     P = # presenter {{{
-        ###
         init: -> # {{{
             # initialize
             if not M.init! or not V.init!
+                console.log 'init() failed'
                 return false
             # update
-            P.updateView!
+            if not P.update M.0
+                console.log 'update() failed'
+                return false
             # attach resize handler
-            $ window .on 'resize', !-> P.windowResize!
-            /***
-            # synchronize navigation {{{
-            if M.authorized
-                # determine changes
-                m = M.nav.keys!
-                v = V.nav.keys!
-                x = [false] * m.length
-                for a,b in m
-                    # compare main factor (id)
-                    # store result of comparison
-                    if a != v[b]
-                        # change detected
-                        x[b] = true
-                        # propagate it to upper levels
-                        for c from b + 1 to m.length - 1
-                            x[c] = true
-                        # finish
-                        break
-                    # compare additional factors
-                    for own a,c of M.nav.data[b] when c != V.nav.data[b][a]
-                        # change detected
-                        # do not propagate it
-                        x[b] = true
-                        break
-                # synchronize
-                for a,b in M.nav.data
-                    V.nav.data[b] = w3ui.CLONE a
-            else
-                # no navigation
-                m = [''] * a
-                x = [true] * m.length
-                V.nav.data.forEach (a) -> a.id = ''
-            # }}}
-            /***/
+            $ window .on 'resize', !-> P.resize!
             # done
             true
         # }}}
-        ###
-        updateView: !-> # {{{
-            # first
-            V.resize!
-            # second
-            V.refresh!
-        # }}}
-        windowResize: !-> # {{{
+        resize: !-> # {{{
             # prepare
-            me = @windowResize
+            me = @resizeWindow
             # activate debounce protection (delay)
             if me.timer
                 # reset timer
@@ -1484,61 +1380,15 @@ $ \document .ready ->
                 # set timer
                 f = w3ui.PARTIAL @, me
                 me.timer = window.setTimeout f, 250
-            else
-                @updateView!
+                return
+            # resize
+            ['resize' 'refresh'].every (method) ->
+                V.walk M.0, true, method
         # }}}
-        ###
-        navigate: (nav, onComplete) -> # навигация {{{
-            # проверка
-            return false if not @sync
-            # полная навигация
-            if nav and M.authorized
-                # без восстановления текущего уровня
-                M.nav.restore = false
-                # перезаписываем ключевые значения
-                for a,b in nav
-                    M.nav.data[b].id = a
-                    V.nav.data[b].id = ''
-                # теперь запоминаем
-                M.nav.restore = true
-            # синхронизируем
-            @sync !->
-                # корректируем размеры
-                V.resize 0, !->
-                    # корректируем визуальное представление
-                    V.refresh!
-                    # вызываем завершающую функцию
-                    onComplete! if onComplete
-            # возврат
-            true
-        # }}}
-        nav: (level, key, value, onComplete) -> # переключение навигации {{{
-            # проверка
-            return false if V.state != 0
-            # ..
-            if key == \id
-                # ключевое значение уровня
-                M.nav[level] = value
-                # конструирование
-                @navigate false, onComplete
-            else
-                # кофигурация уровня
-                M.nav[level][key] = value
-                V.nav[level][key] = value
-                # обновляем интерфейс
-                V.resize 0, !->
-                    V.refresh onComplete
-            # возврат
-            true
-        # }}}
-        switchNavOpt: (level, opt) -> # переключение опции навигации {{{
-            return false if P.sync.state or not M.authorized
-            a = not M.nav[level][opt]
-            M.nav[level][opt] = a
-            V.nav[level][opt] = a
-            V.resize false
-            V.refresh!
-            true
+        update: (id) -> # {{{
+            # run update sequence
+            ['render' 'init' 'resize' 'refresh'].every (method) ->
+                V.walk id, true, method
         # }}}
     # }}}
     ###
