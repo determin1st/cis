@@ -190,7 +190,7 @@ body
   justify-content: center;
   opacity: 1;
 }
-#menu > div
+#menu div
 {
   flex: 1 1 100%;
   display: flex;
@@ -200,6 +200,7 @@ body
   max-height: 64px;
   margin: 1px 0;
   background-color: var(--col90);
+  color: var(--col40);
   border: 1px solid var(--col85);
   border-radius: 6px;
   cursor: pointer;
@@ -209,7 +210,7 @@ body
   /* anim */
   transition: All 0.6s ease;
 }
-#menu > div:hover
+#menu div:hover
 {
   flex: 1 1 110%;
   max-height: 96px;

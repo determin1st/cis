@@ -10,7 +10,7 @@ $ \document .ready ->
         nav: [
             {id: 'wa'}
             {id: ''}
-            {id: ''}
+            {id: 'menu'}
             {id: ''}
         ]
         sav: [{} {} {}]
@@ -197,22 +197,21 @@ $ \document .ready ->
             # }}}
         }
         # }}}
-        root: w3ui 'html'
-        ###
         skel: w3ui.PROXY { # interface skeleton {{{
             cfg: # {{{
                 # common props
-                id: ''              # DOM node identifier
-                node: w3ui '#skel'  # DOM node object
+                id: 'skel'          # DOM node identifier
+                node: null          # DOM node object
                 root: w3ui 'html'   # DOM root
                 parent: null        # backlink
                 level: 0            # node level in skeleton tree
-                nav: null           # level navigation
+                nav: null           # navigation for the level
+                namespace: ''       # event namespace
                 render: true        # render flag-function
             # }}}
             wa:
                 cfg: # {{{
-                    init: -> # {{{
+                    attach: -> # {{{
                         # prepare
                         # show workarea
                         a = @cfg.node
@@ -227,7 +226,7 @@ $ \document .ready ->
                 # }}}
                 modebar: # {{{
                     cfg:
-                        # state {{{
+                        # {{{
                         mode:
                             node: null      # w3ui node
                             icon: ''        # svg icon
@@ -245,7 +244,7 @@ $ \document .ready ->
                             size: null
                             index: -1
                         # }}}
-                        init: -> # {{{
+                        attach: -> # {{{
                             # collect DOM nodes
                             @cfg.mode.node  = w3ui '#'+@cfg.id+' .m1'
                             @cfg.title.node = w3ui '#'+@cfg.id+' .box2'
@@ -342,12 +341,29 @@ $ \document .ready ->
                         'Конфигурация'
                 # }}}
                 view: # {{{
-                    cfg: 
+                    cfg:
                         render: true
                     ###
                     menu: # {{{
                         cfg:
-                            init: -> # {{{
+                            attach: (handler) -> # {{{
+                                # collect elements
+                                debugger
+                                if not (a = $ '#'+@cfg.id+' div') or not a.length
+                                    return false
+                                # set event
+                                a.on 'click.'+@cfg.namespace, handler
+                                # done
+                                true
+                            # }}}
+                            detach: -> # {{{
+                                # collect elements
+                                debugger
+                                if not (a = $ '#'+@cfg.id+' div') or not a.length
+                                    return false
+                                # set event
+                                @cfg.node.off 'click.'+@cfg.namespace
+                                # done
                                 true
                             # }}}
                         list:
@@ -430,28 +446,32 @@ $ \document .ready ->
         }
         # }}}
         ###
-        init: (id = '', parent = null, level = 0) -> # {{{
+        init: (id = '', parent = null, level = 0, namespace = '') -> # {{{
             # get node
             if not a = @skel[id]
                 console.log 'getting of "'+id+'" failed'
                 return false
+            # prepare
+            b  = a.cfg
+            id = b.id if not id
+            namespace += id.charAt 0 .toUpperCase! + id.slice 1
             # initialize
-            if id
-                a.cfg.id     = id
-                a.cfg.parent = parent
-                a.cfg.root   = parent.cfg.root if parent
-                a.cfg.level  = level
-                a.cfg.render = w3ui.PARTIAL @, @render, id if a.cfg.render
+            b.id        = id
+            b.parent    = parent
+            b.root      = parent.cfg.root if parent
+            b.level     = level
+            b.nav       = M.nav[level]
+            b.namespace = namespace
+            b.render    = w3ui.PARTIAL a, @render if b.render
             # recurse to children
             for b,c of a when b != 'cfg' and c and c.cfg
-                return false if not @init b, a, level + 1
-            # completed
+                return false if not @init b, a, level + 1, namespace
+            # complete
             true
         # }}}
-        walk: (id, direction, func) -> # {{{
+        walk: (id, direction, func, args = []) -> # {{{
             # prepare
             # get start node
-            debugger
             return false if not a = @skel[id]
             # create walk array
             walk = []
@@ -468,13 +488,11 @@ $ \document .ready ->
                     # done
                     c
                 # merge
-                b = b.reduce (a, b) !->
-                    a = a ++ b
+                b = b.reduce (a, b) -> return a ++ b
                 , []
             # now we have two-dimensional walk array,
             # lets flatten it
-            walk = walk.reduce (a, level) !->
-                a = a ++ b
+            walk = walk.reduce (a, b) -> a ++ b
             , []
             # check direction
             walk.reverse! if not direction
@@ -483,8 +501,8 @@ $ \document .ready ->
             if typeof func == 'string'
                 # internal
                 a = walk.every (node) ->
-                    if node.cfg[func] and node.cfg.node
-                        then node.cfg[func].apply node
+                    if node.cfg[func]
+                        then node.cfg[func].apply node, args
                         else true
             else
                 # external
@@ -492,22 +510,30 @@ $ \document .ready ->
             # done
             a
         # }}}
-        render: (id) -> # {{{
-            # prepare
-            # get templates
-            if not (a = $ 'template') or a.length == 0
-                return true
-            # select template
-            a = $ a.0.content .find '#t-'+id
-            a = a.0.innerHTML
-            # select data
-            b = @[id]
-            # construct HTML
-            a = Mustache.render a, b
-            # inject
-            @cfg.node.html a
-            # add DOM node
-            b.cfg.node = w3ui '#'+id if b.cfg
+        render: -> # {{{
+            # initialize
+            if not @cfg.node
+                @cfg.node = w3ui '#'+@cfg.id
+            # check
+            return false if not @cfg.node
+            # determine id
+            if id = @cfg.nav.id
+                # get templates
+                if not (a = $ 'template') or a.length == 0
+                    return false
+                # select template
+                a = $ a.0.content .find '#t-'+id
+                if not a or not a.length
+                    return false
+                a = a.0.innerHTML
+                # select child data
+                c = @[id]
+                # construct HTML
+                a = Mustache.render a, c
+                # inject
+                @cfg.node.html a
+                # initialize child 
+                c.cfg.node = w3ui '#'+id if c.cfg
             # done
             true
         # }}}
@@ -1361,18 +1387,33 @@ $ \document .ready ->
             if not M.init! or not V.init!
                 console.log 'init() failed'
                 return false
-            # update
-            if not P.update M.0
-                console.log 'update() failed'
+            # construct
+            if not P.construct! or not P.update!
+                console.log 'init() failed'
                 return false
-            # attach resize handler
+            # attach global resize handler
             $ window .on 'resize', !-> P.resize!
             # done
             true
         # }}}
+        ###
+        construct: (id = '') -> # {{{
+            # render
+            return false if not V.walk id, true, 'render'
+            # attach
+            V.walk id, true, 'attach', @event
+        # }}}
+        update: (id = '') -> # {{{
+            ['resize' 'refresh'].every (method) ->
+                V.walk id, true, method
+        # }}}
+        destruct: (id = '') -> # {{{
+            V.walk id, false, 'detach'
+        # }}}
+        ###
         resize: !-> # {{{
             # prepare
-            me = @resizeWindow
+            me = @resize
             # activate debounce protection (delay)
             if me.timer
                 # reset timer
@@ -1382,13 +1423,11 @@ $ \document .ready ->
                 me.timer = window.setTimeout f, 250
                 return
             # resize
-            ['resize' 'refresh'].every (method) ->
-                V.walk M.0, true, method
+            @update!
         # }}}
-        update: (id) -> # {{{
-            # run update sequence
-            ['render' 'init' 'resize' 'refresh'].every (method) ->
-                V.walk id, true, method
+        event: (node) -> # {{{
+            debugger
+            true
         # }}}
     # }}}
     ###

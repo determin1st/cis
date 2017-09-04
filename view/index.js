@@ -12,7 +12,7 @@ $('document').ready(function(){
       }, {
         id: ''
       }, {
-        id: ''
+        id: 'menu'
       }, {
         id: ''
       }
@@ -194,20 +194,20 @@ $('document').ready(function(){
         return '';
       }
     }),
-    root: w3ui('html'),
     skel: w3ui.PROXY({
       cfg: {
-        id: '',
-        node: w3ui('#skel'),
+        id: 'skel',
+        node: null,
         root: w3ui('html'),
         parent: null,
         level: 0,
         nav: null,
+        namespace: '',
         render: true
       },
       wa: {
         cfg: {
-          init: function(){
+          attach: function(){
             var a;
             a = this.cfg.node;
             if (0 + a[0].style.opacity < 0.99) {
@@ -240,7 +240,7 @@ $('document').ready(function(){
               size: null,
               index: -1
             },
-            init: function(){
+            attach: function(){
               this.cfg.mode.node = w3ui('#' + this.cfg.id + ' .m1');
               this.cfg.title.node = w3ui('#' + this.cfg.id + ' .box2');
               this.cfg.conf.node = w3ui('#' + this.cfg.id + ' .m2');
@@ -332,7 +332,22 @@ $('document').ready(function(){
           },
           menu: {
             cfg: {
-              init: function(){
+              attach: function(handler){
+                debugger;
+                var a;
+                if (!(a = $('#' + this.cfg.id + ' div')) || !a.length) {
+                  return false;
+                }
+                a.on('click.' + this.cfg.namespace, handler);
+                return true;
+              },
+              detach: function(){
+                debugger;
+                var a;
+                if (!(a = $('#' + this.cfg.id + ' div')) || !a.length) {
+                  return false;
+                }
+                this.cfg.node.off('click.' + this.cfg.namespace);
                 return true;
               }
             },
@@ -399,39 +414,45 @@ $('document').ready(function(){
         return null;
       }
     }),
-    init: function(id, parent, level){
+    init: function(id, parent, level, namespace){
       var a, b, c;
       id == null && (id = '');
       parent == null && (parent = null);
       level == null && (level = 0);
+      namespace == null && (namespace = '');
       if (!(a = this.skel[id])) {
         console.log('getting of "' + id + '" failed');
         return false;
       }
-      if (id) {
-        a.cfg.id = id;
-        a.cfg.parent = parent;
-        if (parent) {
-          a.cfg.root = parent.cfg.root;
-        }
-        a.cfg.level = level;
-        if (a.cfg.render) {
-          a.cfg.render = w3ui.PARTIAL(this, this.render, id);
-        }
+      b = a.cfg;
+      if (!id) {
+        id = b.id;
+      }
+      namespace += id.charAt(0).toUpperCase() + id.slice(1);
+      b.id = id;
+      b.parent = parent;
+      if (parent) {
+        b.root = parent.cfg.root;
+      }
+      b.level = level;
+      b.nav = M.nav[level];
+      b.namespace = namespace;
+      if (b.render) {
+        b.render = w3ui.PARTIAL(a, this.render);
       }
       for (b in a) {
         c = a[b];
         if (b !== 'cfg' && c && c.cfg) {
-          if (!this.init(b, a, level + 1)) {
+          if (!this.init(b, a, level + 1, namespace)) {
             return false;
           }
         }
       }
       return true;
     },
-    walk: function(id, direction, func){
-      debugger;
+    walk: function(id, direction, func, args){
       var a, walk, b;
+      args == null && (args = []);
       if (!(a = this.skel[id])) {
         return false;
       }
@@ -442,16 +463,16 @@ $('document').ready(function(){
         b = b.map(fn$);
         b = b.reduce(fn1$, []);
       }
-      walk = walk.reduce(function(a, level){
-        a = a.concat(b);
+      walk = walk.reduce(function(a, b){
+        return a.concat(b);
       }, []);
       if (!direction) {
         walk.reverse();
       }
       if (typeof func === 'string') {
         a = walk.every(function(node){
-          if (node.cfg[func] && node.cfg.node) {
-            return node.cfg[func].apply(node);
+          if (node.cfg[func]) {
+            return node.cfg[func].apply(node, args);
           } else {
             return true;
           }
@@ -474,21 +495,32 @@ $('document').ready(function(){
         return c;
       }
       function fn1$(a, b){
-        a = a.concat(b);
+        return a.concat(b);
       }
     },
-    render: function(id){
-      var a, b;
-      if (!(a = $('template')) || a.length === 0) {
-        return true;
+    render: function(){
+      var id, a, c;
+      if (!this.cfg.node) {
+        this.cfg.node = w3ui('#' + this.cfg.id);
       }
-      a = $(a[0].content).find('#t-' + id);
-      a = a[0].innerHTML;
-      b = this[id];
-      a = Mustache.render(a, b);
-      this.cfg.node.html(a);
-      if (b.cfg) {
-        b.cfg.node = w3ui('#' + id);
+      if (!this.cfg.node) {
+        return false;
+      }
+      if (id = this.cfg.nav.id) {
+        if (!(a = $('template')) || a.length === 0) {
+          return false;
+        }
+        a = $(a[0].content).find('#t-' + id);
+        if (!a || !a.length) {
+          return false;
+        }
+        a = a[0].innerHTML;
+        c = this[id];
+        a = Mustache.render(a, c);
+        this.cfg.node.html(a);
+        if (c.cfg) {
+          c.cfg.node = w3ui('#' + id);
+        }
       }
       return true;
     },
@@ -1227,8 +1259,8 @@ $('document').ready(function(){
         console.log('init() failed');
         return false;
       }
-      if (!P.update(M[0])) {
-        console.log('update() failed');
+      if (!P.construct() || !P.update()) {
+        console.log('init() failed');
         return false;
       }
       $(window).on('resize', function(){
@@ -1236,23 +1268,37 @@ $('document').ready(function(){
       });
       return true;
     },
+    construct: function(id){
+      id == null && (id = '');
+      if (!V.walk(id, true, 'render')) {
+        return false;
+      }
+      return V.walk(id, true, 'attach', this.event);
+    },
+    update: function(id){
+      id == null && (id = '');
+      return ['resize', 'refresh'].every(function(method){
+        return V.walk(id, true, method);
+      });
+    },
+    destruct: function(id){
+      id == null && (id = '');
+      return V.walk(id, false, 'detach');
+    },
     resize: function(){
       var me, f;
-      me = this.resizeWindow;
+      me = this.resize;
       if (me.timer) {
         window.clearTimeout(me.timer);
         f = w3ui.PARTIAL(this, me);
         me.timer = window.setTimeout(f, 250);
         return;
       }
-      ['resize', 'refresh'].every(function(method){
-        return V.walk(M[0], true, method);
-      });
+      this.update();
     },
-    update: function(id){
-      return ['render', 'init', 'resize', 'refresh'].every(function(method){
-        return V.walk(id, true, method);
-      });
+    event: function(node){
+      debugger;
+      return true;
     }
   };
   if (M && V && P) {
