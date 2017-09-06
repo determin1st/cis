@@ -207,8 +207,17 @@ $('document').ready(function(){
       },
       wa: {
         cfg: {
-          attach: function(){
-            var a;
+          init: function(){
+            var a, b;
+            this.modebar.mode.list = null;
+            this.modebar.conf.list = null;
+            this.modebar.title.text = '';
+            if (a = this.view.cfg.nav.id) {
+              b = this.view[a];
+              this.modebar.conf.list = this.view.config[a] ? this.view.config.title : null;
+              this.modebar.mode.list = a !== 'menu' ? this.view.menu.title : null;
+              this.modebar.title.text = b.title[0];
+            }
             a = this.cfg.node;
             if (0 + a[0].style.opacity < 0.99) {
               TweenMax.to(a, 2, {
@@ -221,136 +230,97 @@ $('document').ready(function(){
         },
         modebar: {
           cfg: {
-            mode: {
-              node: null,
-              icon: '',
-              enabled: false,
-              size: null,
-              index: -1
-            },
-            title: {
-              node: null,
-              size: null,
-              index: 0
-            },
-            conf: {
-              node: null,
-              icon: '',
-              enabled: false,
-              size: null,
-              index: -1
-            },
-            attach: function(){
-              this.cfg.mode.node = w3ui('#' + this.cfg.id + ' .m1');
-              this.cfg.title.node = w3ui('#' + this.cfg.id + ' .box2');
-              this.cfg.conf.node = w3ui('#' + this.cfg.id + ' .m2');
-              return true;
-            },
-            refresh: function(){
+            fontSizeMax: 0,
+            init: function(){
               var a;
-              ['mode', 'conf'].forEach(function(name){
-                var a, b;
-                a = this[name];
-                b = this.cfg[name];
-                b.node.prop('disabled', !b.enabled);
-                if (!b.enabled) {
-                  b.node.html('');
-                  return;
-                }
-                a = b.index >= 0 && a[b.index]
-                  ? a[b.index]
-                  : b.icon;
-                b.node.html(a);
-              }, this);
-              a = this.cfg.title;
-              a.node.html(this.title[a.index]);
+              this.mode.node = w3ui('#' + this.cfg.id + ' .box1 .btn');
+              this.title.node = w3ui('#' + this.cfg.id + ' .box2');
+              this.conf.node = w3ui('#' + this.cfg.id + ' .box3 .btn');
+              a = parseInt(this.cfg.root.style.f1SizeMax);
+              if (isNaN(a)) {
+                return false;
+              }
+              this.cfg.fontSizeMax = a;
               return true;
             },
             resize: function(){
-              var i$, ref$, len$, a, b, c;
-              for (i$ = 0, len$ = (ref$ = Object.keys(this)).length; i$ < len$; ++i$) {
-                a = ref$[i$];
-                if (a !== 'cfg') {
-                  b = this.cfg[a];
-                  a = this[a];
-                  c = [parseInt(b.node.style.fontSizeMin), parseInt(b.node.style.fontSizeMax)];
-                  if (isNaN(c[0])) {
-                    c[0] = 0;
-                  }
-                  if (isNaN(c[1])) {
-                    c[1] = 64;
-                  }
-                  if (!a) {
-                    continue;
-                  }
-                  b.size = a.map(fn$);
-                }
+              var a, b, c;
+              a = this.title;
+              b = this.cfg.fontSizeMax;
+              c = a.node.textMeasureFont(a.text);
+              if (c > b) {
+                c = b;
               }
+              this.cfg.root.style.f1SizeAuto = c + 'px';
               ['mode', 'conf'].forEach(function(name){
-                var a, b, c;
-                a = this.cfg[name];
-                b = this[name];
-                if (!b) {
-                  a.index = -1;
+                var a, i$, ref$, len$, c, b;
+                a = this[name];
+                a.index = -1;
+                if (!a.list) {
                   return;
                 }
-                c = Math.max.apply(null, a.size);
-                a.index = a.size.findIndex(function(val){
-                  return val - c < 0.0001;
-                });
-                b = a.size[a.index];
-                a.node.style.fontSize = b + 'px';
+                for (i$ = 0, len$ = (ref$ = a.list).length; i$ < len$; ++i$) {
+                  c = i$;
+                  b = ref$[i$];
+                  b = a.node.textMeasure(b);
+                  if (b.width < a.node.box.innerWidth) {
+                    a.index = c;
+                    break;
+                  }
+                }
               }, this);
-              a = this.cfg.title;
-              b = a.size[a.index];
-              a.node.style.fontSize = b + 'px';
-              this.cfg.root.style.f1SizeMax = a.size[0];
               return true;
-              function fn$(text){
-                var a;
-                if (!text) {
-                  return 0;
+            },
+            refresh: function(){
+              ['mode', 'conf'].forEach(function(name){
+                var a, b;
+                a = this[name];
+                if (!a.list) {
+                  a.node.addClass('disabled');
+                  a.node.html('');
+                  return;
                 }
-                a = b.node.textMeasureFont(text);
-                if (a < c[0]) {
-                  a = c[0];
-                }
-                if (a > c[1]) {
-                  a = c[1];
-                }
-                return a;
-              }
+                a.node.removeClass('disabled');
+                b = a.index >= 0
+                  ? a.list[a.index]
+                  : a.icon;
+                a.node.html(b);
+              }, this);
+              this.title.node.html(this.title.text);
+              return true;
             }
           },
-          mode: null,
-          conf: ['Настройки', 'Настр', ''],
-          title: ['Главное меню', '', 'Конфигурация']
+          mode: {
+            node: null,
+            icon: '',
+            index: -1,
+            list: null
+          },
+          title: {
+            node: null,
+            text: ''
+          },
+          conf: {
+            node: null,
+            icon: '',
+            index: -1,
+            list: null
+          }
         },
         view: {
           cfg: {
             render: true
           },
+          config: {
+            title: ['Настройки', 'Настр']
+          },
           menu: {
             cfg: {
-              attach: function(handler){
-                debugger;
-                var a;
-                if (!(a = $('#' + this.cfg.id + ' div')) || !a.length) {
-                  return false;
-                }
-                a.on('click.' + this.cfg.namespace, handler);
-                return true;
-              },
-              detach: function(){
-                debugger;
-                var a;
-                if (!(a = $('#' + this.cfg.id + ' div')) || !a.length) {
-                  return false;
-                }
-                this.cfg.node.off('click.' + this.cfg.namespace);
-                return true;
+              attach: {
+                click: 'div'
               }
             },
+            title: ['Главное меню', 'Меню'],
             list: [
               {
                 id: 'card',
@@ -371,19 +341,20 @@ $('document').ready(function(){
                 id: 'm6',
                 name: '6'
               }
-            ],
-            card: ['Картотека', 'Карта', '']
+            ]
           }
         },
         console: {
           cfg: {
             empty: true
           },
-          log: {
-            error: ['Ошибка', 'в доступе отказано'],
-            warning: 'Предупреждение',
-            info: ['Статус', 'активирован тестовый режим', 'подключение к серверу установлено', 'подключение к серверу не установлено', 'загрузка ключевого контейнера', 'аутентификация', 'авторизация', 'доступ разрешен', 'авторизация завершена']
-          }
+          type: {
+            error: 'ошибка',
+            warning: 'предупреждение',
+            info: 'информация',
+            success: 'выполнено'
+          },
+          msg: [['error', 'в доступе отказано'], ['success', 'доступ разрешен']]
         }
       }
     }, {
@@ -392,7 +363,7 @@ $('document').ready(function(){
         if (!id) {
           return obj;
         }
-        if (obj[id]) {
+        if (obj[id] && obj[id].cfg) {
           return obj[id];
         }
         if (!obj.cfg) {
@@ -404,7 +375,7 @@ $('document').ready(function(){
           for (k in b) if (own$.call(b, k)) {
             v = b[k];
             if (k !== 'cfg' && v && v.cfg) {
-              if (v[id]) {
+              if (v[id] && v[id].cfg) {
                 return v[id];
               }
               a.push(v);
@@ -439,6 +410,9 @@ $('document').ready(function(){
       b.namespace = namespace;
       if (b.render) {
         b.render = w3ui.PARTIAL(a, this.render);
+      }
+      if (b.attach) {
+        b.attach = w3ui.PARTIAL(a, this.attach, b.attach, P.event);
       }
       for (b in a) {
         c = a[b];
@@ -506,22 +480,50 @@ $('document').ready(function(){
       if (!this.cfg.node) {
         return false;
       }
-      if (id = this.cfg.nav.id) {
-        if (!(a = $('template')) || a.length === 0) {
-          return false;
-        }
-        a = $(a[0].content).find('#t-' + id);
-        if (!a || !a.length) {
-          return false;
-        }
-        a = a[0].innerHTML;
-        c = this[id];
-        a = Mustache.render(a, c);
-        this.cfg.node.html(a);
-        if (c.cfg) {
-          c.cfg.node = w3ui('#' + id);
-        }
+      if (!(id = this.cfg.nav.id)) {
+        return true;
       }
+      if (!(a = $('template')) || a.length === 0) {
+        return false;
+      }
+      a = $(a[0].content).find('#t-' + id);
+      if (!a || !a.length) {
+        return false;
+      }
+      a = a[0].innerHTML;
+      c = this[id];
+      a = Mustache.render(a, c);
+      this.cfg.node.html(a);
+      if (c.cfg) {
+        c.cfg.node = w3ui('#' + id);
+      }
+      return true;
+    },
+    attach: function(events, handler){
+      var c, a, b, i$, len$, ref$, own$ = {}.hasOwnProperty;
+      c = [];
+      for (a in events) if (own$.call(events, a)) {
+        b = events[a];
+        a = a + '.' + this.cfg.namespace;
+        b = '#' + this.cfg.id + ' ' + b;
+        if (!(b = $(b)) || !b.length) {
+          return false;
+        }
+        c.push([b, a]);
+      }
+      handler = w3ui.PARTIAL(this, handler);
+      for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
+        ref$ = c[i$], a = ref$[0], b = ref$[1];
+        a.on(b, handler);
+      }
+      this.cfg.detach = function(){
+        var i$, ref$, len$, ref1$, a, b;
+        for (i$ = 0, len$ = (ref$ = c).length; i$ < len$; ++i$) {
+          ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1];
+          a.off(b);
+        }
+        return true;
+      };
       return true;
     },
     GSAP: {
@@ -1268,23 +1270,6 @@ $('document').ready(function(){
       });
       return true;
     },
-    construct: function(id){
-      id == null && (id = '');
-      if (!V.walk(id, true, 'render')) {
-        return false;
-      }
-      return V.walk(id, true, 'attach', this.event);
-    },
-    update: function(id){
-      id == null && (id = '');
-      return ['resize', 'refresh'].every(function(method){
-        return V.walk(id, true, method);
-      });
-    },
-    destruct: function(id){
-      id == null && (id = '');
-      return V.walk(id, false, 'detach');
-    },
     resize: function(){
       var me, f;
       me = this.resize;
@@ -1296,8 +1281,33 @@ $('document').ready(function(){
       }
       this.update();
     },
-    event: function(node){
-      debugger;
+    construct: function(id){
+      id == null && (id = '');
+      return ['render', 'init', 'attach'].every(function(method){
+        return V.walk(id, true, method);
+      });
+    },
+    update: function(id){
+      id == null && (id = '');
+      return ['resize', 'refresh'].every(function(method){
+        return V.walk(id, true, method);
+      });
+    },
+    destruct: function(id){
+      id == null && (id = '');
+      return V.walk(id, false, 'detach');
+    },
+    event: function(event){
+      if (!this.cfg) {
+        return false;
+      }
+      switch (this.cfg.id) {
+      case 'menu':
+        true;
+      }
+      return true;
+    },
+    navigate: function(id){
       return true;
     }
   };

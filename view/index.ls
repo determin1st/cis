@@ -18,7 +18,7 @@ $ \document .ready ->
         authorized: true
         ###
         init: -> # {{{
-            # initialize navigation save
+            # initialize navigation store
             a = @nav
             @sav.forEach (save, level) !->
                 save[''] = w3ui.CLONE a.slice level + 1
@@ -211,8 +211,24 @@ $ \document .ready ->
             # }}}
             wa:
                 cfg: # {{{
-                    attach: -> # {{{
-                        # prepare
+                    init: ->
+                        # reset
+                        @modebar.mode.list = null
+                        @modebar.conf.list = null
+                        @modebar.title.text = ''
+                        # prepare helper controls
+                        if a = @view.cfg.nav.id
+                            # view selected
+                            # get node
+                            b = @view[a]
+                            # initialize modebar
+                            @modebar.conf.list = if @view.config[a]
+                                then @view.config.title
+                                else null
+                            @modebar.mode.list = if a != 'menu'
+                                then @view.menu.title
+                                else null
+                            @modebar.title.text = b.title.0
                         # show workarea
                         a = @cfg.node
                         if 0 + a.0.style.opacity < 0.99
@@ -222,33 +238,52 @@ $ \document .ready ->
                             }
                         # done
                         true
-                    # }}}
                 # }}}
                 modebar: # {{{
                     cfg:
-                        # {{{
-                        mode:
-                            node: null      # w3ui node
-                            icon: ''        # svg icon
-                            enabled: false  # state
-                            size: null      # captions width in pixels
-                            index: -1       # caption index
-                        title:
-                            node: null
-                            size: null
-                            index: 0        # not dynamic, external
-                        conf:
-                            node: null
-                            icon: ''
-                            enabled: false
-                            size: null
-                            index: -1
-                        # }}}
-                        attach: -> # {{{
+                        fontSizeMax: 0
+                        init: -> # {{{
                             # collect DOM nodes
-                            @cfg.mode.node  = w3ui '#'+@cfg.id+' .m1'
-                            @cfg.title.node = w3ui '#'+@cfg.id+' .box2'
-                            @cfg.conf.node  = w3ui '#'+@cfg.id+' .m2'
+                            @mode.node  = w3ui '#'+@cfg.id+' .box1 .btn'
+                            @title.node = w3ui '#'+@cfg.id+' .box2'
+                            @conf.node  = w3ui '#'+@cfg.id+' .box3 .btn'
+                            # get font size
+                            a = parseInt @cfg.root.style.f1SizeMax
+                            return false if isNaN a
+                            @cfg.fontSizeMax = a
+                            true
+                        # }}}
+                        resize: -> # {{{
+                            # let's calculate base font size
+                            # prepare
+                            a = @title
+                            b = @cfg.fontSizeMax
+                            # determine maximal value
+                            c = a.node.textMeasureFont a.text
+                            c = b if c > b
+                            # update global css variable
+                            @cfg.root.style.f1SizeAuto = c+'px'
+                            # fit captions
+                            # determine apropriate index
+                            ['mode' 'conf'].forEach (name) !->
+                                # prepare
+                                a = @[name]
+                                # reset index
+                                a.index = -1
+                                # check data
+                                return if not a.list
+                                # search index
+                                for b,c in a.list
+                                    # get current font size
+                                    # measure string
+                                    b = a.node.textMeasure b
+                                    # check if it fits
+                                    if b.width < a.node.box.innerWidth
+                                        # set
+                                        a.index = c
+                                        break
+                            , @
+                            # done
                             true
                         # }}}
                         refresh: -> # {{{
@@ -256,116 +291,56 @@ $ \document .ready ->
                             ['mode' 'conf'].forEach (name) !->
                                 # prepare
                                 a = @[name]
-                                b = @cfg[name]
                                 # check disabled
-                                b.node.prop 'disabled', not b.enabled
-                                if not b.enabled
-                                    b.node.html ''
+                                if not a.list
+                                    a.node.addClass 'disabled'
+                                    a.node.html ''
                                     return
-                                # select
-                                a = if b.index >= 0 and a[b.index]
-                                    then a[b.index]
-                                    else b.icon
+                                # enabled
+                                a.node.removeClass 'disabled'
+                                # select text
+                                b = if a.index >= 0
+                                    then a.list[a.index]
+                                    else a.icon
                                 # set
-                                b.node.html a
+                                a.node.html b
                             , @
                             # set title
-                            a = @cfg.title
-                            a.node.html @title[a.index]
+                            @title.node.html @title.text
                             # done
                             true
                         # }}}
-                        resize: -> # {{{
-                            # for each caption
-                            # determine font size
-                            for a in Object.keys @ when a != 'cfg'
-                                # prepare
-                                b = @cfg[a]     # state
-                                a = @[a]        # data
-                                c =
-                                    parseInt b.node.style.fontSizeMin
-                                    parseInt b.node.style.fontSizeMax
-                                # correct
-                                c.0 = 0  if isNaN c.0
-                                c.1 = 64 if isNaN c.1
-                                # check
-                                continue if not a
-                                # define
-                                b.size = a.map (text) ->
-                                    # skip empty
-                                    return 0 if not text
-                                    # determine maximal value
-                                    a = b.node.textMeasureFont text
-                                    # check and correct
-                                    a = c.0 if a < c.0
-                                    a = c.1 if a > c.1
-                                    # done
-                                    return a
-                            # for dynamic captions
-                            # determine index and set font size
-                            ['mode' 'conf'].forEach (name) !->
-                                # prepare
-                                a = @cfg[name]
-                                b = @[name]
-                                # check
-                                if not b
-                                    a.index = -1
-                                    return
-                                # determine index
-                                # with maximal font size
-                                c = Math.max.apply null, a.size
-                                a.index = a.size.findIndex (val) ->
-                                    val - c < 0.0001
-                                # set font size
-                                b = a.size[a.index]
-                                a.node.style.fontSize = b+'px'
-                            , @
-                            # set font size for title
-                            a = @cfg.title
-                            b = a.size[a.index]
-                            a.node.style.fontSize = b+'px'
-                            # determine global font size
-                            @cfg.root.style.f1SizeMax = a.size.0
-                            # done
-                            true
-                        # }}}
-                    ###
-                    mode: null
-                    conf:
-                        'Настройки'
-                        'Настр'
-                        ''
+                    mode:
+                        node: null      # w3ui node
+                        icon: ''        # svg icon
+                        index: -1       # list index
+                        list: null      # captions list
                     title:
-                        'Главное меню'
-                        ''
-                        'Конфигурация'
+                        node: null
+                        text: ''
+                    conf:
+                        node: null
+                        icon: ''
+                        index: -1
+                        list: null
                 # }}}
                 view: # {{{
                     cfg:
                         render: true
                     ###
+                    config: # {{{
+                        title:
+                            'Настройки'
+                            'Настр'
+                    # }}}
                     menu: # {{{
                         cfg:
-                            attach: (handler) -> # {{{
-                                # collect elements
-                                debugger
-                                if not (a = $ '#'+@cfg.id+' div') or not a.length
-                                    return false
-                                # set event
-                                a.on 'click.'+@cfg.namespace, handler
-                                # done
-                                true
-                            # }}}
-                            detach: -> # {{{
-                                # collect elements
-                                debugger
-                                if not (a = $ '#'+@cfg.id+' div') or not a.length
-                                    return false
-                                # set event
-                                @cfg.node.off 'click.'+@cfg.namespace
-                                # done
-                                true
-                            # }}}
+                            attach:
+                                click: 'div'
+                        title:
+                            'Главное меню'
+                            'Меню'
+                        ###
                         list:
                             {
                                 id: 'card'
@@ -391,40 +366,27 @@ $ \document .ready ->
                                 id: 'm6'
                                 name: '6'
                             }
-                        card:
-                            'Картотека'
-                            'Карта'
-                            ''
                     # }}}
                 # }}}
                 console: # {{{
                     cfg:
                         empty: true
                     ###
-                    log: # {{{
-                        error:
-                            'Ошибка'
-                            'в доступе отказано'
-                        warning:
-                            'Предупреждение'
-                        info:
-                            'Статус'
-                            'активирован тестовый режим'
-                            'подключение к серверу установлено'
-                            'подключение к серверу не установлено'
-                            'загрузка ключевого контейнера'
-                            'аутентификация'
-                            'авторизация'
-                            'доступ разрешен'
-                            'авторизация завершена'
-                    # }}}
+                    type:
+                        error:   'ошибка'
+                        warning: 'предупреждение'
+                        info:    'информация'
+                        success: 'выполнено'
+                    msg:
+                        ['error'   'в доступе отказано']
+                        ['success' 'доступ разрешен']
                 # }}}
         }, {
             get: (obj, id, prx) -> # {{{
                 # check root
                 return obj if not id
                 # check root child
-                return obj[id] if obj[id]
+                return obj[id] if obj[id] and obj[id].cfg
                 # check this node is a leaf
                 return null if not obj.cfg
                 # search in branch
@@ -437,7 +399,7 @@ $ \document .ready ->
                     # check sub-branches
                     for own k,v of b when k != 'cfg' and v and v.cfg
                         # found
-                        return v[id] if v[id]
+                        return v[id] if v[id] and v[id].cfg
                         # add to stack
                         a.push v
                 # not found
@@ -463,6 +425,7 @@ $ \document .ready ->
             b.nav       = M.nav[level]
             b.namespace = namespace
             b.render    = w3ui.PARTIAL a, @render if b.render
+            b.attach    = w3ui.PARTIAL a, @attach, b.attach, P.event if b.attach
             # recurse to children
             for b,c of a when b != 'cfg' and c and c.cfg
                 return false if not @init b, a, level + 1, namespace
@@ -517,23 +480,50 @@ $ \document .ready ->
             # check
             return false if not @cfg.node
             # determine id
-            if id = @cfg.nav.id
-                # get templates
-                if not (a = $ 'template') or a.length == 0
+            return true if not id = @cfg.nav.id
+            # get templates
+            if not (a = $ 'template') or a.length == 0
+                return false
+            # select template
+            a = $ a.0.content .find '#t-'+id
+            if not a or not a.length
+                return false
+            a = a.0.innerHTML
+            # select child data
+            c = @[id]
+            # construct HTML
+            a = Mustache.render a, c
+            # inject
+            @cfg.node.html a
+            # initialize child
+            c.cfg.node = w3ui '#'+id if c.cfg
+            # done
+            true
+        # }}}
+        attach: (events, handler) -> # {{{
+            # assemble events
+            c = []
+            for own a,b of events
+                # event name
+                a = a + '.' + @cfg.namespace
+                # element
+                b = '#' + @cfg.id + ' ' + b
+                if not (b = $ b) or not b.length
                     return false
-                # select template
-                a = $ a.0.content .find '#t-'+id
-                if not a or not a.length
-                    return false
-                a = a.0.innerHTML
-                # select child data
-                c = @[id]
-                # construct HTML
-                a = Mustache.render a, c
-                # inject
-                @cfg.node.html a
-                # initialize child 
-                c.cfg.node = w3ui '#'+id if c.cfg
+                # add
+                c.push [b, a]
+            # wrap handler
+            handler = w3ui.PARTIAL @, handler
+            # attach
+            for [a, b] in c
+                a.on b, handler
+            # define detach
+            @cfg.detach = ->
+                # detach
+                for [a, b] in c
+                    a.off b
+                # done
+                true
             # done
             true
         # }}}
@@ -1396,21 +1386,6 @@ $ \document .ready ->
             # done
             true
         # }}}
-        ###
-        construct: (id = '') -> # {{{
-            # render
-            return false if not V.walk id, true, 'render'
-            # attach
-            V.walk id, true, 'attach', @event
-        # }}}
-        update: (id = '') -> # {{{
-            ['resize' 'refresh'].every (method) ->
-                V.walk id, true, method
-        # }}}
-        destruct: (id = '') -> # {{{
-            V.walk id, false, 'detach'
-        # }}}
-        ###
         resize: !-> # {{{
             # prepare
             me = @resize
@@ -1425,8 +1400,33 @@ $ \document .ready ->
             # resize
             @update!
         # }}}
-        event: (node) -> # {{{
-            debugger
+        ###
+        construct: (id = '') -> # {{{
+            ['render' 'init' 'attach'].every (method) ->
+                V.walk id, true, method
+        # }}}
+        update: (id = '') -> # {{{
+            ['resize' 'refresh'].every (method) ->
+                V.walk id, true, method
+        # }}}
+        destruct: (id = '') -> # {{{
+            V.walk id, false, 'detach'
+        # }}}
+        ###
+        event: (event) -> # {{{
+            # check
+            return false if not @cfg
+            # handle event
+            switch @cfg.id
+            | 'menu' =>
+                # {{{
+                true
+                # }}}
+            # done
+            true
+        # }}}
+        navigate: (id) -> # {{{
+            # done
             true
         # }}}
     # }}}
