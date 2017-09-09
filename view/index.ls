@@ -201,7 +201,7 @@ $ \document .ready ->
             cfg: # {{{
                 # common props
                 id: 'skel'          # DOM node identifier
-                node: null          # DOM node object
+                node: w3ui '#skel'  # DOM node object
                 root: w3ui 'html'   # DOM root
                 parent: null        # backlink
                 level: 0            # node level in skeleton tree
@@ -211,24 +211,28 @@ $ \document .ready ->
             # }}}
             wa:
                 cfg: # {{{
-                    init: ->
-                        # reset
-                        @modebar.mode.list = null
-                        @modebar.conf.list = null
-                        @modebar.title.text = ''
+                    init: -> # {{{
                         # prepare helper controls
+                        # reset
+                        @modebar.title.text = ''
+                        @modebar.b1.list = null
+                        @modebar.b2.list = null
+                        @console.b1.list = null
+                        @console.b2.list = null
+                        # check view
                         if a = @view.cfg.nav.id
                             # view selected
                             # get node
                             b = @view[a]
                             # initialize modebar
-                            @modebar.conf.list = if @view.config[a]
-                                then @view.config.title
-                                else null
-                            @modebar.mode.list = if a != 'menu'
+                            @modebar.b1.list = if a != 'menu'
                                 then @view.menu.title
                                 else null
+                            @modebar.b2.list = if @view.config[a]
+                                then @view.config.title
+                                else null
                             @modebar.title.text = b.title.0
+                        # TODO
                         # show workarea
                         a = @cfg.node
                         if 0 + a.0.style.opacity < 0.99
@@ -238,19 +242,34 @@ $ \document .ready ->
                             }
                         # done
                         true
+                    # }}}
+                    show: [ # {{{
+                        {
+                            duration: 0
+                            tween:
+                                opacity: 0
+                                visibility: 'visible'
+                        }
+                        {
+                            duration: 0.5
+                            tween:
+                                opacity: 1
+                                ease: Power1.easeOut
+                        }
+                    ]
+                    # }}}
                 # }}}
                 modebar: # {{{
                     cfg:
                         fontSizeMax: 0
                         init: -> # {{{
                             # collect DOM nodes
-                            @mode.node  = w3ui '#'+@cfg.id+' .box1 .btn'
+                            @b1.node    = w3ui '#'+@cfg.id+' .box1 .btn'
                             @title.node = w3ui '#'+@cfg.id+' .box2'
-                            @conf.node  = w3ui '#'+@cfg.id+' .box3 .btn'
+                            @b2.node    = w3ui '#'+@cfg.id+' .box3 .btn'
                             # get font size
                             a = parseInt @cfg.root.style.f1SizeMax
-                            return false if isNaN a
-                            @cfg.fontSizeMax = a
+                            @cfg.fontSizeMax = a if not isNaN a
                             true
                         # }}}
                         resize: -> # {{{
@@ -265,7 +284,7 @@ $ \document .ready ->
                             @cfg.root.style.f1SizeAuto = c+'px'
                             # fit captions
                             # determine apropriate index
-                            ['mode' 'conf'].forEach (name) !->
+                            ['b1' 'b2'].forEach (name) !->
                                 # prepare
                                 a = @[name]
                                 # reset index
@@ -288,7 +307,7 @@ $ \document .ready ->
                         # }}}
                         refresh: -> # {{{
                             # set captions
-                            ['mode' 'conf'].forEach (name) !->
+                            ['b1' 'b2'].forEach (name) !->
                                 # prepare
                                 a = @[name]
                                 # check disabled
@@ -310,19 +329,19 @@ $ \document .ready ->
                             # done
                             true
                         # }}}
-                    mode:
+                    b1:
                         node: null      # w3ui node
                         icon: ''        # svg icon
                         index: -1       # list index
                         list: null      # captions list
-                    title:
-                        node: null
-                        text: ''
-                    conf:
+                    b2:
                         node: null
                         icon: ''
                         index: -1
                         list: null
+                    title:
+                        node: null
+                        text: ''
                 # }}}
                 view: # {{{
                     cfg:
@@ -337,6 +356,20 @@ $ \document .ready ->
                         cfg:
                             attach:
                                 click: 'div'
+                            show: [
+                                {
+                                    duration: 0
+                                    tween:
+                                        visibility: 'visible'
+                                        scale: 0
+                                }
+                                {
+                                    duration: 0.8
+                                    tween:
+                                        scale: 1
+                                        ease: Back.easeOut
+                                }
+                            ]
                         title:
                             'Главное меню'
                             'Меню'
@@ -371,15 +404,78 @@ $ \document .ready ->
                 console: # {{{
                     cfg:
                         empty: true
+                        init: -> # {{{
+                            # collect DOM nodes
+                            @b1.node = w3ui '#'+@cfg.id+' .box1 .btn'
+                            @b2.node = w3ui '#'+@cfg.id+' .box3 .btn'
+                            true
+                        # }}}
+                        resize: -> # {{{
+                            # fit captions
+                            # determine apropriate index
+                            ['b1' 'b2'].forEach (name) !->
+                                # prepare
+                                a = @[name]
+                                # reset index
+                                a.index = -1
+                                # check data
+                                return if not a.list
+                                # search index
+                                for b,c in a.list
+                                    # get current font size
+                                    # measure string
+                                    b = a.node.textMeasure b
+                                    # check if it fits
+                                    if b.width < a.node.box.innerWidth
+                                        # set
+                                        a.index = c
+                                        break
+                            , @
+                            # done
+                            true
+                        # }}}
+                        refresh: -> # {{{
+                            # set captions
+                            ['b1' 'b2'].forEach (name) !->
+                                # prepare
+                                a = @[name]
+                                # check disabled
+                                if not a.list
+                                    a.node.addClass 'disabled'
+                                    a.node.html ''
+                                    return
+                                # enabled
+                                a.node.removeClass 'disabled'
+                                # select text
+                                b = if a.index >= 0
+                                    then a.list[a.index]
+                                    else a.icon
+                                # set
+                                a.node.html b
+                            , @
+                            # done
+                            true
+                        # }}}
                     ###
-                    type:
-                        error:   'ошибка'
-                        warning: 'предупреждение'
-                        info:    'информация'
-                        success: 'выполнено'
-                    msg:
-                        ['error'   'в доступе отказано']
-                        ['success' 'доступ разрешен']
+                    b1:
+                        node: null
+                        icon: ''
+                        index: -1
+                        list: null
+                    b2:
+                        node: null
+                        icon: ''
+                        index: -1
+                        list: null
+                    log:
+                        type:
+                            error:   'ошибка'
+                            warning: 'предупреждение'
+                            info:    'информация'
+                            success: 'выполнено'
+                        msg:
+                            ['error'   'в доступе отказано']
+                            ['success' 'доступ разрешен']
                 # }}}
         }, {
             get: (obj, id, prx) -> # {{{
@@ -432,7 +528,7 @@ $ \document .ready ->
             # complete
             true
         # }}}
-        walk: (id, direction, func, args = []) -> # {{{
+        walk: (id, direction, func, onComplete) -> # {{{
             # prepare
             # get start node
             return false if not a = @skel[id]
@@ -460,18 +556,31 @@ $ \document .ready ->
             # check direction
             walk.reverse! if not direction
             # walk
-            # check function
-            if typeof func == 'string'
-                # internal
-                a = walk.every (node) ->
-                    if node.cfg[func]
-                        then node.cfg[func].apply node, args
-                        else true
-            else
-                # external
-                a = walk.every (node) -> func.apply node
-            # done
-            a
+            # external function
+            if typeof func != 'string'
+                return walk.every (node) -> func.apply node
+            # walk
+            # internal functions
+            if onComplete
+                # create thread
+                a = []
+                for b in walk when b.cfg[func]
+                    # create chain unit
+                    a.push let node = b
+                        -> node.cfg[func].apply node
+                    # waiter
+                    a.push let node = b
+                        -> !node.cfg[func].busy
+                # append final procedure
+                a.push onComplete
+                # execute
+                w3ui.THREAD a
+                # done
+                return true
+            # execute
+            walk.every (node) -> if node.cfg[func]
+                then node.cfg[func].apply node
+                else true
         # }}}
         render: -> # {{{
             # initialize
@@ -1378,9 +1487,7 @@ $ \document .ready ->
                 console.log 'init() failed'
                 return false
             # construct
-            if not P.construct! or not P.update!
-                console.log 'init() failed'
-                return false
+            P.construct!
             # attach global resize handler
             $ window .on 'resize', !-> P.resize!
             # done
@@ -1401,16 +1508,128 @@ $ \document .ready ->
             @update!
         # }}}
         ###
-        construct: (id = '') -> # {{{
-            ['render' 'init' 'attach'].every (method) ->
-                V.walk id, true, method
+        construct: (id = '') !-> # {{{
+            # get root of construction
+            return if not node = V.skel[id]
+            # local lock
+            busy = false
+            # start thread
+            w3ui.THREAD [
+                ->
+                    # wait
+                    return false if P.construct.busy
+                    # lock global
+                    P.construct.busy = true
+                    # detach events
+                    if not V.walk id, false, 'detach'
+                        console.log 'detach failed'
+                        delete P.construct.busy
+                        return null
+                    # hide
+                    # create main timeline
+                    a = new TimelineLite {
+                        paused: true
+                        onComplete: -> busy := false
+                    }
+                    V.walk id, false, ->
+                        # check node
+                        return true if not node = @cfg.node
+                        # create effect timeline
+                        b = new TimelineLite {paused: true}
+                        # add tweens
+                        @cfg.hide and @cfg.hide.forEach (c) ->
+                            b.to node, c.duration, c.tween
+                        # add final tween
+                        b.set node, {visibility: 'hidden'}
+                        # insert at the beginning of the main
+                        # play to remove paused state
+                        a.add b.play!, 0
+                        # done
+                        true
+                    # lock
+                    busy := true
+                    # start animation
+                    a.play!
+                    # continue
+                    true
+                ->
+                    # wait
+                    not busy
+                ->
+                    # finalize
+                    if not V.walk id, false, 'finit'
+                        console.log 'finit failed'
+                        delete P.construct.busy
+                        return null
+                    # render new content
+                    a = ['render' 'init' 'resize' 'refresh'].every (f) ->
+                        V.walk id, true, f
+                    # check the result
+                    if not a
+                        console.log 'render sequence failed'
+                        delete P.construct.busy
+                        return null
+                    # before new elements are shown,
+                    # they should be at a hidden state
+                    V.walk id, true, ->
+                        # check node
+                        return true if not node = @cfg.node
+                        # hide
+                        node.style.visibility = 'hidden'
+                        true
+                    # show
+                    # create main timeline
+                    a = new TimelineLite {
+                        paused: true
+                        onComplete: -> busy := false
+                    }
+                    # add first label
+                    b = 'lev'+node.cfg.level
+                    a.addLabel b, 0
+                    # nest effects
+                    V.walk id, true, ->
+                        # check node
+                        return true if not node = @cfg.node
+                        # create effect timeline
+                        tl = new TimelineLite {paused: true}
+                        # add tweens
+                        @cfg.show and @cfg.show.forEach (a) ->
+                            tl.to node, a.duration, a.tween
+                        # add final tween
+                        tl.set node, {visibility: 'visible'}
+                        # check label
+                        if b != 'lev'+@cfg.level
+                            # we dont check if it's already exist because
+                            # the walk sequence is aligned properly
+                            # change
+                            b = 'lev'+@cfg.level
+                            # append new label to the end
+                            a.addLabel b
+                        # insert timeline
+                        # play it to remove paused state
+                        a.add tl.play!, b
+                        # done
+                        true
+                    # lock
+                    busy := true
+                    # start animation
+                    a.play!
+                    # continue
+                    true
+                ->
+                    # wait
+                    not busy
+                ->
+                    # attach event handlers
+                    if not V.walk id, true, 'attach'
+                        console.log 'attach failed'
+                    # finish
+                    delete P.construct.busy
+                    true
+            ]
         # }}}
         update: (id = '') -> # {{{
-            ['resize' 'refresh'].every (method) ->
-                V.walk id, true, method
-        # }}}
-        destruct: (id = '') -> # {{{
-            V.walk id, false, 'detach'
+            ['resize' 'refresh'].every (f) -> V.walk id, true, f
         # }}}
         ###
         event: (event) -> # {{{

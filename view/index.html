@@ -13,7 +13,7 @@
     <template>
       <!-- workarea {{{ -->
       <div id='t-wa'>
-        <div id='wa' style='opacity: 0;'>
+        <div id='wa'>
           <div id='modebar'>
             <div class='box1'><div class='btn'></div></div>
             <div class='box2'></div>
@@ -23,12 +23,9 @@
           <div id='view'></div>
           <div class='progress'></div>
           <div id='console'>
-            <div class='box1'><div class='btn'>Назад</div></div>
-            <div class='box2'>
-                <div class='type'>ошибка</div>
-                <div class='msg'>не удается подключится к серверу</div>
-            </div>
-            <div class='box3'><div class='btn'>Далее</div></div>
+            <div class='box1'><div class='btn'></div></div>
+            <div class='box2'></div>
+            <div class='box3'><div class='btn'></div></div>
           </div>
         </div>
       </div>
@@ -39,6 +36,14 @@
         {{#list}}
           <div class='{{id}}'>{{name}}</div>
         {{/list}}
+        </div>
+      </div>
+      <!-- }}} -->
+      <!-- log message {{{ -->
+      <div id='t-log'>
+        <div id='log'>
+          <div class='type'>{{type}}</div>
+          <div class='msg'>{{msg}}</div>
         </div>
       </div>
       <!-- }}} -->

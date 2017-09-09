@@ -197,7 +197,7 @@ $('document').ready(function(){
     skel: w3ui.PROXY({
       cfg: {
         id: 'skel',
-        node: null,
+        node: w3ui('#skel'),
         root: w3ui('html'),
         parent: null,
         level: 0,
@@ -209,13 +209,15 @@ $('document').ready(function(){
         cfg: {
           init: function(){
             var a, b;
-            this.modebar.mode.list = null;
-            this.modebar.conf.list = null;
             this.modebar.title.text = '';
+            this.modebar.b1.list = null;
+            this.modebar.b2.list = null;
+            this.console.b1.list = null;
+            this.console.b2.list = null;
             if (a = this.view.cfg.nav.id) {
               b = this.view[a];
-              this.modebar.conf.list = this.view.config[a] ? this.view.config.title : null;
-              this.modebar.mode.list = a !== 'menu' ? this.view.menu.title : null;
+              this.modebar.b1.list = a !== 'menu' ? this.view.menu.title : null;
+              this.modebar.b2.list = this.view.config[a] ? this.view.config.title : null;
               this.modebar.title.text = b.title[0];
             }
             a = this.cfg.node;
@@ -226,21 +228,35 @@ $('document').ready(function(){
               });
             }
             return true;
-          }
+          },
+          show: [
+            {
+              duration: 0,
+              tween: {
+                opacity: 0,
+                visibility: 'visible'
+              }
+            }, {
+              duration: 0.5,
+              tween: {
+                opacity: 1,
+                ease: Power1.easeOut
+              }
+            }
+          ]
         },
         modebar: {
           cfg: {
             fontSizeMax: 0,
             init: function(){
               var a;
-              this.mode.node = w3ui('#' + this.cfg.id + ' .box1 .btn');
+              this.b1.node = w3ui('#' + this.cfg.id + ' .box1 .btn');
               this.title.node = w3ui('#' + this.cfg.id + ' .box2');
-              this.conf.node = w3ui('#' + this.cfg.id + ' .box3 .btn');
+              this.b2.node = w3ui('#' + this.cfg.id + ' .box3 .btn');
               a = parseInt(this.cfg.root.style.f1SizeMax);
-              if (isNaN(a)) {
-                return false;
+              if (!isNaN(a)) {
+                this.cfg.fontSizeMax = a;
               }
-              this.cfg.fontSizeMax = a;
               return true;
             },
             resize: function(){
@@ -252,7 +268,7 @@ $('document').ready(function(){
                 c = b;
               }
               this.cfg.root.style.f1SizeAuto = c + 'px';
-              ['mode', 'conf'].forEach(function(name){
+              ['b1', 'b2'].forEach(function(name){
                 var a, i$, ref$, len$, c, b;
                 a = this[name];
                 a.index = -1;
@@ -272,7 +288,7 @@ $('document').ready(function(){
               return true;
             },
             refresh: function(){
-              ['mode', 'conf'].forEach(function(name){
+              ['b1', 'b2'].forEach(function(name){
                 var a, b;
                 a = this[name];
                 if (!a.list) {
@@ -290,7 +306,13 @@ $('document').ready(function(){
               return true;
             }
           },
-          mode: {
+          b1: {
+            node: null,
+            icon: '',
+            index: -1,
+            list: null
+          },
+          b2: {
             node: null,
             icon: '',
             index: -1,
@@ -299,12 +321,6 @@ $('document').ready(function(){
           title: {
             node: null,
             text: ''
-          },
-          conf: {
-            node: null,
-            icon: '',
-            index: -1,
-            list: null
           }
         },
         view: {
@@ -318,7 +334,22 @@ $('document').ready(function(){
             cfg: {
               attach: {
                 click: 'div'
-              }
+              },
+              show: [
+                {
+                  duration: 0,
+                  tween: {
+                    visibility: 'visible',
+                    scale: 0
+                  }
+                }, {
+                  duration: 0.8,
+                  tween: {
+                    scale: 1,
+                    ease: Back.easeOut
+                  }
+                }
+              ]
             },
             title: ['Главное меню', 'Меню'],
             list: [
@@ -346,15 +377,71 @@ $('document').ready(function(){
         },
         console: {
           cfg: {
-            empty: true
+            empty: true,
+            init: function(){
+              this.b1.node = w3ui('#' + this.cfg.id + ' .box1 .btn');
+              this.b2.node = w3ui('#' + this.cfg.id + ' .box3 .btn');
+              return true;
+            },
+            resize: function(){
+              ['b1', 'b2'].forEach(function(name){
+                var a, i$, ref$, len$, c, b;
+                a = this[name];
+                a.index = -1;
+                if (!a.list) {
+                  return;
+                }
+                for (i$ = 0, len$ = (ref$ = a.list).length; i$ < len$; ++i$) {
+                  c = i$;
+                  b = ref$[i$];
+                  b = a.node.textMeasure(b);
+                  if (b.width < a.node.box.innerWidth) {
+                    a.index = c;
+                    break;
+                  }
+                }
+              }, this);
+              return true;
+            },
+            refresh: function(){
+              ['b1', 'b2'].forEach(function(name){
+                var a, b;
+                a = this[name];
+                if (!a.list) {
+                  a.node.addClass('disabled');
+                  a.node.html('');
+                  return;
+                }
+                a.node.removeClass('disabled');
+                b = a.index >= 0
+                  ? a.list[a.index]
+                  : a.icon;
+                a.node.html(b);
+              }, this);
+              return true;
+            }
           },
-          type: {
-            error: 'ошибка',
-            warning: 'предупреждение',
-            info: 'информация',
-            success: 'выполнено'
+          b1: {
+            node: null,
+            icon: '',
+            index: -1,
+            list: null
           },
-          msg: [['error', 'в доступе отказано'], ['success', 'доступ разрешен']]
+          b2: {
+            node: null,
+            icon: '',
+            index: -1,
+            list: null
+          },
+          log: {
+            type: {
+              error: 'ошибка',
+              warning: 'предупреждение',
+              info: 'информация',
+              success: 'выполнено'
+            },
+            msg: [['error', 'в доступе отказано'], ['success', 'доступ разрешен']]
+          }
         }
       }
     }, {
@@ -424,9 +511,8 @@ $('document').ready(function(){
       }
       return true;
     },
-    walk: function(id, direction, func, args){
-      var a, walk, b;
-      args == null && (args = []);
+    walk: function(id, direction, func, onComplete){
+      var a, walk, b, i$, len$;
       if (!(a = this.skel[id])) {
         return false;
       }
@@ -443,20 +529,31 @@ $('document').ready(function(){
       if (!direction) {
         walk.reverse();
       }
-      if (typeof func === 'string') {
-        a = walk.every(function(node){
-          if (node.cfg[func]) {
-            return node.cfg[func].apply(node, args);
-          } else {
-            return true;
-          }
-        });
-      } else {
-        a = walk.every(function(node){
+      if (typeof func !== 'string') {
+        return walk.every(function(node){
           return func.apply(node);
         });
       }
-      return a;
+      if (onComplete) {
+        a = [];
+        for (i$ = 0, len$ = walk.length; i$ < len$; ++i$) {
+          b = walk[i$];
+          if (b.cfg[func]) {
+            a.push((fn2$.call(this, b)));
+            a.push((fn3$.call(this, b)));
+          }
+        }
+        a.push(onComplete);
+        w3ui.THREAD(a);
+        return true;
+      }
+      return walk.every(function(node){
+        if (node.cfg[func]) {
+          return node.cfg[func].apply(node);
+        } else {
+          return true;
+        }
+      });
       function fn$(node){
         var c, a, b;
         c = [];
@@ -470,6 +567,16 @@ $('document').ready(function(){
       }
       function fn1$(a, b){
         return a.concat(b);
+      }
+      function fn2$(node){
+        return function(){
+          return node.cfg[func].apply(node);
+        };
+      }
+      function fn3$(node){
+        return function(){
+          return !node.cfg[func].busy;
+        };
       }
     },
     render: function(){
@@ -1261,10 +1368,7 @@ $('document').ready(function(){
         console.log('init() failed');
         return false;
       }
-      if (!P.construct() || !P.update()) {
-        console.log('init() failed');
-        return false;
-      }
+      P.construct();
       $(window).on('resize', function(){
         P.resize();
       });
@@ -1282,20 +1386,123 @@ $('document').ready(function(){
       this.update();
     },
     construct: function(id){
+      var node, busy;
       id == null && (id = '');
-      return ['render', 'init', 'attach'].every(function(method){
-        return V.walk(id, true, method);
-      });
+      if (!(node = V.skel[id])) {
+        return;
+      }
+      busy = false;
+      w3ui.THREAD([
+        function(){
+          var a;
+          if (P.construct.busy) {
+            return false;
+          }
+          P.construct.busy = true;
+          if (!V.walk(id, false, 'detach')) {
+            console.log('detach failed');
+            delete P.construct.busy;
+            return null;
+          }
+          a = new TimelineLite({
+            paused: true,
+            onComplete: function(){
+              return busy = false;
+            }
+          });
+          V.walk(id, false, function(){
+            var node, b;
+            if (!(node = this.cfg.node)) {
+              return true;
+            }
+            b = new TimelineLite({
+              paused: true
+            });
+            this.cfg.hide && this.cfg.hide.forEach(function(c){
+              return b.to(node, c.duration, c.tween);
+            });
+            b.set(node, {
+              visibility: 'hidden'
+            });
+            a.add(b.play(), 0);
+            return true;
+          });
+          busy = true;
+          a.play();
+          return true;
+        }, function(){
+          return !busy;
+        }, function(){
+          var a, b;
+          if (!V.walk(id, false, 'finit')) {
+            console.log('finit failed');
+            delete P.construct.busy;
+            return null;
+          }
+          a = ['render', 'init', 'resize', 'refresh'].every(function(f){
+            return V.walk(id, true, f);
+          });
+          if (!a) {
+            console.log('render sequence failed');
+            delete P.construct.busy;
+            return null;
+          }
+          V.walk(id, true, function(){
+            var node;
+            if (!(node = this.cfg.node)) {
+              return true;
+            }
+            node.style.visibility = 'hidden';
+            return true;
+          });
+          a = new TimelineLite({
+            paused: true,
+            onComplete: function(){
+              return busy = false;
+            }
+          });
+          b = 'lev' + node.cfg.level;
+          a.addLabel(b, 0);
+          V.walk(id, true, function(){
+            var node, tl, b;
+            if (!(node = this.cfg.node)) {
+              return true;
+            }
+            tl = new TimelineLite({
+              paused: true
+            });
+            this.cfg.show && this.cfg.show.forEach(function(a){
+              return tl.to(node, a.duration, a.tween);
+            });
+            tl.set(node, {
+              visibility: 'visible'
+            });
+            if (b !== 'lev' + this.cfg.level) {
+              b = 'lev' + this.cfg.level;
+              a.addLabel(b);
+            }
+            a.add(tl.play(), b);
+            return true;
+          });
+          busy = true;
+          a.play();
+          return true;
+        }, function(){
+          return !busy;
+        }, function(){
+          if (!V.walk(id, true, 'attach')) {
+            console.log('attach failed');
+          }
+          delete P.construct.busy;
+          return true;
+        }
+      ]);
     },
     update: function(id){
       id == null && (id = '');
-      return ['resize', 'refresh'].every(function(method){
-        return V.walk(id, true, method);
+      return ['resize', 'refresh'].every(function(f){
+        return V.walk(id, true, f);
       });
-    },
-    destruct: function(id){
-      id == null && (id = '');
-      return V.walk(id, false, 'detach');
     },
     event: function(event){
       if (!this.cfg) {
