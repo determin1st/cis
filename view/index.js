@@ -6,19 +6,6 @@ $('document').ready(function(){
     return;
   }
   M = w3ui.PROXY({
-    nav: [
-      {
-        id: 'wa'
-      }, {
-        id: ''
-      }, {
-        id: 'menu'
-      }, {
-        id: ''
-      }
-    ],
-    sav: [{}, {}, {}],
-    authorized: true,
     init: function(){
       var a;
       a = this.nav;
@@ -26,14 +13,34 @@ $('document').ready(function(){
         save[''] = w3ui.CLONE(a.slice(level + 1));
       });
       return true;
-    }
+    },
+    nav: [
+      {
+        id: 'wa'
+      }, {
+        id: 'view'
+      }, {
+        id: 'menu'
+      }, {
+        id: ''
+      }, {
+        id: ''
+      }
+    ],
+    sav: [{}, {}, {}, {}],
+    authorized: true
   }, {
     set: function(obj, k, v, prx){
       var a, b, c, d;
-      if (typeof k === 'string') {
+      if (typeof k !== 'string') {
+        return true;
+      }
+      a = parseInt(k);
+      if (isNaN(a)) {
         obj[k] = v;
         return true;
       }
+      k = a;
       a = obj.nav;
       b = obj.sav;
       c = a[k];
@@ -68,6 +75,49 @@ $('document').ready(function(){
     }
   });
   V = {
+    init: function(id, parent, level, namespace, templ){
+      var a, b, c, own$ = {}.hasOwnProperty;
+      id == null && (id = '');
+      parent == null && (parent = null);
+      level == null && (level = 0);
+      namespace == null && (namespace = '');
+      if (!(a = this.skel[id]) || !(b = a.cfg)) {
+        console.log('getting of "' + id + '" failed');
+        return false;
+      }
+      if (!id) {
+        id = b.id;
+      }
+      namespace += id.charAt(0).toUpperCase() + id.slice(1);
+      if (!templ) {
+        templ = $('template');
+        templ = $(templ[0].content);
+      }
+      b.id = id;
+      b.parent = parent;
+      if (parent) {
+        b.root = parent.cfg.root;
+      }
+      b.level = level;
+      b.nav = M.nav[level];
+      b.namespace = namespace;
+      if (b.render) {
+        b.render = w3ui.PARTIAL(a, this.render);
+      }
+      if (b.attach) {
+        b.attach = w3ui.PARTIAL(a, this.attach, b.attach);
+      }
+      b.template = templ;
+      for (b in a) if (own$.call(a, b)) {
+        c = a[b];
+        if (b !== 'cfg' && c && c.cfg) {
+          if (!this.init(b, a, level + 1, namespace, templ)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
     color: w3ui.PROXY({
       source: null,
       Hue: '',
@@ -194,323 +244,6 @@ $('document').ready(function(){
         return '';
       }
     }),
-    skel: w3ui.PROXY({
-      cfg: {
-        id: 'skel',
-        node: w3ui('#skel'),
-        root: w3ui('html'),
-        parent: null,
-        level: 0,
-        nav: null,
-        namespace: '',
-        render: true
-      },
-      wa: {
-        cfg: {
-          init: function(){
-            var a, b;
-            this.modebar.title.text = '';
-            this.modebar.b1.list = null;
-            this.modebar.b2.list = null;
-            this.console.b1.list = null;
-            this.console.b2.list = null;
-            if (a = this.view.cfg.nav.id) {
-              b = this.view[a];
-              this.modebar.b1.list = a !== 'menu' ? this.view.menu.title : null;
-              this.modebar.b2.list = this.view.config[a] ? this.view.config.title : null;
-              this.modebar.title.text = b.title[0];
-            }
-            a = this.cfg.node;
-            if (0 + a[0].style.opacity < 0.99) {
-              TweenMax.to(a, 2, {
-                opacity: 1,
-                ease: Power1.easeOut
-              });
-            }
-            return true;
-          },
-          show: [
-            {
-              duration: 0,
-              tween: {
-                opacity: 0,
-                visibility: 'visible'
-              }
-            }, {
-              duration: 0.5,
-              tween: {
-                opacity: 1,
-                ease: Power1.easeOut
-              }
-            }
-          ]
-        },
-        modebar: {
-          cfg: {
-            fontSizeMax: 0,
-            init: function(){
-              var a;
-              this.b1.node = w3ui('#' + this.cfg.id + ' .box1 .btn');
-              this.title.node = w3ui('#' + this.cfg.id + ' .box2');
-              this.b2.node = w3ui('#' + this.cfg.id + ' .box3 .btn');
-              a = parseInt(this.cfg.root.style.f1SizeMax);
-              if (!isNaN(a)) {
-                this.cfg.fontSizeMax = a;
-              }
-              return true;
-            },
-            resize: function(){
-              var a, b, c;
-              a = this.title;
-              b = this.cfg.fontSizeMax;
-              c = a.node.textMeasureFont(a.text);
-              if (c > b) {
-                c = b;
-              }
-              this.cfg.root.style.f1SizeAuto = c + 'px';
-              ['b1', 'b2'].forEach(function(name){
-                var a, i$, ref$, len$, c, b;
-                a = this[name];
-                a.index = -1;
-                if (!a.list) {
-                  return;
-                }
-                for (i$ = 0, len$ = (ref$ = a.list).length; i$ < len$; ++i$) {
-                  c = i$;
-                  b = ref$[i$];
-                  b = a.node.textMeasure(b);
-                  if (b.width < a.node.box.innerWidth) {
-                    a.index = c;
-                    break;
-                  }
-                }
-              }, this);
-              return true;
-            },
-            refresh: function(){
-              ['b1', 'b2'].forEach(function(name){
-                var a, b;
-                a = this[name];
-                if (!a.list) {
-                  a.node.addClass('disabled');
-                  a.node.html('');
-                  return;
-                }
-                a.node.removeClass('disabled');
-                b = a.index >= 0
-                  ? a.list[a.index]
-                  : a.icon;
-                a.node.html(b);
-              }, this);
-              this.title.node.html(this.title.text);
-              return true;
-            }
-          },
-          b1: {
-            node: null,
-            icon: '',
-            index: -1,
-            list: null
-          },
-          b2: {
-            node: null,
-            icon: '',
-            index: -1,
-            list: null
-          },
-          title: {
-            node: null,
-            text: ''
-          }
-        },
-        view: {
-          cfg: {
-            render: true
-          },
-          config: {
-            title: ['Настройки', 'Настр']
-          },
-          menu: {
-            cfg: {
-              attach: {
-                click: 'div'
-              },
-              show: [
-                {
-                  duration: 0,
-                  tween: {
-                    visibility: 'visible',
-                    scale: 0
-                  }
-                }, {
-                  duration: 0.8,
-                  tween: {
-                    scale: 1,
-                    ease: Back.easeOut
-                  }
-                }
-              ]
-            },
-            title: ['Главное меню', 'Меню'],
-            list: [
-              {
-                id: 'card',
-                name: 'Картотека'
-              }, {
-                id: 'm2',
-                name: '2'
-              }, {
-                id: 'm3',
-                name: '3'
-              }, {
-                id: 'm4',
-                name: '4'
-              }, {
-                id: 'm5',
-                name: '5'
-              }, {
-                id: 'm6',
-                name: '6'
-              }
-            ]
-          }
-        },
-        console: {
-          cfg: {
-            empty: true,
-            init: function(){
-              this.b1.node = w3ui('#' + this.cfg.id + ' .box1 .btn');
-              this.b2.node = w3ui('#' + this.cfg.id + ' .box3 .btn');
-              return true;
-            },
-            resize: function(){
-              ['b1', 'b2'].forEach(function(name){
-                var a, i$, ref$, len$, c, b;
-                a = this[name];
-                a.index = -1;
-                if (!a.list) {
-                  return;
-                }
-                for (i$ = 0, len$ = (ref$ = a.list).length; i$ < len$; ++i$) {
-                  c = i$;
-                  b = ref$[i$];
-                  b = a.node.textMeasure(b);
-                  if (b.width < a.node.box.innerWidth) {
-                    a.index = c;
-                    break;
-                  }
-                }
-              }, this);
-              return true;
-            },
-            refresh: function(){
-              ['b1', 'b2'].forEach(function(name){
-                var a, b;
-                a = this[name];
-                if (!a.list) {
-                  a.node.addClass('disabled');
-                  a.node.html('');
-                  return;
-                }
-                a.node.removeClass('disabled');
-                b = a.index >= 0
-                  ? a.list[a.index]
-                  : a.icon;
-                a.node.html(b);
-              }, this);
-              return true;
-            }
-          },
-          b1: {
-            node: null,
-            icon: '',
-            index: -1,
-            list: null
-          },
-          b2: {
-            node: null,
-            icon: '',
-            index: -1,
-            list: null
-          },
-          log: {
-            type: {
-              error: 'ошибка',
-              warning: 'предупреждение',
-              info: 'информация',
-              success: 'выполнено'
-            },
-            msg: [['error', 'в доступе отказано'], ['success', 'доступ разрешен']]
-          }
-        }
-      }
-    }, {
-      get: function(obj, id, prx){
-        var a, b, k, v, own$ = {}.hasOwnProperty;
-        if (!id) {
-          return obj;
-        }
-        if (obj[id] && obj[id].cfg) {
-          return obj[id];
-        }
-        if (!obj.cfg) {
-          return null;
-        }
-        a = [obj];
-        while (a.length) {
-          b = a.pop();
-          for (k in b) if (own$.call(b, k)) {
-            v = b[k];
-            if (k !== 'cfg' && v && v.cfg) {
-              if (v[id] && v[id].cfg) {
-                return v[id];
-              }
-              a.push(v);
-            }
-          }
-        }
-        return null;
-      }
-    }),
-    init: function(id, parent, level, namespace){
-      var a, b, c;
-      id == null && (id = '');
-      parent == null && (parent = null);
-      level == null && (level = 0);
-      namespace == null && (namespace = '');
-      if (!(a = this.skel[id])) {
-        console.log('getting of "' + id + '" failed');
-        return false;
-      }
-      b = a.cfg;
-      if (!id) {
-        id = b.id;
-      }
-      namespace += id.charAt(0).toUpperCase() + id.slice(1);
-      b.id = id;
-      b.parent = parent;
-      if (parent) {
-        b.root = parent.cfg.root;
-      }
-      b.level = level;
-      b.nav = M.nav[level];
-      b.namespace = namespace;
-      if (b.render) {
-        b.render = w3ui.PARTIAL(a, this.render);
-      }
-      if (b.attach) {
-        b.attach = w3ui.PARTIAL(a, this.attach, b.attach, P.event);
-      }
-      for (b in a) {
-        c = a[b];
-        if (b !== 'cfg' && c && c.cfg) {
-          if (!this.init(b, a, level + 1, namespace)) {
-            return false;
-          }
-        }
-      }
-      return true;
-    },
     walk: function(id, direction, func, onComplete){
       var a, walk, b, i$, len$;
       if (!(a = this.skel[id])) {
@@ -579,788 +312,410 @@ $('document').ready(function(){
         };
       }
     },
-    render: function(){
-      var id, a, c;
+    render: function(id){
+      var a, b, c;
+      id == null && (id = this.cfg.nav.id);
       if (!this.cfg.node) {
         this.cfg.node = w3ui('#' + this.cfg.id);
       }
       if (!this.cfg.node) {
         return false;
       }
-      if (!(id = this.cfg.nav.id)) {
+      if (!id) {
         return true;
       }
-      if (!(a = $('template')) || a.length === 0) {
-        return false;
+      a = this.cfg.parent;
+      if (!a || a.cfg.nav.id === this.cfg.id) {
+        b = id;
+        c = this[b];
+      } else {
+        b = '';
+        if (!(a = a[a.cfg.nav.id][id])) {
+          return true;
+        }
+        c = this[id].render.apply(a);
       }
-      a = $(a[0].content).find('#t-' + id);
+      a = this;
+      while (a.cfg.parent && a.cfg.level) {
+        id = a.cfg.id + '-' + id;
+        a = a.cfg.parent;
+      }
+      a = this.cfg.template.find('#t-' + id);
       if (!a || !a.length) {
-        return false;
+        return true;
       }
       a = a[0].innerHTML;
-      c = this[id];
       a = Mustache.render(a, c);
       this.cfg.node.html(a);
-      if (c.cfg) {
-        c.cfg.node = w3ui('#' + id);
+      if (b) {
+        c.cfg.node = w3ui('#' + b);
       }
       return true;
     },
-    attach: function(events, handler){
-      var c, a, b, i$, len$, ref$, own$ = {}.hasOwnProperty;
-      c = [];
+    attach: function(events){
+      var a, b, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
+      if (!this.cfg.node) {
+        return true;
+      }
+      if (events === true) {
+        if (!(a = this.cfg.nav.id) || !(b = this[a])) {
+          return true;
+        }
+        events = b.attach;
+      }
+      e = [];
       for (a in events) if (own$.call(events, a)) {
         b = events[a];
         a = a + '.' + this.cfg.namespace;
-        b = '#' + this.cfg.id + ' ' + b;
-        if (!(b = $(b)) || !b.length) {
-          return false;
+        for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+          d = b[i$];
+          c = $('#' + this.cfg.id + ' ' + d[0]);
+          d = d[1];
+          if (!c || !c.length) {
+            continue;
+          }
+          e.push([a, c, d]);
         }
-        c.push([b, a]);
       }
-      handler = w3ui.PARTIAL(this, handler);
-      for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
-        ref$ = c[i$], a = ref$[0], b = ref$[1];
-        a.on(b, handler);
+      if (!e.length) {
+        return true;
+      }
+      d = w3ui.PARTIAL(this, P.event);
+      for (i$ = 0, len$ = e.length; i$ < len$; ++i$) {
+        ref$ = e[i$], a = ref$[0], b = ref$[1], c = ref$[2];
+        b.on(a, null, c, d);
       }
       this.cfg.detach = function(){
-        var i$, ref$, len$, ref1$, a, b;
-        for (i$ = 0, len$ = (ref$ = c).length; i$ < len$; ++i$) {
-          ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1];
-          a.off(b);
+        var i$, ref$, len$, ref1$, a, b, c;
+        for (i$ = 0, len$ = (ref$ = e).length; i$ < len$; ++i$) {
+          ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1], c = ref1$[2];
+          b.off(a);
         }
         return true;
       };
       return true;
     },
-    GSAP: {
-      busy: 0,
-      show: function(args, onComplete){
-        var me, gs, op, a;
-        args == null && (args = {});
-        if (typeof args === 'function') {
-          onComplete = args;
-          args = {};
-        }
-        if (args.show === undefined) {
-          args.show = true;
-        }
-        if (args.time === undefined) {
-          args.time = args.show ? 0.8 : 0.4;
-        }
-        me = this;
-        gs = V.GSAP;
-        op = args.show ? 1 : 0;
-        if (me.onComplete) {
-          me.onComplete();
-        }
-        if (args.time > 0) {
-          a = me[0].style.opacity;
-          a = !a
-            ? 0
-            : +a;
-          if (a === op) {
+    skel: w3ui.PROXY({
+      cfg: {
+        id: 'skel',
+        node: w3ui('#skel'),
+        root: w3ui('html'),
+        parent: null,
+        level: 0,
+        nav: null,
+        namespace: '',
+        render: true
+      },
+      wa: {
+        cfg: {
+          fontSizeMax: 0,
+          init: function(){
+            var a, ref$, b, own$ = {}.hasOwnProperty;
+            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
+              b = ref$[a];
+              b.node = w3ui('#header .' + a + ' .button');
+            }
+            this.header.title.node = w3ui('#header .title');
+            a = parseInt(this.cfg.node.style.fSizeMax);
+            if (!isNaN(a)) {
+              this.cfg.fontSizeMax = a;
+            }
             return true;
-          }
-        } else {
-          TweenMax.set(me, {
-            opacity: op
-          });
-          return true;
-        }
-        gs.busy += 1;
-        me.onComplete = function(){
-          me.anim.kill();
-          gs.busy -= 1;
-          if (onComplete) {
-            onComplete();
-          }
-          delete me.anim;
-        };
-        me.anim = new TimelineLite({
-          paused: true,
-          onComplete: me.onComplete
-        });
-        if (args.show) {
-          me.anim.to(me, args.time, {
-            opacity: 1,
-            ease: Power1.easeOut
-          }, 0);
-        } else {
-          me.anim.to(me, args.time, {
-            opacity: 0,
-            ease: Power1.easeIn
-          }, 0);
-        }
-        me.anim.play();
-        return true;
-      },
-      color: function(Hue){
-        V.color.set(Hue);
-        return V.refresh();
-      },
-      setBackground: function(bg, onComplete){
-        var me, gs, d, a, i$, len$, b, t0, t1, t2;
-        me = this.setBackground;
-        gs = this;
-        d = V.view;
-        if (!d || !bg && !me.bg) {
-          return false;
-        }
-        if (!bg) {
-          bg = me.bg;
-          delete me.bg;
-        } else {
-          a = [];
-          for (i$ = 0, len$ = bg.length; i$ < len$; ++i$) {
-            b = bg[i$];
-            if (b) {
-              a.push(V.color[b]);
+          },
+          resize: function(){
+            var a, b, ref$, own$ = {}.hasOwnProperty;
+            a = this.cfg.fontSizeMax;
+            b = this.header.title;
+            b = b.node.textMeasureFont(b.text);
+            if (b > a) {
+              b = a;
             }
-          }
-          bg = a.length > 0 ? a.join(' , ') : 'none';
-        }
-        if (me.bg && me.bg === bg) {
-          if (onComplete) {
-            onComplete();
-          }
-          return false;
-        }
-        if (me.state) {
-          me.state.vars.onComplete.apply(me.state);
-        }
-        a = new TimelineLite({
-          paused: true,
-          onComplete: function(){
-            this.kill();
-            gs.busy -= 1;
-            me.bg = bg;
-            if (onComplete) {
-              onComplete();
+            this.cfg.node.style.fSize0 = b + 'px';
+            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
+              b = ref$[a];
+              if (!b.list) {
+                b.index = -1;
+                continue;
+              }
+              b.index = b.list.reduce(fn$, -1);
             }
-            delete me.state;
-          }
-        });
-        t0 = 0;
-        t1 = 0.8;
-        t2 = 0.4;
-        if (d[0].style.opacity !== '0') {
-          if (me.bg === 'none') {
-            a.set(d, {
-              opacity: 0
-            }, t0);
-          } else {
-            a.to(d, t2, {
-              opacity: 0,
-              ease: Power1.easeIn
-            }, t0);
-            t0 += t2;
-          }
-        }
-        if (bg === 'none') {
-          a.set(d, {
-            backgroundImage: 'none',
-            opacity: 1
-          }, t0);
-        } else {
-          a.set(d, {
-            backgroundImage: bg
-          }, t0);
-          a.to(d, t1, {
-            opacity: 1,
-            ease: Power1.easeOut
-          }, t0);
-        }
-        me.state = a;
-        gs.busy += 1;
-        a.play();
-        return true;
-      },
-      setNote: function(num){
-        var me, a;
-        num == null && (num = 0);
-        me = this.setNote;
-        a = V.lang.note[num];
-        if (me.num === num) {
-          return false;
-        }
-        me.num = num;
-        V.note.html(a);
-        return false;
-      },
-      auth: function(){
-        var me, gs, dt, render, anim, m_enter, m_leave, m_click;
-        me = this.auth;
-        gs = this;
-        if (me.state) {
-          return false;
-        }
-        dt = {
-          anim: null,
-          radius: 4,
-          R: 0,
-          timeout: 4,
-          p_count: 0,
-          p_size0: 0.5,
-          p_size1: 2.0,
-          p_speed: 5,
-          p_acc: 0.00005,
-          stars: []
-        };
-        render = function(){
-          var a, cw, ch, cx, cy, i$, to$, r0, r1, r2, star, vx, vy;
-          a = V.s.canvas[0];
-          cw = a.width;
-          ch = a.height;
-          cx = cw / 2;
-          cy = ch / 2;
-          for (i$ = 1, to$ = dt.p_count; i$ <= to$; ++i$) {
-            a = i$;
-            r0 = Math.random();
-            r1 = Math.random() + 0.2 * r0;
-            r2 = 360 * Math.random();
-            dt.stars.push({
-              x: cx + dt.R * Math.cos(r2 * Math.PI / 180),
-              y: cy + dt.R * Math.sin(r2 * Math.PI / 180),
-              r: 1,
-              size: dt.p_size0 + (dt.p_size1 - dt.p_size0) * r0,
-              speed: 1,
-              accel: 1 + (1 + dt.p_speed * r1) / 1000,
-              angle: r2
-            });
-          }
-          if (dt.p_count > 0) {
-            dt.timeout = 0;
-          }
-          a = [];
-          dt.ctx.clearRect(0, 0, cw, ch);
-          while (dt.stars.length) {
-            star = dt.stars.pop();
-            vx = star.speed * Math.cos(star.angle * Math.PI / 180);
-            vy = star.speed * Math.sin(star.angle * Math.PI / 180);
-            dt.ctx.beginPath();
-            dt.ctx.lineWidth = star.size;
-            dt.ctx.moveTo(star.x, star.y);
-            star.x = star.x + vx;
-            star.y = star.y + vy;
-            dt.ctx.lineTo(star.x, star.y);
-            dt.ctx.stroke();
-            star.speed = star.speed * star.accel;
-            star.accel = star.accel + dt.p_acc;
-            if (star.x < cw && star.x > 0 && star.y < ch && star.y > 0) {
-              a.push(star);
+            return true;
+            function fn$(a, text, index){
+              var c;
+              c = b.node.textMeasure(text);
+              if (c.width < b.node.box.innerWidth && (a < 0 || b.list[a].length < text.length)) {
+                return index;
+              }
+              return a;
             }
-          }
-          dt.stars = a;
-          return true;
-        };
-        anim = function(){
-          var node;
-          node = $('#auth g.node *');
-          TweenMax.set(V.s.auth_svg, {
-            boxShadow: '0px 0px 40px 8px ' + V.color[80]
-          });
-          return {
-            hover: function(){
-              var a, e, f, b, d;
-              TweenMax.to(node[2], 0, {
-                transformOrigin: 'center',
-                fill: V.color[70],
-                scale: 0,
-                force3D: true
-              });
-              a = new TimelineLite({
-                paused: true,
-                onStart: function(){
-                  var a;
-                  a = this.getTweensOf(node[2]);
-                  a[0].updateTo({
-                    ease: Power4.easeOut
-                  });
-                  dt.p_count = 5;
-                  dt.p_speed = 25;
-                  return true;
-                },
-                onComplete: function(){
-                  var a;
-                  this.pause();
-                  a = this.getTweensOf(node[2]);
-                  a[0].updateTo({
-                    ease: Power4.easeIn
-                  });
-                  this.vars.tw = TweenMax.to(node[2], 0.5, {
-                    scale: 0.77,
-                    fill: V.color[80],
-                    repeat: -1,
-                    yoyo: true,
-                    ease: Circ.easeIn
-                  });
-                  return true;
-                },
-                onReverse: function(){
-                  return true;
-                },
-                onReverseComplete: function(){
-                  this.pause();
-                  return true;
-                }
-              });
-              a.stopit = function(){
-                dt.p_count = 1;
-                dt.p_speed = 5;
-                if (this.vars.tw) {
-                  this.vars.tw.kill();
-                  delete this.vars.tw;
-                }
-                return true;
-              };
-              a.vars.onReverse = a.stopit;
-              e = 0;
-              f = Power2.easeInOut;
-              b = TweenMax.to(V.s.auth_svg, 0.4, {
-                boxShadow: '0px 0px 60px 10px ' + V.color[80],
-                ease: f
-              });
-              a.add(b, e + 0.1);
-              d = 0.4;
-              b = TweenMax.to(V.s.auth_svg, d, {
-                scale: 0.97,
-                ease: f
-              });
-              a.add(b, e);
-              d = 0.8;
-              a.to(node[0], d, {
-                fillOpacity: 0
-              }, e);
-              a.to(node[1], d, {
-                fillOpacity: 1
-              }, e);
-              b = TweenMax.to(node[2], d, {
-                fill: V.color[90],
-                scale: 1
-              });
-              a.add(b, e);
-              return a;
-            }(),
-            click: function(){
-              return TweenMax.to(node[2], 0.5, {
-                paused: true,
-                mSVG: {
-                  shape: node[5]
-                },
-                scale: 1,
-                fill: V.color[87],
-                ease: Back.easeOut,
-                onStart: function(){
-                  V.pb.eq(0).progressbar({
-                    value: 100
-                  });
-                  V.pb.eq(1).progressbar({
-                    value: 100
-                  });
-                  return true;
-                },
-                onComplete: function(){
-                  this.pause();
-                  dt.p_count = 4;
-                  dt.p_speed = 8;
-                  gs.setTitle(3);
-                  return true;
-                },
-                onReverseComplete: function(){
-                  dt.p_count = 1;
-                  dt.p_speed = 5;
-                  V.pb.eq(0).progressbar({
-                    value: 0
-                  });
-                  V.pb.eq(1).progressbar({
-                    value: 0
-                  });
-                  gs.setTitle(1);
-                  return true;
-                }
-              });
-            }(),
-            wait: function(){
-              var a;
-              a = TweenMax.to(node[2], 2, {
-                rotation: -240,
-                paused: true,
-                repeat: -1,
-                ease: Power3.easeInOut
-              });
-              a.stop = function(){
-                this.pause();
-                this.stop.ok = false;
-                TweenMax.to(node[2], 1, {
-                  rotation: 0,
-                  ease: Power3.easeIn,
-                  onComplete: function(){
-                    a.stop.ok = true;
-                  }
-                });
-              };
-              return a;
-            }(),
-            splash: function(){
-              var a, e, d, f;
-              a = new TimelineLite({
-                paused: true,
-                onComplete: function(){
-                  this.pause();
-                },
-                onReverseComplete: function(){
-                  this.pause();
-                }
-              });
-              e = 0;
-              a.set(V.view, {
-                backgroundColor: V.color[95]
-              }, e);
-              a.set(node[0], {
-                fill: 'url(#gr4)',
-                fillOpacity: 0
-              }, e);
-              a.set(node[1], {
-                fillOpacity: 1
-              }, e);
-              a.set(node[3], {
-                transformOrigin: 'center',
-                fill: V.color[80],
-                scale: 1.2
-              }, e);
-              d = 2;
-              a.to(node[2], d, {
-                rotation: 0,
-                fill: V.color[85],
-                ease: Power3.easeInOut
-              }, e);
-              a.to(V.view, d, {
-                backgroundColor: V.color[90],
-                ease: Power2.easeIn,
-                onComplete: function(){
-                  a.set(V.view, {
-                    backgroundImage: 'none'
-                  });
-                  true;
-                }
-              }, e);
-              a.to(node[0], d, {
-                fillOpacity: 1,
-                ease: Power2.easeIn
-              }, e);
-              a.to(node[1], d, {
-                fillOpacity: 0,
-                ease: Power2.easeIn
-              }, e);
-              a.to(V.s.auth_svg, d, {
-                boxShadow: '0px 0px 6px 2px ' + V.color[80]
-              }, e);
-              e = e + d - 0.5;
-              a.to(node[3], d, {
-                fillOpacity: 1,
-                scale: 1,
-                ease: Power3.easeInOut,
-                onStart: function(){
-                  gs.setNote(9);
-                  return true;
-                }
-              }, e);
-              e = e + d;
-              a.set(node[1], {
-                fill: V.color[95]
-              }, e);
-              a.to(node[0], d, {
-                fillOpacity: 0,
-                ease: Power2.easeIn
-              }, e);
-              a.to(node[1], d, {
-                fillOpacity: 1,
-                ease: Power2.easeIn
-              }, e);
-              a.to(node[2], 0.8, {
-                mSVG: {
-                  shape: node[6],
-                  shapeIndex: 2
-                },
-                fill: V.color[80],
-                ease: Back.easeOut
-              }, e - d);
-              a.set(V.s.auth_svg, {
-                clearProps: 'boxShadow',
-                onComplete: function(){
-                  V.s.auth_svg.css('box-shadow', 'none');
-                  gs.setNote(11);
-                }
-              }, e);
-              f = Back.easeOut;
-              d = 1.0;
-              a.to(V.view, d, {
-                backgroundColor: V.color[90],
-                ease: f
-              }, e);
-              a.set(V.view, {
-                backgroundImage: 'none'
-              }, e + d);
-              a.set(node[0], {
-                fill: V.color[90]
-              }, e);
-              a.to(node[0], d, {
-                fillOpacity: 1,
-                ease: f
-              }, e);
-              a.to(node[1], d, {
-                fillOpacity: 0,
-                ease: f
-              }, e);
-              e = e - 0.5;
-              d = 1.0;
-              a.to(V.s.auth_svg, d, {
-                scale: 1.3,
-                ease: f
-              }, e);
-              a.to(node[3], d, {
-                mSVG: {
-                  shape: node[10],
-                  shapeIndex: 0
-                },
-                ease: f
-              }, e);
-              a.to(node[2], d, {
-                fill: V.color[80],
-                ease: f
-              }, e);
-              a.to(node[3], d, {
-                fill: V.color[80],
-                ease: f
-              }, e);
-              return a;
-            }(),
-            finish: function(){
-              var a, e, d, f;
-              a = new TimelineLite({
-                paused: true,
-                onComplete: function(){
-                  this.pause();
-                },
-                onReverseComplete: function(){
-                  this.pause();
-                }
-              });
-              e = 0;
-              d = 1;
-              f = Back.easeIn;
-              a.to(node[1], d, {
-                fill: V.color[90],
-                ease: f
-              }, e);
-              a.to(V.s.auth_svg, d, {
-                scale: 0.9,
-                ease: f
-              }, e);
-              a.to(node[3], d, {
-                mSVG: {
-                  shape: node[9],
-                  shapeIndex: 0
-                },
-                ease: f
-              }, e);
-              a.to(node[2], d, {
-                fill: V.color[90],
-                ease: f
-              }, e);
-              e = e + d;
-              d = 2;
-              f = Power0.easeNone;
-              a.set(node[2], {
-                fillOpacity: 0,
-                onComplete: function(){
-                  gs.setNote(12);
-                  return true;
-                }
-              }, e);
-              a.to(V.s.auth_svg, d, {
-                scale: 0,
-                ease: f
-              }, e);
-              a.to(node[1], d, {
-                fill: V.color[60],
-                ease: f
-              }, e);
-              a.to(node[3], d, {
-                fill: V.color[60],
-                ease: f
-              }, e);
-              d = 2.5;
-              e = e - 0.5;
-              a.to(V.view, d, {
+          },
+          refresh: function(){
+            var a, ref$, b, own$ = {}.hasOwnProperty;
+            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
+              b = ref$[a];
+              if (!b.list) {
+                b.node.addClass('disabled');
+                b.node.html('');
+                continue;
+              }
+              b.node.removeClass('disabled');
+              b.node.html(b.index < 0
+                ? b.icon
+                : b.list[b.index]);
+            }
+            return true;
+          },
+          show: [
+            {
+              duration: 0,
+              tween: {
                 opacity: 0,
-                ease: f
-              }, e);
-              return a;
-            }()
-          };
-        };
-        m_enter = function(){
-          var a;
-          if (dt.clicked) {
-            return true;
-          }
-          dt.moused = true;
-          gs.setNote(1);
-          a = dt.anim.hover;
-          if (a.paused() || a.reversed()) {
-            a.play();
-          }
-          return true;
-        };
-        m_leave = function(){
-          var a;
-          if (dt.clicked) {
-            return true;
-          }
-          dt.moused = false;
-          gs.setNote(0);
-          a = dt.anim.hover;
-          if (!a.reversed()) {
-            a.reverse();
-          }
-          return true;
-        };
-        m_click = function(){
-          if (dt.clicked === 1) {
-            return true;
-          }
-          if (dt.clicked === 2) {
-            dt.clicked = 0;
-            return true;
-          }
-          if (dt.clicked) {
-            return false;
-          }
-          if (!dt.moused) {
-            m_enter();
-          }
-          dt.clicked = 1;
-          w3ui.THREAD(this, [
-            function(){
-              return dt.anim.hover.paused();
-            }, function(){
-              dt.anim.hover.stopit();
-              return true;
-            }, function(){
-              gs.setNote(5);
-              dt.anim.click.play();
-              return true;
-            }, function(){
-              return dt.anim.click.paused();
-            }, function(){
-              /* DEBUG */
-              if (true) {
-                BOUNCE(this, 5000, [], function(){
-                  var a, b;
-                  a = dt.anim.click;
-                  b = a.vars.onReverseComplete;
-                  a.vars.onReverseComplete = function(){
-                    b();
-                    dt.anim.hover.reverse();
-                    dt.clicked = 0;
-                    if (dt.moused) {
-                      m_leave();
-                    }
-                    a.vars.onReverseComplete = b;
-                  };
-                  dt.anim.click.reverse();
-                });
-                return null;
+                visibility: 'visible'
               }
-              /**/
-              return true;
-            }, function(){
-              if (false) {
-                gs.setNote(7);
-                dt.anim.click.eventCallback('onReverseComplete', function(){
-                  m_leave();
-                });
-                dt.anim.click.reverse();
-                dt.clicked = 0;
-                return null;
+            }, {
+              duration: 0.4,
+              tween: {
+                opacity: 1,
+                ease: Power1.easeOut
               }
-              gs.setNote(8);
-              dt.p_count = 0;
-              dt.p_acc = dt.p_acc * 10;
-              return true;
-            }, function(){
-              dt.anim.splash.play();
-              return true;
-            }, function(){
-              return dt.anim.splash.paused();
-            }, function(){
-              return dt.clicked === 2;
-            }, function(){
-              dt.anim.finish.play();
-              return true;
-            }, function(){
-              return dt.anim.finish.paused();
-            }, function(){
-              gs.setNote(0);
-              me.state();
-              P.init();
-              return true;
             }
-          ]);
-          return true;
-        };
-        V.s.auth_btn.mouseenter(m_enter);
-        V.s.auth_btn.mouseleave(m_leave);
-        V.s.auth_btn.click(m_click);
-        me.init = function(){
-          var a;
-          if (dt.animate) {
-            dt.animate = false;
-            BOUNCE(me, 50, [], me.init);
-            return true;
+          ],
+          attach: {
+            click: [['#header .b1 .button', 'mode'], ['#header .b2 .button', 'config']]
           }
-          dt.R = dt.radius + V.s.auth_svg.height() / 2;
-          a = V.s.canvas[0];
-          a.width = V.s.canvas.width();
-          a.height = V.s.canvas.height();
-          dt.ctx = a.getContext('2d');
-          dt.ctx.strokeStyle = V.color[60];
-          dt.anim = anim();
-          dt.animate = true;
-          me.animate();
-          return true;
-        };
-        me.animate = function(){
-          if (dt.animate) {
-            if (me.state) {
-              dt.id = window.requestAnimationFrame(me.animate);
+        },
+        view: {
+          cfg: {
+            render: true,
+            init: function(){
+              var p, a, b, c;
+              p = this.cfg.parent;
+              a = this.cfg.nav.id;
+              b = p.header.buttons;
+              c = a ? this[a] : null;
+              b.b1.list = a !== 'menu' ? this.menu.title : null;
+              b.b2.list = c && c.config ? this.config.title : null;
+              b = p.header;
+              b.title.text = c && c.title ? c.title[0] : '';
+              return true;
             }
-            render();
+          },
+          menu: {
+            cfg: {
+              render: true,
+              show: [
+                {
+                  duration: 0,
+                  tween: {
+                    visibility: 'visible',
+                    scale: 0
+                  }
+                }, {
+                  duration: 0.6,
+                  tween: {
+                    scale: 1,
+                    ease: Back.easeOut
+                  }
+                }
+              ],
+              hide: [{
+                duration: 0.8,
+                tween: {
+                  scale: 0,
+                  ease: Back.easeIn
+                }
+              }],
+              attach: {
+                click: [['.button', 'nav']]
+              }
+            },
+            title: ['Главное меню', 'Меню'],
+            current: function(){
+              var a;
+              a = this.cfg.nav.current ? this.cfg.nav.current : 0;
+              return this.data[a].list;
+            },
+            data: [
+              {
+                id: 'card',
+                name: 'Картотека',
+                list: [
+                  {
+                    id: 'address',
+                    name: 'Адреса'
+                  }, {
+                    id: 'counterparty',
+                    name: 'Контрагенты'
+                  }
+                ]
+              }, {
+                id: 'income',
+                name: 'Входящие',
+                list: [
+                  {
+                    id: 'accrual',
+                    name: 'Начисления'
+                  }, {
+                    id: 'payment',
+                    name: 'Оплата'
+                  }
+                ]
+              }, {
+                id: 'outcome',
+                name: 'Исходящие',
+                list: [
+                  {
+                    id: 'calc',
+                    name: 'Расчеты'
+                  }, {
+                    id: 'document',
+                    name: 'Документы'
+                  }
+                ]
+              }
+            ]
+          },
+          address: {
+            cfg: {
+              refresh: function(){
+                return true;
+              }
+            },
+            title: ['Картотека адресов', 'Адрес'],
+            tabs: [
+              {
+                id: 'a0',
+                name: 'квартира'
+              }, {
+                id: 'a1',
+                name: 'дом'
+              }, {
+                id: 'a2',
+                name: 'улица'
+              }, {
+                id: 'a3',
+                name: 'район'
+              }, {
+                id: 'a4',
+                name: 'город'
+              }
+            ]
+          },
+          config: {
+            title: ['Настройки', 'Настр']
           }
-        };
-        me.state = function(){
-          if (dt.animate) {
-            dt.animate = false;
-            if (dt.id) {
-              window.cancelAnimationFrame(dt.id);
+        },
+        header: {
+          cfg: {
+            refresh: function(){
+              this.title.node.html(this.title.text);
+              return true;
+            }
+          },
+          title: {
+            node: null,
+            text: ''
+          },
+          buttons: {
+            b1: {
+              node: null,
+              icon: '',
+              index: -1,
+              list: null
+            },
+            b2: {
+              node: null,
+              icon: '',
+              index: -1,
+              list: null
             }
           }
-          delete me.state;
-          delete me.dt;
-        };
-        me.dt = dt;
-        if (dt.timeout) {
-          BOUNCE(me, 1000 * dt.timeout, [], function(){
-            if (dt.timeout !== 0) {
-              dt.p_count = 1;
+        },
+        console: {
+          cfg: {
+            render: true,
+            attach: true,
+            show: [
+              {
+                duration: 0,
+                tween: {
+                  visibility: 'visible'
+                }
+              }, {
+                duration: 0.4,
+                tween: {
+                  className: 'menu',
+                  ease: Power3.easeOut
+                }
+              }
+            ],
+            hide: [{
+              duration: 0.4,
+              tween: {
+                className: '',
+                ease: Power3.easeIn
+              }
+            }]
+          },
+          menu: {
+            attach: {
+              mouseover: [['.carousel .left .button', 'left'], ['.carousel .right .button', 'right']],
+              mouseout: [['.carousel .left .button', 'left'], ['.carousel .right .button', 'right']],
+              click: [['.carousel .left .button', 'left'], ['.carousel .right .button', 'right']]
+            },
+            render: function(){
+              var a, b, c, d;
+              a = this.data;
+              b = this.cfg.nav.current ? this.cfg.nav.current : 0;
+              c = a.length - 1;
+              d = a.map(function(item){
+                return {
+                  id: item.id,
+                  name: item.name
+                };
+              });
+              return {
+                list: d,
+                current: a[b].name,
+                prev: b
+                  ? a[b - 1].name
+                  : a[a.length - 1].name,
+                next: b === c
+                  ? a[0].name
+                  : a[b + 1].name
+              };
             }
-          });
+          }
         }
-        return me.init();
       }
-    }
+    }, {
+      get: function(obj, id, prx){
+        var a, b, k, v, own$ = {}.hasOwnProperty;
+        if (!id) {
+          return obj;
+        }
+        if (obj[id] && obj[id].cfg) {
+          return obj[id];
+        }
+        if (!obj.cfg) {
+          return null;
+        }
+        a = [obj];
+        while (a.length) {
+          b = a.pop();
+          for (k in b) if (own$.call(b, k)) {
+            v = b[k];
+            if (k !== 'cfg' && v && v.cfg) {
+              if (v[id] && v[id].cfg) {
+                return v[id];
+              }
+              a.push(v);
+            }
+          }
+        }
+        return null;
+      }
+    })
   };
   P = {
     init: function(){
@@ -1374,16 +729,11 @@ $('document').ready(function(){
       });
       return true;
     },
-    resize: function(){
-      var me, f;
-      me = this.resize;
-      if (me.timer) {
-        window.clearTimeout(me.timer);
-        f = w3ui.PARTIAL(this, me);
-        me.timer = window.setTimeout(f, 250);
-        return;
-      }
-      this.update();
+    update: function(id){
+      id == null && (id = '');
+      return ['resize', 'refresh'].every(function(f){
+        return V.walk(id, true, f);
+      });
     },
     construct: function(id){
       var node, busy;
@@ -1434,11 +784,13 @@ $('document').ready(function(){
           return !busy;
         }, function(){
           var a, b;
-          if (!V.walk(id, false, 'finit')) {
-            console.log('finit failed');
-            delete P.construct.busy;
-            return null;
-          }
+          V.walk(id, false, function(){
+            var a;
+            if (this.cfg.node && (a = this.cfg.level) && this.cfg.id !== M[a - 1]) {
+              this.cfg.node = null;
+            }
+            return true;
+          });
           a = ['render', 'init', 'resize', 'refresh'].every(function(f){
             return V.walk(id, true, f);
           });
@@ -1464,7 +816,7 @@ $('document').ready(function(){
           b = 'lev' + node.cfg.level;
           a.addLabel(b, 0);
           V.walk(id, true, function(){
-            var node, tl, b;
+            var node, tl;
             if (!(node = this.cfg.node)) {
               return true;
             }
@@ -1498,23 +850,71 @@ $('document').ready(function(){
         }
       ]);
     },
-    update: function(id){
-      id == null && (id = '');
-      return ['resize', 'refresh'].every(function(f){
-        return V.walk(id, true, f);
-      });
+    resize: function(){
+      var me, f;
+      me = this.resize;
+      if (me.timer) {
+        window.clearTimeout(me.timer);
+        f = w3ui.PARTIAL(this, me);
+        me.timer = window.setTimeout(f, 250);
+        return;
+      }
+      this.update();
     },
     event: function(event){
+      var me, a, data, duration, b, c;
       if (!this.cfg) {
         return false;
       }
+      me = this.cfg.attach;
+      if (!me.data) {
+        me.data = {};
+      }
+      a = this.cfg.nav.id;
+      if (!me.data[a]) {
+        me.data[a] = {};
+      }
+      data = me.data[a];
       switch (this.cfg.id) {
       case 'menu':
         true;
+        break;
+      case 'console':
+        switch (this.cfg.nav.id) {
+        case 'menu':
+          if (!data.hover) {
+            duration = 0.4;
+            a = this.cfg.node.find('.carousel .item');
+            b = this.cfg.node.find('.carousel .button');
+            c = [0, 2].map(function(index){
+              var c;
+              c = new TimelineLite({
+                paused: true
+              });
+              c.to([a[index], b[index], a[1]], duration, {
+                className: '+=hover'
+              }, 0);
+              c.to(b[1], duration, {
+                className: '+=hover' + index
+              }, 0);
+              return c;
+            });
+            data.hover = c;
+          }
+          switch (event.type) {
+          case 'mouseover':
+            a = event.data === 'left' ? 0 : 1;
+            data.hover[a].play();
+            break;
+          case 'mouseout':
+            a = event.data === 'left' ? 0 : 1;
+            data.hover[a].reverse();
+            break;
+          case 'click':
+            true;
+          }
+        }
       }
-      return true;
-    },
-    navigate: function(id){
       return true;
     }
   };
