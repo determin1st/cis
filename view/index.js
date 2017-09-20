@@ -75,6 +75,327 @@ $('document').ready(function(){
     }
   });
   V = {
+    skel: w3ui.PROXY({
+      cfg: {
+        id: 'skel',
+        node: w3ui('#skel'),
+        root: w3ui('html'),
+        parent: null,
+        level: 0,
+        nav: null,
+        namespace: '',
+        render: true
+      },
+      wa: {
+        cfg: {
+          fontSizeMax: 0,
+          init: function(){
+            var a, ref$, b, own$ = {}.hasOwnProperty;
+            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
+              b = ref$[a];
+              b.node = w3ui('#header .' + a + ' .button');
+            }
+            this.header.title.node = w3ui('#header .title');
+            a = parseInt(this.cfg.node.style.fSizeMax);
+            if (!isNaN(a)) {
+              this.cfg.fontSizeMax = a;
+            }
+            return true;
+          },
+          resize: function(){
+            var a, b, ref$, own$ = {}.hasOwnProperty;
+            a = this.cfg.fontSizeMax;
+            b = this.header.title;
+            b = b.node.textMeasureFont(b.text);
+            if (b > a) {
+              b = a;
+            }
+            this.cfg.node.style.fSize0 = b + 'px';
+            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
+              b = ref$[a];
+              if (!b.list) {
+                b.index = -1;
+                continue;
+              }
+              b.index = b.list.reduce(fn$, -1);
+            }
+            return true;
+            function fn$(a, text, index){
+              var c;
+              c = b.node.textMeasure(text);
+              if (c.width < b.node.box.innerWidth && (a < 0 || b.list[a].length < text.length)) {
+                return index;
+              }
+              return a;
+            }
+          },
+          refresh: function(){
+            var a, ref$, b, own$ = {}.hasOwnProperty;
+            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
+              b = ref$[a];
+              if (!b.list) {
+                b.node.addClass('disabled');
+                b.node.html('');
+                continue;
+              }
+              b.node.removeClass('disabled');
+              b.node.html(b.index < 0
+                ? b.icon
+                : b.list[b.index]);
+            }
+            return true;
+          },
+          show: [
+            {
+              duration: 0,
+              tween: {
+                opacity: 0,
+                visibility: 'visible'
+              }
+            }, {
+              duration: 0.4,
+              tween: {
+                opacity: 1,
+                ease: Power1.easeOut
+              }
+            }
+          ],
+          attach: {
+            click: [['#header .b1 .button', 'mode'], ['#header .b2 .button', 'config']]
+          }
+        },
+        view: {
+          cfg: {
+            render: true,
+            init: function(){
+              var p, a, b, c;
+              p = this.cfg.parent;
+              a = this.cfg.nav.id;
+              b = p.header.buttons;
+              c = a ? this[a] : null;
+              b.b1.list = a !== 'menu' ? this.menu.title : null;
+              b.b2.list = c && c.config ? this.config.title : null;
+              b = p.header;
+              b.title.text = c && c.title ? c.title[0] : '';
+              return true;
+            }
+          },
+          menu: {
+            cfg: {
+              render: true,
+              show: [
+                {
+                  duration: 0,
+                  tween: {
+                    visibility: 'visible',
+                    scale: 0
+                  }
+                }, {
+                  duration: 0.6,
+                  tween: {
+                    scale: 1,
+                    ease: Back.easeOut
+                  }
+                }
+              ],
+              hide: [{
+                duration: 0.6,
+                tween: {
+                  scale: 0,
+                  ease: Back.easeIn
+                }
+              }],
+              attach: {
+                click: [['.button', 'nav']]
+              }
+            },
+            title: ['Главное меню', 'Меню'],
+            current: function(){
+              var a;
+              a = this.cfg.nav.current ? this.cfg.nav.current : 0;
+              return this.data[a].list;
+            },
+            data: [
+              {
+                id: 'card',
+                name: 'Картотека',
+                list: [
+                  {
+                    id: 'address',
+                    name: 'Адреса'
+                  }, {
+                    id: 'counterparty',
+                    name: 'Контрагенты'
+                  }
+                ]
+              }, {
+                id: 'income',
+                name: 'Входящие',
+                list: [
+                  {
+                    id: 'accrual',
+                    name: 'Начисления'
+                  }, {
+                    id: 'payment',
+                    name: 'Оплата'
+                  }
+                ]
+              }, {
+                id: 'outcome',
+                name: 'Исходящие',
+                list: [
+                  {
+                    id: 'calc',
+                    name: 'Расчеты'
+                  }, {
+                    id: 'document',
+                    name: 'Документы'
+                  }
+                ]
+              }
+            ]
+          },
+          address: {
+            cfg: {
+              refresh: function(){
+                return true;
+              }
+            },
+            title: ['Картотека адресов', 'Адрес'],
+            tabs: [
+              {
+                id: 'a0',
+                name: 'квартира'
+              }, {
+                id: 'a1',
+                name: 'дом'
+              }, {
+                id: 'a2',
+                name: 'улица'
+              }, {
+                id: 'a3',
+                name: 'район'
+              }, {
+                id: 'a4',
+                name: 'город'
+              }
+            ]
+          },
+          config: {
+            title: ['Настройки', 'Настр']
+          }
+        },
+        header: {
+          cfg: {
+            refresh: function(){
+              this.title.node.html(this.title.text);
+              return true;
+            }
+          },
+          title: {
+            node: null,
+            text: ''
+          },
+          buttons: {
+            b1: {
+              node: null,
+              icon: '',
+              index: -1,
+              list: null
+            },
+            b2: {
+              node: null,
+              icon: '',
+              index: -1,
+              list: null
+            }
+          }
+        },
+        console: {
+          cfg: {
+            render: true,
+            attach: true,
+            show: [
+              {
+                duration: 0,
+                tween: {
+                  visibility: 'visible'
+                }
+              }, {
+                duration: 0.4,
+                tween: {
+                  className: 'menu',
+                  ease: Power3.easeOut
+                }
+              }
+            ],
+            hide: [{
+              duration: 0.4,
+              tween: {
+                className: '',
+                ease: Power3.easeIn
+              }
+            }]
+          },
+          menu: {
+            attach: {
+              mouseover: [['.carousel .button.left', 'left'], ['.carousel .button.right', 'right']],
+              mouseout: [['.carousel .button.left', 'left'], ['.carousel .button.right', 'right']],
+              click: [['.carousel .button.left', 'left'], ['.carousel .button.right', 'right']]
+            },
+            render: function(){
+              var a, b, c, d;
+              a = this.data;
+              b = this.cfg.nav.current ? this.cfg.nav.current : 0;
+              c = a.length - 1;
+              d = a.map(function(item){
+                return {
+                  id: item.id,
+                  name: item.name
+                };
+              });
+              return {
+                list: d,
+                current: a[b].name,
+                prev: b
+                  ? a[b - 1].name
+                  : a[a.length - 1].name,
+                next: b === c
+                  ? a[0].name
+                  : a[b + 1].name
+              };
+            }
+          }
+        }
+      }
+    }, {
+      get: function(obj, id, prx){
+        var a, b, k, v, own$ = {}.hasOwnProperty;
+        if (!id) {
+          return obj;
+        }
+        if (obj[id] && obj[id].cfg) {
+          return obj[id];
+        }
+        if (!obj.cfg) {
+          return null;
+        }
+        a = [obj];
+        while (a.length) {
+          b = a.pop();
+          for (k in b) if (own$.call(b, k)) {
+            v = b[k];
+            if (k !== 'cfg' && v && v.cfg) {
+              if (v[id] && v[id].cfg) {
+                return v[id];
+              }
+              a.push(v);
+            }
+          }
+        }
+        return null;
+      }
+    }),
     init: function(id, parent, level, namespace, templ){
       var a, b, c, own$ = {}.hasOwnProperty;
       id == null && (id = '');
@@ -118,132 +439,6 @@ $('document').ready(function(){
       }
       return true;
     },
-    color: w3ui.PROXY({
-      source: null,
-      Hue: '',
-      Saturation: '',
-      colors: null,
-      gradient: {},
-      init: function(){
-        var a, i$, b, c;
-        a = this.source
-          ? this.source
-          : $("html");
-        if (!a || a.length === 0) {
-          return false;
-        }
-        this.source = a;
-        a = window.getComputedStyle(a[0]);
-        this.Hue = a.getPropertyValue('--col-h').trim();
-        this.Saturation = a.getPropertyValue('--col-s').trim();
-        this.colors = {};
-        for (i$ = 0; i$ <= 99; ++i$) {
-          b = i$;
-          c = '--col' + b;
-          if (a.getPropertyValue(c)) {
-            this.colors[c] = b;
-          }
-          c = c + 'a';
-          if (a.getPropertyValue(c)) {
-            this.colors[c] = -b;
-          }
-        }
-        for (i$ = 0; i$ <= 99; ++i$) {
-          b = i$;
-          if (!(c = a.getPropertyValue('--gr' + b))) {
-            break;
-          }
-          this.gradient['gr' + b] = c.trim();
-        }
-        return this.select(this.Hue);
-      },
-      select: function(Hue, Saturation){
-        var a, b, ref$, c, d, e;
-        Saturation == null && (Saturation = this.Saturation);
-        if (!Hue || !Saturation || !this.source) {
-          return false;
-        }
-        this.Hue = Hue;
-        this.Saturation = Saturation;
-        a = window.getComputedStyle(this.source[0]);
-        for (b in ref$ = this.colors) {
-          c = ref$[b];
-          if (d = a.getPropertyValue(b)) {
-            if (c >= 0) {
-              e = 'hsla(' + Hue + ', ' + Saturation + '%, ' + c + '%, 1)';
-              if (e !== d.trim()) {
-                this.source[0].style.setProperty(b, e);
-              }
-            } else {
-              c = -c;
-              e = 'hsla(' + Hue + ', ' + Saturation + '%, ' + c + '%, 0)';
-              if (e !== d.trim()) {
-                this.source[0].style.setProperty(b, e);
-              }
-            }
-          }
-        }
-        for (b in this.gradient) {
-          this.source[0].style.setProperty('--' + b, this[b]);
-        }
-        return true;
-      }
-    }, {
-      get: function(obj, p, prx){
-        var a;
-        if (typeof p !== 'string') {
-          a = null;
-        } else if (obj[p]) {
-          a = obj[p];
-        } else if (parseInt(p)) {
-          a = 'hsla(' + obj.Hue + ',' + obj.Saturation + '%,' + p + '%,1)';
-        } else if ('a' === p.charAt(0)) {
-          p = p.slice(1);
-          a = 'hsla(' + obj.Hue + ',' + obj.Saturation + '%,' + p + '%,0)';
-        } else if (obj.gradient[p]) {
-          a = obj.gradient[p];
-          a = a.replace(/(--col(\d{2})([a]?))/g, function(all, p1, p2, p3, pos, str){
-            var a;
-            a = p3 ? p3 + p2 : p2;
-            if (!(a = prx[a])) {
-              a = 'transparent';
-            }
-            return a;
-          });
-        } else {
-          a = '';
-        }
-        return a;
-      }
-    }),
-    svg: w3ui.PROXY({
-      data: null,
-      init: function(){
-        var a, i$, to$, b;
-        this.data = {};
-        if (!(a = $('#t-svg')) || a.length === 0) {
-          return false;
-        }
-        a = $(a[0].content).find('div');
-        for (i$ = 0, to$ = a.length - 1; i$ <= to$; ++i$) {
-          b = i$;
-          this.data[a[b].id] = a[b].innerHTML;
-        }
-        return true;
-      }
-    }, {
-      get: function(obj, p, prx){
-        if (typeof p === 'string') {
-          if (obj[p]) {
-            return obj[p];
-          }
-          if (obj.data[p]) {
-            return obj.data[p];
-          }
-        }
-        return '';
-      }
-    }),
     walk: function(id, direction, func, onComplete){
       var a, walk, b, i$, len$;
       if (!(a = this.skel[id])) {
@@ -391,329 +586,135 @@ $('document').ready(function(){
           ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1], c = ref1$[2];
           b.off(a);
         }
+        delete this.detach;
         return true;
       };
       return true;
     },
-    skel: w3ui.PROXY({
-      cfg: {
-        id: 'skel',
-        node: w3ui('#skel'),
-        root: w3ui('html'),
-        parent: null,
-        level: 0,
-        nav: null,
-        namespace: '',
-        render: true
+    color: w3ui.PROXY({
+      source: null,
+      Hue: '',
+      Saturation: '',
+      colors: null,
+      gradient: {},
+      init: function(){
+        var a, i$, b, c;
+        a = this.source
+          ? this.source
+          : $("html");
+        if (!a || a.length === 0) {
+          return false;
+        }
+        this.source = a;
+        a = window.getComputedStyle(a[0]);
+        this.Hue = a.getPropertyValue('--col-h').trim();
+        this.Saturation = a.getPropertyValue('--col-s').trim();
+        this.colors = {};
+        for (i$ = 0; i$ <= 99; ++i$) {
+          b = i$;
+          c = '--col' + b;
+          if (a.getPropertyValue(c)) {
+            this.colors[c] = b;
+          }
+          c = c + 'a';
+          if (a.getPropertyValue(c)) {
+            this.colors[c] = -b;
+          }
+        }
+        for (i$ = 0; i$ <= 99; ++i$) {
+          b = i$;
+          if (!(c = a.getPropertyValue('--gr' + b))) {
+            break;
+          }
+          this.gradient['gr' + b] = c.trim();
+        }
+        return this.select(this.Hue);
       },
-      wa: {
-        cfg: {
-          fontSizeMax: 0,
-          init: function(){
-            var a, ref$, b, own$ = {}.hasOwnProperty;
-            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
-              b = ref$[a];
-              b.node = w3ui('#header .' + a + ' .button');
-            }
-            this.header.title.node = w3ui('#header .title');
-            a = parseInt(this.cfg.node.style.fSizeMax);
-            if (!isNaN(a)) {
-              this.cfg.fontSizeMax = a;
-            }
-            return true;
-          },
-          resize: function(){
-            var a, b, ref$, own$ = {}.hasOwnProperty;
-            a = this.cfg.fontSizeMax;
-            b = this.header.title;
-            b = b.node.textMeasureFont(b.text);
-            if (b > a) {
-              b = a;
-            }
-            this.cfg.node.style.fSize0 = b + 'px';
-            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
-              b = ref$[a];
-              if (!b.list) {
-                b.index = -1;
-                continue;
+      select: function(Hue, Saturation){
+        var a, b, ref$, c, d, e;
+        Saturation == null && (Saturation = this.Saturation);
+        if (!Hue || !Saturation || !this.source) {
+          return false;
+        }
+        this.Hue = Hue;
+        this.Saturation = Saturation;
+        a = window.getComputedStyle(this.source[0]);
+        for (b in ref$ = this.colors) {
+          c = ref$[b];
+          if (d = a.getPropertyValue(b)) {
+            if (c >= 0) {
+              e = 'hsla(' + Hue + ', ' + Saturation + '%, ' + c + '%, 1)';
+              if (e !== d.trim()) {
+                this.source[0].style.setProperty(b, e);
               }
-              b.index = b.list.reduce(fn$, -1);
-            }
-            return true;
-            function fn$(a, text, index){
-              var c;
-              c = b.node.textMeasure(text);
-              if (c.width < b.node.box.innerWidth && (a < 0 || b.list[a].length < text.length)) {
-                return index;
+            } else {
+              c = -c;
+              e = 'hsla(' + Hue + ', ' + Saturation + '%, ' + c + '%, 0)';
+              if (e !== d.trim()) {
+                this.source[0].style.setProperty(b, e);
               }
-              return a;
-            }
-          },
-          refresh: function(){
-            var a, ref$, b, own$ = {}.hasOwnProperty;
-            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
-              b = ref$[a];
-              if (!b.list) {
-                b.node.addClass('disabled');
-                b.node.html('');
-                continue;
-              }
-              b.node.removeClass('disabled');
-              b.node.html(b.index < 0
-                ? b.icon
-                : b.list[b.index]);
-            }
-            return true;
-          },
-          show: [
-            {
-              duration: 0,
-              tween: {
-                opacity: 0,
-                visibility: 'visible'
-              }
-            }, {
-              duration: 0.4,
-              tween: {
-                opacity: 1,
-                ease: Power1.easeOut
-              }
-            }
-          ],
-          attach: {
-            click: [['#header .b1 .button', 'mode'], ['#header .b2 .button', 'config']]
-          }
-        },
-        view: {
-          cfg: {
-            render: true,
-            init: function(){
-              var p, a, b, c;
-              p = this.cfg.parent;
-              a = this.cfg.nav.id;
-              b = p.header.buttons;
-              c = a ? this[a] : null;
-              b.b1.list = a !== 'menu' ? this.menu.title : null;
-              b.b2.list = c && c.config ? this.config.title : null;
-              b = p.header;
-              b.title.text = c && c.title ? c.title[0] : '';
-              return true;
-            }
-          },
-          menu: {
-            cfg: {
-              render: true,
-              show: [
-                {
-                  duration: 0,
-                  tween: {
-                    visibility: 'visible',
-                    scale: 0
-                  }
-                }, {
-                  duration: 0.6,
-                  tween: {
-                    scale: 1,
-                    ease: Back.easeOut
-                  }
-                }
-              ],
-              hide: [{
-                duration: 0.8,
-                tween: {
-                  scale: 0,
-                  ease: Back.easeIn
-                }
-              }],
-              attach: {
-                click: [['.button', 'nav']]
-              }
-            },
-            title: ['Главное меню', 'Меню'],
-            current: function(){
-              var a;
-              a = this.cfg.nav.current ? this.cfg.nav.current : 0;
-              return this.data[a].list;
-            },
-            data: [
-              {
-                id: 'card',
-                name: 'Картотека',
-                list: [
-                  {
-                    id: 'address',
-                    name: 'Адреса'
-                  }, {
-                    id: 'counterparty',
-                    name: 'Контрагенты'
-                  }
-                ]
-              }, {
-                id: 'income',
-                name: 'Входящие',
-                list: [
-                  {
-                    id: 'accrual',
-                    name: 'Начисления'
-                  }, {
-                    id: 'payment',
-                    name: 'Оплата'
-                  }
-                ]
-              }, {
-                id: 'outcome',
-                name: 'Исходящие',
-                list: [
-                  {
-                    id: 'calc',
-                    name: 'Расчеты'
-                  }, {
-                    id: 'document',
-                    name: 'Документы'
-                  }
-                ]
-              }
-            ]
-          },
-          address: {
-            cfg: {
-              refresh: function(){
-                return true;
-              }
-            },
-            title: ['Картотека адресов', 'Адрес'],
-            tabs: [
-              {
-                id: 'a0',
-                name: 'квартира'
-              }, {
-                id: 'a1',
-                name: 'дом'
-              }, {
-                id: 'a2',
-                name: 'улица'
-              }, {
-                id: 'a3',
-                name: 'район'
-              }, {
-                id: 'a4',
-                name: 'город'
-              }
-            ]
-          },
-          config: {
-            title: ['Настройки', 'Настр']
-          }
-        },
-        header: {
-          cfg: {
-            refresh: function(){
-              this.title.node.html(this.title.text);
-              return true;
-            }
-          },
-          title: {
-            node: null,
-            text: ''
-          },
-          buttons: {
-            b1: {
-              node: null,
-              icon: '',
-              index: -1,
-              list: null
-            },
-            b2: {
-              node: null,
-              icon: '',
-              index: -1,
-              list: null
-            }
-          }
-        },
-        console: {
-          cfg: {
-            render: true,
-            attach: true,
-            show: [
-              {
-                duration: 0,
-                tween: {
-                  visibility: 'visible'
-                }
-              }, {
-                duration: 0.4,
-                tween: {
-                  className: 'menu',
-                  ease: Power3.easeOut
-                }
-              }
-            ],
-            hide: [{
-              duration: 0.4,
-              tween: {
-                className: '',
-                ease: Power3.easeIn
-              }
-            }]
-          },
-          menu: {
-            attach: {
-              mouseover: [['.carousel .left .button', 'left'], ['.carousel .right .button', 'right']],
-              mouseout: [['.carousel .left .button', 'left'], ['.carousel .right .button', 'right']],
-              click: [['.carousel .left .button', 'left'], ['.carousel .right .button', 'right']]
-            },
-            render: function(){
-              var a, b, c, d;
-              a = this.data;
-              b = this.cfg.nav.current ? this.cfg.nav.current : 0;
-              c = a.length - 1;
-              d = a.map(function(item){
-                return {
-                  id: item.id,
-                  name: item.name
-                };
-              });
-              return {
-                list: d,
-                current: a[b].name,
-                prev: b
-                  ? a[b - 1].name
-                  : a[a.length - 1].name,
-                next: b === c
-                  ? a[0].name
-                  : a[b + 1].name
-              };
             }
           }
         }
+        for (b in this.gradient) {
+          this.source[0].style.setProperty('--' + b, this[b]);
+        }
+        return true;
       }
     }, {
-      get: function(obj, id, prx){
-        var a, b, k, v, own$ = {}.hasOwnProperty;
-        if (!id) {
-          return obj;
-        }
-        if (obj[id] && obj[id].cfg) {
-          return obj[id];
-        }
-        if (!obj.cfg) {
-          return null;
-        }
-        a = [obj];
-        while (a.length) {
-          b = a.pop();
-          for (k in b) if (own$.call(b, k)) {
-            v = b[k];
-            if (k !== 'cfg' && v && v.cfg) {
-              if (v[id] && v[id].cfg) {
-                return v[id];
-              }
-              a.push(v);
+      get: function(obj, p, prx){
+        var a;
+        if (typeof p !== 'string') {
+          a = null;
+        } else if (obj[p]) {
+          a = obj[p];
+        } else if (parseInt(p)) {
+          a = 'hsla(' + obj.Hue + ',' + obj.Saturation + '%,' + p + '%,1)';
+        } else if ('a' === p.charAt(0)) {
+          p = p.slice(1);
+          a = 'hsla(' + obj.Hue + ',' + obj.Saturation + '%,' + p + '%,0)';
+        } else if (obj.gradient[p]) {
+          a = obj.gradient[p];
+          a = a.replace(/(--col(\d{2})([a]?))/g, function(all, p1, p2, p3, pos, str){
+            var a;
+            a = p3 ? p3 + p2 : p2;
+            if (!(a = prx[a])) {
+              a = 'transparent';
             }
+            return a;
+          });
+        } else {
+          a = '';
+        }
+        return a;
+      }
+    }),
+    svg: w3ui.PROXY({
+      data: null,
+      init: function(){
+        var a, i$, to$, b;
+        this.data = {};
+        if (!(a = $('#t-svg')) || a.length === 0) {
+          return false;
+        }
+        a = $(a[0].content).find('div');
+        for (i$ = 0, to$ = a.length - 1; i$ <= to$; ++i$) {
+          b = i$;
+          this.data[a[b].id] = a[b].innerHTML;
+        }
+        return true;
+      }
+    }, {
+      get: function(obj, p, prx){
+        if (typeof p === 'string') {
+          if (obj[p]) {
+            return obj[p];
+          }
+          if (obj.data[p]) {
+            return obj.data[p];
           }
         }
-        return null;
+        return '';
       }
     })
   };
@@ -731,6 +732,12 @@ $('document').ready(function(){
     },
     update: function(id){
       id == null && (id = '');
+      V.walk(id, true, function(){
+        if (this.cfg.node && this.cfg.attach && this.cfg.attach.data) {
+          delete this.cfg.attach.data;
+        }
+        return true;
+      });
       return ['resize', 'refresh'].every(function(f){
         return V.walk(id, true, f);
       });
@@ -862,7 +869,7 @@ $('document').ready(function(){
       this.update();
     },
     event: function(event){
-      var me, a, data, duration, b, c;
+      var me, a, data, duration, b, c, d;
       if (!this.cfg) {
         return false;
       }
@@ -882,21 +889,35 @@ $('document').ready(function(){
       case 'console':
         switch (this.cfg.nav.id) {
         case 'menu':
+          duration = 0.4;
+          if (!data.list) {
+            data.list = this.cfg.node.find('.data .item');
+          }
+          if (!data.node) {
+            data.node = this.cfg.node.find('.carousel');
+          }
           if (!data.hover) {
-            duration = 0.4;
-            a = this.cfg.node.find('.carousel .item');
-            b = this.cfg.node.find('.carousel .button');
+            a = data.node.find('.item');
+            b = data.node.find('.button');
             c = [0, 2].map(function(index){
-              var c;
+              var c, d;
               c = new TimelineLite({
-                paused: true
+                paused: true,
+                data: a.eq(index)
               });
-              c.to([a[index], b[index], a[1]], duration, {
-                className: '+=hover'
+              c.to([a[index], b[index]], duration, {
+                className: '+=active'
               }, 0);
-              c.to(b[1], duration, {
-                className: '+=hover' + index
-              }, 0);
+              d = {
+                className: '-=active'
+              };
+              if (index === 0) {
+                d.borderLeft = 0;
+              }
+              if (index === 2) {
+                d.borderRight = 0;
+              }
+              c.to([a[1], b[1]], duration, d, 0);
               return c;
             });
             data.hover = c;
@@ -911,7 +932,44 @@ $('document').ready(function(){
             data.hover[a].reverse();
             break;
           case 'click':
-            true;
+            this.cfg.detach();
+            a = M.nav[this.cfg.level + 1].current;
+            if (!a) {
+              a = 0;
+            }
+            b = data.list.length;
+            c = [['item', 'button left'], ['item active', 'button center active'], ['item', 'button right']];
+            if (event.data === 'left') {
+              b = a > 1
+                ? a - 2
+                : a - 2 + b;
+              a = data.list.eq(b).clone();
+              data.node.prepend(a);
+              c.push(['item hidden', 'button hidden']);
+            } else {
+              debugger;
+              b = a < b ? a + 2 : 2;
+              true;
+            }
+            a = data.node.find('.item');
+            b = data.node.find('.button');
+            d = new TimelineMax({
+              paused: true,
+              onComplete: function(){
+                var d;
+                d = event.data === 'left' ? 3 : 0;
+                a.eq(d).remove();
+              }
+            });
+            c.forEach(function(item, index){
+              d.to(a[index], duration, {
+                className: item[0]
+              }, 0);
+              d.to(b[index], duration, {
+                className: item[1]
+              }, 0);
+            });
+            d.play();
           }
         }
       }

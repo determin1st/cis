@@ -74,300 +74,7 @@ $ \document .ready ->
         # }}}
     }
     # }}}
-    V = # view {{{
-        init: (id = '', parent = null, level = 0, namespace = '', templ) -> # {{{
-            # get node
-            if not (a = @skel[id]) or not b = a.cfg
-                console.log 'getting of "'+id+'" failed'
-                return false
-            # prepare data
-            id = b.id if not id
-            namespace += id.charAt 0 .toUpperCase! + id.slice 1
-            if not templ
-                templ = $ 'template'
-                templ = $ templ.0.content
-            # initialize
-            b.id        = id
-            b.parent    = parent
-            b.root      = parent.cfg.root if parent
-            b.level     = level
-            b.nav       = M.nav[level]
-            b.namespace = namespace
-            b.render    = w3ui.PARTIAL a, @render if b.render
-            b.attach    = w3ui.PARTIAL a, @attach, b.attach if b.attach
-            b.template  = templ
-            # recurse to children
-            for own b,c of a when b != 'cfg' and c and c.cfg
-                return false if not @init b, a, level + 1, namespace, templ
-            # complete
-            true
-        # }}}
-        color: w3ui.PROXY { # {{{
-            ###
-            source: null
-            Hue: ''
-            Saturation: ''
-            colors: null
-            gradient: {}
-            ###
-            init: -> # {{{
-                # get source
-                a = if @source
-                    then @source
-                    else $ "html"
-                # check
-                return false if not a or a.length == 0
-                # save
-                @source = a
-                # get styles
-                a = window.getComputedStyle a.0
-                # get color parameters
-                @Hue = a.getPropertyValue '--col-h' .trim!
-                @Saturation = a.getPropertyValue '--col-s' .trim!
-                # determine colors
-                @colors = {}
-                for b from 0 to 99
-                    # opaque
-                    c = '--col'+b
-                    @colors[c] = b if a.getPropertyValue c
-                    # transparent
-                    c = c+'a'
-                    @colors[c] = -b if a.getPropertyValue c
-                # determine gradients
-                for b from 0 to 99
-                    # continual numeration
-                    break if not c = a.getPropertyValue '--gr'+b
-                    @gradient['gr'+b] = c.trim!
-                # select color
-                @select @Hue
-            # }}}
-            select: (Hue, Saturation = @Saturation) -> # {{{
-                # check
-                if not Hue or not Saturation or not @source
-                    return false
-                # change
-                @Hue = Hue
-                @Saturation = Saturation
-                # get style
-                a = window.getComputedStyle @source.0
-                # set style
-                # install colors
-                for b,c of @colors when d = a.getPropertyValue b
-                    if c >= 0
-                        # opaque
-                        e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 1)'
-                        @source.0.style.setProperty b, e if e != d.trim!
-                    else
-                        # transparent
-                        c = -c
-                        e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 0)'
-                        @source.0.style.setProperty b, e if e != d.trim!
-                # install gradients
-                for b of @gradient
-                    @source.0.style.setProperty '--'+b, @[b]
-                # ok
-                true
-            # }}}
-        }, {
-            get: (obj, p, prx) -> # color by Hue {{{
-                if typeof p != 'string'
-                    # incorrect selector
-                    a = null
-                else if obj[p]
-                    # determined, return as is
-                    a = obj[p]
-                else if parseInt p
-                    # opaque
-                    a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,1)'
-                else if 'a' == p.charAt 0
-                    # transparent
-                    p = p.slice 1
-                    a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,0)'
-                else if obj.gradient[p]
-                    # gradient
-                    a = obj.gradient[p]
-                    # determine its color
-                    a = a.replace /(--col(\d{2})([a]?))/g, (all, p1, p2, p3, pos, str) ->
-                        # prepare
-                        a = if p3 then p3+p2 else p2
-                        # recurse
-                        a = 'transparent' if not a = prx[a]
-                        # done
-                        return a
-                else
-                    # unknown
-                    a = ''
-                # finish
-                return a
-            # }}}
-        }
-        # }}}
-        svg: w3ui.PROXY { # {{{
-            data: null
-            ###
-            init: -> # {{{
-                # prepare
-                @data = {}
-                # get template
-                if not (a = $ '#t-svg') or a.length == 0
-                    return false
-                # get nodes
-                a = $ a.0.content .find 'div'
-                # get contents
-                for b from 0 to a.length - 1
-                    # store
-                    @data[a[b].id] = a[b].innerHTML
-                # done
-                true
-            # }}}
-        }, {
-            get: (obj, p, prx) -> # {{{
-                # check
-                if typeof p == 'string'
-                    return obj[p] if obj[p]
-                    return obj.data[p] if obj.data[p]
-                # nothing
-                return ''
-            # }}}
-        }
-        # }}}
-        walk: (id, direction, func, onComplete) -> # {{{
-            # prepare
-            # get start node
-            return false if not a = @skel[id]
-            # create walk array
-            walk = []
-            b = [a]
-            while b.length
-                # add step
-                walk.push b
-                # collect children from last step
-                b = b.map (node) ->
-                    # collect
-                    c = []
-                    for a,b of node when a != 'cfg' and b and b.cfg
-                        c.push b
-                    # done
-                    c
-                # merge
-                b = b.reduce (a, b) -> return a ++ b
-                , []
-            # now we have two-dimensional walk array,
-            # lets flatten it
-            walk = walk.reduce (a, b) -> a ++ b
-            , []
-            # check direction
-            walk.reverse! if not direction
-            # walk
-            # external function
-            if typeof func != 'string'
-                return walk.every (node) -> func.apply node
-            # walk
-            # internal functions
-            if onComplete
-                # create thread
-                a = []
-                for b in walk when b.cfg[func]
-                    # create chain unit
-                    a.push let node = b
-                        -> node.cfg[func].apply node
-                    # waiter
-                    a.push let node = b
-                        -> !node.cfg[func].busy
-                # append final procedure
-                a.push onComplete
-                # execute
-                w3ui.THREAD a
-                # done
-                return true
-            # execute
-            walk.every (node) -> if node.cfg[func]
-                then node.cfg[func].apply node
-                else true
-        # }}}
-        render: (id = @cfg.nav.id) -> # {{{
-            # initialize
-            if not @cfg.node
-                @cfg.node = w3ui '#'+@cfg.id
-            # check
-            return false if not @cfg.node
-            return true  if not id
-            # determine node type and select data
-            a = @cfg.parent
-            if not a or a.cfg.nav.id == @cfg.id
-                # primary
-                b = id
-                c = @[b]
-            else
-                # adjacent
-                b = ''
-                # get context of the primary node
-                return true if not a = a[a.cfg.nav.id][id]
-                # generate data
-                c = @[id].render.apply a
-            # determine template id
-            a = @
-            while a.cfg.parent and a.cfg.level
-                id = a.cfg.id + '-' + id
-                a  = a.cfg.parent
-            # select template
-            a = @cfg.template.find '#t-'+id
-            if not a or not a.length
-                # no template
-                return true
-            a = a.0.innerHTML
-            # construct HTML
-            a = Mustache.render a, c
-            # inject
-            @cfg.node.html a
-            # initialize child
-            c.cfg.node = w3ui '#'+b if b
-            # done
-            true
-        # }}}
-        attach: (events) -> # {{{
-            # check
-            return true if not @cfg.node
-            if events == true
-                # adjacent event source
-                # extract
-                if not (a = @cfg.nav.id) or not (b = @[a])
-                    return true
-                # get events
-                events = b.attach
-            # assemble events
-            e = []
-            for own a,b of events
-                # event name
-                a = a + '.' + @cfg.namespace
-                # event targets
-                for d in b
-                    # get node and data
-                    c = $ '#'+@cfg.id+' '+d.0
-                    d = d.1
-                    # check
-                    continue if not c or not c.length
-                    # add
-                    e.push [a, c, d]
-            # check
-            return true if not e.length
-            # define handler
-            # bind it to current node
-            d = w3ui.PARTIAL @, P.event
-            # attach
-            for [a, b, c] in e
-                b.on a, null, c, d
-            # define detach
-            @cfg.detach = ->
-                # detach
-                for [a, b, c] in e
-                    b.off a
-                # done
-                true
-            # done
-            true
-        # }}}
-        ###
+    V = # {{{
         skel: w3ui.PROXY { # interface skeleton {{{
             cfg: # {{{
                 # common props
@@ -511,7 +218,7 @@ $ \document .ready ->
                             # }}}
                             hide: # {{{
                                 {
-                                    duration: 0.8
+                                    duration: 0.6
                                     tween:
                                         scale: 0
                                         ease: Back.easeIn
@@ -662,14 +369,14 @@ $ \document .ready ->
                     menu:
                         attach:
                             mouseover:
-                                ['.carousel .left .button' 'left']
-                                ['.carousel .right .button' 'right']
+                                ['.carousel .button.left'  'left']
+                                ['.carousel .button.right' 'right']
                             mouseout:
-                                ['.carousel .left .button' 'left']
-                                ['.carousel .right .button' 'right']
+                                ['.carousel .button.left'  'left']
+                                ['.carousel .button.right' 'right']
                             click:
-                                ['.carousel .left .button' 'left']
-                                ['.carousel .right .button' 'right']
+                                ['.carousel .button.left'  'left']
+                                ['.carousel .button.right' 'right']
                         render: ->
                             # prepare data
                             a = @data
@@ -719,8 +426,302 @@ $ \document .ready ->
             # }}}
         }
         # }}}
+        ###
+        init: (id = '', parent = null, level = 0, namespace = '', templ) -> # {{{
+            # get node
+            if not (a = @skel[id]) or not b = a.cfg
+                console.log 'getting of "'+id+'" failed'
+                return false
+            # prepare data
+            id = b.id if not id
+            namespace += id.charAt 0 .toUpperCase! + id.slice 1
+            if not templ
+                templ = $ 'template'
+                templ = $ templ.0.content
+            # initialize
+            b.id        = id
+            b.parent    = parent
+            b.root      = parent.cfg.root if parent
+            b.level     = level
+            b.nav       = M.nav[level]
+            b.namespace = namespace
+            b.render    = w3ui.PARTIAL a, @render if b.render
+            b.attach    = w3ui.PARTIAL a, @attach, b.attach if b.attach
+            b.template  = templ
+            # recurse to children
+            for own b,c of a when b != 'cfg' and c and c.cfg
+                return false if not @init b, a, level + 1, namespace, templ
+            # complete
+            true
+        # }}}
+        walk: (id, direction, func, onComplete) -> # {{{
+            # prepare
+            # get start node
+            return false if not a = @skel[id]
+            # create walk array
+            walk = []
+            b = [a]
+            while b.length
+                # add step
+                walk.push b
+                # collect children from last step
+                b = b.map (node) ->
+                    # collect
+                    c = []
+                    for a,b of node when a != 'cfg' and b and b.cfg
+                        c.push b
+                    # done
+                    c
+                # merge
+                b = b.reduce (a, b) -> return a ++ b
+                , []
+            # now we have two-dimensional walk array,
+            # lets flatten it
+            walk = walk.reduce (a, b) -> a ++ b
+            , []
+            # check direction
+            walk.reverse! if not direction
+            # walk
+            # external function
+            if typeof func != 'string'
+                return walk.every (node) -> func.apply node
+            # walk
+            # internal functions
+            if onComplete
+                # create thread
+                a = []
+                for b in walk when b.cfg[func]
+                    # create chain unit
+                    a.push let node = b
+                        -> node.cfg[func].apply node
+                    # waiter
+                    a.push let node = b
+                        -> !node.cfg[func].busy
+                # append final procedure
+                a.push onComplete
+                # execute
+                w3ui.THREAD a
+                # done
+                return true
+            # execute
+            walk.every (node) -> if node.cfg[func]
+                then node.cfg[func].apply node
+                else true
+        # }}}
+        render: (id = @cfg.nav.id) -> # {{{
+            # initialize
+            if not @cfg.node
+                @cfg.node = w3ui '#'+@cfg.id
+            # check
+            return false if not @cfg.node
+            return true  if not id
+            # determine node type and select data
+            a = @cfg.parent
+            if not a or a.cfg.nav.id == @cfg.id
+                # primary
+                b = id
+                c = @[b]
+            else
+                # adjacent
+                b = ''
+                # get context of the primary node
+                return true if not a = a[a.cfg.nav.id][id]
+                # generate data
+                c = @[id].render.apply a
+            # determine template id
+            a = @
+            while a.cfg.parent and a.cfg.level
+                id = a.cfg.id + '-' + id
+                a  = a.cfg.parent
+            # select template
+            a = @cfg.template.find '#t-'+id
+            if not a or not a.length
+                # no template
+                return true
+            a = a.0.innerHTML
+            # construct HTML
+            a = Mustache.render a, c
+            # inject
+            @cfg.node.html a
+            # initialize child
+            c.cfg.node = w3ui '#'+b if b
+            # done
+            true
+        # }}}
+        attach: (events) -> # {{{
+            # check
+            return true if not @cfg.node
+            if events == true
+                # adjacent event source
+                # extract
+                if not (a = @cfg.nav.id) or not (b = @[a])
+                    return true
+                # get events
+                events = b.attach
+            # assemble events
+            e = []
+            for own a,b of events
+                # event name
+                a = a + '.' + @cfg.namespace
+                # event targets
+                for d in b
+                    # get node and data
+                    c = $ '#'+@cfg.id+' '+d.0
+                    d = d.1
+                    # check
+                    continue if not c or not c.length
+                    # add
+                    e.push [a, c, d]
+            # check
+            return true if not e.length
+            # define handler
+            # bind it to current node
+            d = w3ui.PARTIAL @, P.event
+            # attach
+            for [a, b, c] in e
+                b.on a, null, c, d
+            # define detach
+            @cfg.detach = ->
+                # detach
+                for [a, b, c] in e
+                    b.off a
+                # done
+                delete @detach
+                true
+            # done
+            true
+        # }}}
+        color: w3ui.PROXY { # {{{
+            ###
+            source: null
+            Hue: ''
+            Saturation: ''
+            colors: null
+            gradient: {}
+            ###
+            init: -> # {{{
+                # get source
+                a = if @source
+                    then @source
+                    else $ "html"
+                # check
+                return false if not a or a.length == 0
+                # save
+                @source = a
+                # get styles
+                a = window.getComputedStyle a.0
+                # get color parameters
+                @Hue = a.getPropertyValue '--col-h' .trim!
+                @Saturation = a.getPropertyValue '--col-s' .trim!
+                # determine colors
+                @colors = {}
+                for b from 0 to 99
+                    # opaque
+                    c = '--col'+b
+                    @colors[c] = b if a.getPropertyValue c
+                    # transparent
+                    c = c+'a'
+                    @colors[c] = -b if a.getPropertyValue c
+                # determine gradients
+                for b from 0 to 99
+                    # continual numeration
+                    break if not c = a.getPropertyValue '--gr'+b
+                    @gradient['gr'+b] = c.trim!
+                # select color
+                @select @Hue
+            # }}}
+            select: (Hue, Saturation = @Saturation) -> # {{{
+                # check
+                if not Hue or not Saturation or not @source
+                    return false
+                # change
+                @Hue = Hue
+                @Saturation = Saturation
+                # get style
+                a = window.getComputedStyle @source.0
+                # set style
+                # install colors
+                for b,c of @colors when d = a.getPropertyValue b
+                    if c >= 0
+                        # opaque
+                        e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 1)'
+                        @source.0.style.setProperty b, e if e != d.trim!
+                    else
+                        # transparent
+                        c = -c
+                        e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 0)'
+                        @source.0.style.setProperty b, e if e != d.trim!
+                # install gradients
+                for b of @gradient
+                    @source.0.style.setProperty '--'+b, @[b]
+                # ok
+                true
+            # }}}
+        }, {
+            get: (obj, p, prx) -> # color by Hue {{{
+                if typeof p != 'string'
+                    # incorrect selector
+                    a = null
+                else if obj[p]
+                    # determined, return as is
+                    a = obj[p]
+                else if parseInt p
+                    # opaque
+                    a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,1)'
+                else if 'a' == p.charAt 0
+                    # transparent
+                    p = p.slice 1
+                    a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,0)'
+                else if obj.gradient[p]
+                    # gradient
+                    a = obj.gradient[p]
+                    # determine its color
+                    a = a.replace /(--col(\d{2})([a]?))/g, (all, p1, p2, p3, pos, str) ->
+                        # prepare
+                        a = if p3 then p3+p2 else p2
+                        # recurse
+                        a = 'transparent' if not a = prx[a]
+                        # done
+                        return a
+                else
+                    # unknown
+                    a = ''
+                # finish
+                return a
+            # }}}
+        }
+        # }}}
+        svg: w3ui.PROXY { # {{{
+            data: null
+            ###
+            init: -> # {{{
+                # prepare
+                @data = {}
+                # get template
+                if not (a = $ '#t-svg') or a.length == 0
+                    return false
+                # get nodes
+                a = $ a.0.content .find 'div'
+                # get contents
+                for b from 0 to a.length - 1
+                    # store
+                    @data[a[b].id] = a[b].innerHTML
+                # done
+                true
+            # }}}
+        }, {
+            get: (obj, p, prx) -> # {{{
+                # check
+                if typeof p == 'string'
+                    return obj[p] if obj[p]
+                    return obj.data[p] if obj.data[p]
+                # nothing
+                return ''
+            # }}}
+        }
+        # }}}
     # }}}
-    P = # presenter {{{
+    P = # {{{
         init: -> # {{{
             # initialize
             if not M.init! or not V.init!
@@ -735,6 +736,12 @@ $ \document .ready ->
         # }}}
         ###
         update: (id = '') -> # {{{
+            # reset event data
+            V.walk id, true, ->
+                if @cfg.node and @cfg.attach and @cfg.attach.data
+                    delete @cfg.attach.data
+                true
+            # run procedures
             ['resize' 'refresh'].every (f) -> V.walk id, true, f
         # }}}
         construct: (id = '') !-> # {{{
@@ -895,26 +902,37 @@ $ \document .ready ->
                 switch @cfg.nav.id
                 | 'menu' =>
                     # {{{
-                    # initialize tweens
+                    # prepare
+                    duration = 0.4
+                    # initialize
                     # {{{
+                    # all items
+                    if not data.list
+                        data.list = @cfg.node.find '.data .item'
+                    if not data.node
+                        data.node = @cfg.node.find '.carousel'
+                    # tweens
                     if not data.hover
                         # prepare
-                        duration = 0.4
-                        a = @cfg.node.find '.carousel .item'
-                        b = @cfg.node.find '.carousel .button'
+                        a = data.node.find '.item'
+                        b = data.node.find '.button'
                         # create hover effects
                         # for left and right nodes
                         c = [0 2].map (index) ->
                             # create timeline
                             c = new TimelineLite {
                                 paused: true
+                                data: a.eq index
                             }
-                            c.to [a[index], b[index], a.1], duration, {
-                                className: '+=hover'
+                            c.to [a[index], b[index]], duration, {
+                                className: '+=active'
                             }, 0
-                            c.to b.1, duration, {
-                                className: '+=hover'+index
-                            }, 0
+                            d = {
+                                className: '-=active'
+                            }
+                            d.borderLeft  = 0 if index == 0
+                            d.borderRight = 0 if index == 2
+                            c.to [a.1, b.1], duration, d, 0
                             # done
                             c
                         # save
@@ -935,8 +953,61 @@ $ \document .ready ->
                             else 1
                         data.hover[a].reverse!
                     | 'click' =>
-                        # ..
-                        true
+                        # carousel slide
+                        # detach events
+                        @cfg.detach!
+                        # determine current
+                        a = M.nav[@cfg.level + 1].current
+                        a = 0 if not a
+                        b = data.list.length
+                        # define final state (classes for carousel elements)
+                        c =
+                            ['item' 'button left']
+                            ['item active' 'button center active']
+                            ['item' 'button right']
+                        # add node
+                        if event.data == 'left'
+                            # previous
+                            b = if a > 1
+                                then a - 2
+                                else a - 2 + b
+                            # add
+                            a = data.list.eq b .clone!
+                            data.node.prepend a
+                            c.push ['item hidden' 'button hidden']
+                        else
+                            # next TODO
+                            debugger
+                            b = if a < b
+                                then a + 2
+                                else 2
+                            true
+                        # get nodes
+                        a = data.node.find '.item'
+                        b = data.node.find '.button'
+                        # initialize carousel timeline
+                        d = new TimelineMax {
+                            paused: true
+                            onComplete: !->
+                                # determine removal index
+                                d = if event.data == 'left'
+                                    then 3
+                                    else 0
+                                # remove node from DOM
+                                a.eq d .remove!
+                        }
+                        # add tweens
+                        c.forEach (item, index) !->
+                            # container
+                            d.to a[index], duration, {
+                                className: item.0
+                            }, 0
+                            # button
+                            d.to b[index], duration, {
+                                className: item.1
+                            }, 0
+                        # launch
+                        d.play!
                     # }}}
             # done
             true
