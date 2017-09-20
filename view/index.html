@@ -29,22 +29,15 @@
       <!-- view {{{ -->
       <div id='t-wa-view-menu'>
         <div id='menu'>
-          <div class='separator'></div>
-          {{#current}}
-          <div class='button {{id}}'>{{name}}</div>
-          <div class='separator'></div>
-          {{/current}}
-        </div>
-        <div class='data' style='display:none;'>
-        {{#data}}
-        <div class='{{id}}'>
-          <div class='separator'></div>
-          {{#list}}
-          <div class='button {{id}}'>{{name}}</div>
-          <div class='separator'></div>
-          {{/list}}
-        </div>
-        {{/data}}
+          {{#data}}
+          <div class='box'>
+            <div class='separator'></div>
+            {{#list}}
+            <div class='button {{id}}'>{{name}}</div>
+            <div class='separator'></div>
+            {{/list}}
+          </div>
+          {{/data}}
         </div>
       </div>
       <div id='t-wa-view-address'>

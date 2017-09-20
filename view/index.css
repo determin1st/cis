@@ -254,22 +254,32 @@ body
 }
 /* }}} */
 /* menu {{{ */
-#view.menu
-{
-  flex: 8 8 80%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 2px;
+#view.menu {
+  background-color: var(--col30);
 }
-#menu
+#view.menu #menu {
+  background-color: var(--col95);
+}
+#menu .box
 {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }
-#menu > div
+#menu .box.active
+{
+  z-index: 2;
+  visibility: inherit;
+}
+#menu .box > div
 {
   width: 65%;
   max-width: 640px;

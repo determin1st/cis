@@ -178,11 +178,28 @@ $('document').ready(function(){
               b = p.header;
               b.title.text = c && c.title ? c.title[0] : '';
               return true;
+            },
+            finit: function(){
+              var a, b;
+              a = this.cfg.nav.id;
+              b = this.cfg.node;
+              if (!b.hasClass(a)) {
+                b.removeClass();
+                b.addClass(a);
+              }
+              return true;
             }
           },
           menu: {
             cfg: {
               render: true,
+              init: function(){
+                var a, b;
+                a = this.cfg.nav.current || 0;
+                b = this.cfg.node.find('.box');
+                b.eq(a).addClass('active');
+                return true;
+              },
               show: [
                 {
                   duration: 0,
@@ -210,11 +227,6 @@ $('document').ready(function(){
               }
             },
             title: ['Главное меню', 'Меню'],
-            current: function(){
-              var a;
-              a = this.cfg.nav.current ? this.cfg.nav.current : 0;
-              return this.data[a].list;
-            },
             data: [
               {
                 id: 'card',
@@ -315,6 +327,10 @@ $('document').ready(function(){
           cfg: {
             render: true,
             attach: true,
+            init: function(){
+              this.cfg.show[1].tween.className = this.cfg.nav.id;
+              return true;
+            },
             show: [
               {
                 duration: 0,
@@ -324,7 +340,7 @@ $('document').ready(function(){
               }, {
                 duration: 0.4,
                 tween: {
-                  className: 'menu',
+                  className: '',
                   ease: Power3.easeOut
                 }
               }
@@ -346,7 +362,7 @@ $('document').ready(function(){
             render: function(){
               var a, b, c, d;
               a = this.data;
-              b = this.cfg.nav.current ? this.cfg.nav.current : 0;
+              b = this.cfg.nav.current || 0;
               c = a.length - 1;
               d = a.map(function(item){
                 return {
@@ -849,6 +865,7 @@ $('document').ready(function(){
         }, function(){
           return !busy;
         }, function(){
+          V.walk(id, false, 'finit');
           if (!V.walk(id, true, 'attach')) {
             console.log('attach failed');
           }
@@ -869,32 +886,55 @@ $('document').ready(function(){
       this.update();
     },
     event: function(event){
-      var me, a, data, duration, b, c, d;
+      var me, cfg, nav, data, duration, direction, a, b, c, d;
       if (!this.cfg) {
         return false;
       }
-      me = this.cfg.attach;
-      if (!me.data) {
-        me.data = {};
+      /***
+      @keyframes rotateCubeLeftOut {
+          0% { }
+          50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out;  -webkit-transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);  transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); }
+          100% { opacity: .3; -webkit-transform: translateX(-100%) rotateY(-90deg); transform: translateX(-100%) rotateY(-90deg); }
       }
-      a = this.cfg.nav.id;
-      if (!me.data[a]) {
-        me.data[a] = {};
+      @keyframes rotateCubeLeftIn {
+          0% { opacity: .3; -webkit-transform: translateX(100%) rotateY(90deg); transform: translateX(100%) rotateY(90deg); }
+          50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out;  -webkit-transform: translateX(50%) translateZ(-200px) rotateY(45deg);  transform: translateX(50%) translateZ(-200px) rotateY(45deg); }
       }
-      data = me.data[a];
-      switch (this.cfg.id) {
+      @keyframes rotateCubeRightOut {
+          0% { }
+          50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out; -webkit-transform: translateX(50%) translateZ(-200px) rotateY(45deg); transform: translateX(50%) translateZ(-200px) rotateY(45deg); }
+          100% { opacity: .3; -webkit-transform: translateX(100%) rotateY(90deg); transform: translateX(100%) rotateY(90deg); }
+      }
+      @keyframes rotateCubeRightIn {
+          0% { opacity: .3; -webkit-transform: translateX(-100%) rotateY(-90deg); transform: translateX(-100%) rotateY(-90deg); }
+          50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out; -webkit-transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); }
+      }
+      /***/
+      me = this;
+      cfg = me.cfg;
+      nav = cfg.nav;
+      if (!cfg.attach.data) {
+        cfg.attach.data = {};
+      }
+      data = cfg.attach.data;
+      if (!data[nav.id]) {
+        data[nav.id] = {};
+      }
+      data = data[nav.id];
+      switch (cfg.id) {
       case 'menu':
         true;
         break;
       case 'console':
-        switch (this.cfg.nav.id) {
+        switch (nav.id) {
         case 'menu':
           duration = 0.4;
+          direction = event.data === 'left';
           if (!data.list) {
-            data.list = this.cfg.node.find('.data .item');
+            data.list = cfg.node.find('.data .item');
           }
           if (!data.node) {
-            data.node = this.cfg.node.find('.carousel');
+            data.node = cfg.node.find('.carousel');
           }
           if (!data.hover) {
             a = data.node.find('.item');
@@ -924,32 +964,41 @@ $('document').ready(function(){
           }
           switch (event.type) {
           case 'mouseover':
-            a = event.data === 'left' ? 0 : 1;
+            a = direction ? 0 : 1;
             data.hover[a].play();
             break;
           case 'mouseout':
-            a = event.data === 'left' ? 0 : 1;
+            a = direction ? 0 : 1;
             data.hover[a].reverse();
             break;
           case 'click':
-            this.cfg.detach();
-            a = M.nav[this.cfg.level + 1].current;
+            cfg.detach();
+            c = cfg.level + 1;
+            a = M.nav[c].current;
             if (!a) {
               a = 0;
             }
-            b = data.list.length;
+            b = data.list.length - 1;
+            if (direction) {
+              M.nav[c].current = a > 0 ? a - 1 : b;
+            } else {
+              M.nav[c].current = a < b ? a + 1 : 0;
+            }
             c = [['item', 'button left'], ['item active', 'button center active'], ['item', 'button right']];
-            if (event.data === 'left') {
+            if (direction) {
               b = a > 1
                 ? a - 2
-                : a - 2 + b;
+                : a - 1 + b;
               a = data.list.eq(b).clone();
               data.node.prepend(a);
               c.push(['item hidden', 'button hidden']);
             } else {
-              debugger;
-              b = a < b ? a + 2 : 2;
-              true;
+              b = a + 2 <= b
+                ? a + 2
+                : a + 1 - b;
+              a = data.list.eq(b).clone();
+              data.node.append(a);
+              c = [['item hidden', 'button hidden']].concat(c);
             }
             a = data.node.find('.item');
             b = data.node.find('.button');
@@ -957,8 +1006,12 @@ $('document').ready(function(){
               paused: true,
               onComplete: function(){
                 var d;
-                d = event.data === 'left' ? 3 : 0;
+                d = direction ? 3 : 0;
+                a.prop('style', '');
+                b.prop('style', '');
                 a.eq(d).remove();
+                delete data.hover;
+                cfg.attach();
               }
             });
             c.forEach(function(item, index){

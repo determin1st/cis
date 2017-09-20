@@ -170,11 +170,10 @@ $ \document .ready ->
                             ['#header .b2 .button' 'config']
                     # }}}
                 # }}}
-                # PRIMARY
                 view: # {{{
                     cfg: # {{{
                         render: true
-                        init: ->
+                        init: -> # {{{
                             # initialize header
                             p = @cfg.parent
                             a = @cfg.nav.id
@@ -197,11 +196,28 @@ $ \document .ready ->
                                 else ''
                             # done
                             true
+                        # }}}
+                        finit: -> # {{{
+                            # set style
+                            a = @cfg.nav.id
+                            b = @cfg.node
+                            if not b.hasClass a
+                                b.removeClass!
+                                b.addClass a
+                            # done
+                            true
+                        # }}}
                     # }}}
-                    # PRIMARY
                     menu: # {{{
                         cfg:
                             render: true
+                            init: -> # {{{
+                                # activate selected menu
+                                a = @cfg.nav.current or 0
+                                b = @cfg.node.find '.box'
+                                b.eq a .addClass 'active'
+                                true
+                            # }}}
                             show: # {{{
                                 {
                                     duration: 0
@@ -232,14 +248,6 @@ $ \document .ready ->
                         title:
                             'Главное меню'
                             'Меню'
-                        # selected menu
-                        current: ->
-                            # get current item number
-                            a = if @cfg.nav.current
-                                then @cfg.nav.current
-                                else 0
-                            # return data
-                            @data[a].list
                         # template data
                         data:
                             {
@@ -312,14 +320,12 @@ $ \document .ready ->
                             }
                         ]
                     # }}}
-                    # ADJACENT
                     config: # {{{
                         title:
                             'Настройки'
                             'Настр'
                     # }}}
                 # }}}
-                # ADJACENT
                 header: # {{{
                     cfg:
                         refresh: ->
@@ -344,6 +350,10 @@ $ \document .ready ->
                     cfg:
                         render: true
                         attach: true
+                        init: ->
+                            # modify show tween
+                            @cfg.show.1.tween.className = @cfg.nav.id
+                            true
                         show: # {{{
                             {
                                 duration: 0
@@ -353,7 +363,7 @@ $ \document .ready ->
                             {
                                 duration: 0.4
                                 tween:
-                                    className: 'menu'
+                                    className: ''
                                     ease: Power3.easeOut
                             }
                         # }}}
@@ -380,9 +390,7 @@ $ \document .ready ->
                         render: ->
                             # prepare data
                             a = @data
-                            b = if @cfg.nav.current
-                                then @cfg.nav.current
-                                else 0
+                            b = @cfg.nav.current or 0
                             c = a.length - 1
                             d = a.map (item) ->
                                 {
@@ -858,10 +866,12 @@ $ \document .ready ->
                     # wait
                     not busy
                 ->
+                    # finish
+                    V.walk id, false, 'finit'
                     # attach event handlers
                     if not V.walk id, true, 'attach'
                         console.log 'attach failed'
-                    # finish
+                    # unlock
                     delete P.construct.busy
                     true
             ]
@@ -885,13 +895,36 @@ $ \document .ready ->
             # check
             return false if not @cfg
             # prepare
-            me = @cfg.attach
-            me.data = {} if not me.data
-            a = @cfg.nav.id
-            me.data[a] = {} if not me.data[a]
-            data = me.data[a]
+            /***
+            @keyframes rotateCubeLeftOut {
+                0% { }
+                50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out;  -webkit-transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);  transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); }
+                100% { opacity: .3; -webkit-transform: translateX(-100%) rotateY(-90deg); transform: translateX(-100%) rotateY(-90deg); }
+            }
+            @keyframes rotateCubeLeftIn {
+                0% { opacity: .3; -webkit-transform: translateX(100%) rotateY(90deg); transform: translateX(100%) rotateY(90deg); }
+                50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out;  -webkit-transform: translateX(50%) translateZ(-200px) rotateY(45deg);  transform: translateX(50%) translateZ(-200px) rotateY(45deg); }
+            }
+            @keyframes rotateCubeRightOut {
+                0% { }
+                50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out; -webkit-transform: translateX(50%) translateZ(-200px) rotateY(45deg); transform: translateX(50%) translateZ(-200px) rotateY(45deg); }
+                100% { opacity: .3; -webkit-transform: translateX(100%) rotateY(90deg); transform: translateX(100%) rotateY(90deg); }
+            }
+            @keyframes rotateCubeRightIn {
+                0% { opacity: .3; -webkit-transform: translateX(-100%) rotateY(-90deg); transform: translateX(-100%) rotateY(-90deg); }
+                50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out; -webkit-transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); }
+            }
+            /***/
+            me  = @
+            cfg = me.cfg
+            nav = cfg.nav
+            # prepare temporary data storage
+            cfg.attach.data = {} if not cfg.attach.data
+            data = cfg.attach.data
+            data[nav.id] = {} if not data[nav.id]
+            data = data[nav.id]
             # handle event
-            switch @cfg.id
+            switch cfg.id
             | 'menu' =>
                 # change model
                 #M.2 = event.target.className
@@ -899,18 +932,19 @@ $ \document .ready ->
                 #P.construct 'view'
                 true
             | 'console' =>
-                switch @cfg.nav.id
+                switch nav.id
                 | 'menu' =>
                     # {{{
                     # prepare
-                    duration = 0.4
+                    duration  = 0.4
+                    direction = event.data == 'left'
                     # initialize
                     # {{{
                     # all items
                     if not data.list
-                        data.list = @cfg.node.find '.data .item'
+                        data.list = cfg.node.find '.data .item'
                     if not data.node
-                        data.node = @cfg.node.find '.carousel'
+                        data.node = cfg.node.find '.carousel'
                     # tweens
                     if not data.hover
                         # prepare
@@ -942,46 +976,61 @@ $ \document .ready ->
                     switch event.type
                     | 'mouseover' =>
                         # activate hover effect
-                        a = if event.data == 'left'
+                        a = if direction
                             then 0
                             else 1
                         data.hover[a].play!
                     | 'mouseout' =>
                         # deactivate hover effect
-                        a = if event.data == 'left'
+                        a = if direction
                             then 0
                             else 1
                         data.hover[a].reverse!
                     | 'click' =>
                         # carousel slide
+                        # {{{
                         # detach events
-                        @cfg.detach!
+                        cfg.detach!
                         # determine current
-                        a = M.nav[@cfg.level + 1].current
+                        c = cfg.level + 1
+                        a = M.nav[c].current
                         a = 0 if not a
-                        b = data.list.length
+                        b = data.list.length - 1
+                        # change model
+                        # determine new current
+                        if direction
+                            M.nav[c].current = if a > 0
+                                then a - 1
+                                else b
+                        else
+                            M.nav[c].current = if a < b
+                                then a + 1
+                                else 0
+                        # animate
                         # define final state (classes for carousel elements)
                         c =
                             ['item' 'button left']
                             ['item active' 'button center active']
                             ['item' 'button right']
                         # add node
-                        if event.data == 'left'
+                        if direction
                             # previous
                             b = if a > 1
                                 then a - 2
-                                else a - 2 + b
+                                else a - 1 + b
                             # add
                             a = data.list.eq b .clone!
                             data.node.prepend a
                             c.push ['item hidden' 'button hidden']
                         else
-                            # next TODO
-                            debugger
-                            b = if a < b
+                            # next
+                            b = if a + 2 <= b
                                 then a + 2
-                                else 2
-                            true
+                                else a + 1 - b
+                            # add
+                            a = data.list.eq b .clone!
+                            data.node.append a
+                            c = [['item hidden' 'button hidden']] ++ c
                         # get nodes
                         a = data.node.find '.item'
                         b = data.node.find '.button'
@@ -990,11 +1039,18 @@ $ \document .ready ->
                             paused: true
                             onComplete: !->
                                 # determine removal index
-                                d = if event.data == 'left'
+                                d = if direction
                                     then 3
                                     else 0
-                                # remove node from DOM
+                                # cleanup inline styles
+                                # and remove node from DOM
+                                a.prop 'style', ''
+                                b.prop 'style', ''
                                 a.eq d .remove!
+                                # invalidate hover
+                                delete data.hover
+                                # reattach events
+                                cfg.attach!
                         }
                         # add tweens
                         c.forEach (item, index) !->
@@ -1008,6 +1064,7 @@ $ \document .ready ->
                             }, 0
                         # launch
                         d.play!
+                        # }}}
                     # }}}
             # done
             true
