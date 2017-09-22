@@ -48,6 +48,9 @@ html
   --gr2: radial-gradient(ellipse, transparent, --col90 75%);
   --gr3: radial-gradient(ellipse, --col90 25%, transparent 75%);
   /* }}} */
+  --v-width: 0;
+  --v-height: 0;
+  --v-perspective: 1000px;
 }
 body
 {
@@ -254,11 +257,9 @@ body
 }
 /* }}} */
 /* menu {{{ */
-#view.menu {
-  background-color: var(--col30);
-}
-#view.menu #menu {
-  background-color: var(--col95);
+#menu
+{
+  perspective: var(--v-perspective);
 }
 #menu .box
 {
@@ -272,13 +273,24 @@ body
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: -1;
 }
 #menu .box.active
 {
   z-index: 2;
   visibility: inherit;
 }
+#menu .box.attached
+{
+  border: 0px solid var(--col95);
+  background-color: var(--col95);
+}
+#menu .box.attached.detached
+{
+  border: 2px solid var(--col85);
+  background-color: var(--col93);
+}
+/* menu option buttons */
 #menu .box > div
 {
   width: 65%;

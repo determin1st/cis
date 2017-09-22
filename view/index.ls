@@ -86,8 +86,15 @@ $ \document .ready ->
                 nav: null           # navigation for the level
                 namespace: ''       # event namespace
                 render: true        # render flag-function
+                refresh: ->
+                    # update document width/height css variable
+                    a = @cfg.root.box.innerWidth
+                    b = @cfg.root.box.innerHeight
+                    @cfg.root.style.vWidth  = a
+                    @cfg.root.style.vHeight = b
+                    @cfg.root.style.vPerspective = a + 'px'
+                    true
             # }}}
-            # ROOTS
             wa:
                 cfg: # {{{
                     fontSizeMax: 0
@@ -212,10 +219,96 @@ $ \document .ready ->
                         cfg:
                             render: true
                             init: -> # {{{
-                                # activate selected menu
-                                a = @cfg.nav.current or 0
-                                b = @cfg.node.find '.box'
-                                b.eq a .addClass 'active'
+                                # set style
+                                a = @cfg.node.find '.box'
+                                b = @cfg.nav.current or 0
+                                a.eq b .addClass 'active'
+                                true
+                            # }}}
+                            refresh: -> # {{{
+                                # prepare
+                                me = @cfg.refresh
+                                me.data = {} if not me.data
+                                data = me.data
+                                # initialize data
+                                if not data.boxes
+                                    data.boxes = @cfg.node.find '.box'
+                                    data.boxes.addClass 'attached'
+                                # initialize 3d-slide effect (rotation)
+                                # {{{
+                                if not data.slide
+                                    # determine indexes
+                                    a = @cfg.nav.current or 0
+                                    b = data.boxes.length - 1
+                                    c =
+                                        if a > 0 then a - 1 else b # left
+                                        if a < b then a + 1 else 0 # right
+                                    # get boxes
+                                    b =
+                                        data.boxes.eq c.0
+                                        data.boxes.eq a
+                                        data.boxes.eq c.1
+                                    # define stage 1 parameters
+                                    c =
+                                        # left slide
+                                        [
+                                            # boxes
+                                            [b.0, b.1, b.2]
+                                            # transform origin
+                                            ['100% 100%' '0% 0%' '0% 0%']
+                                        ]
+                                        # right slide
+                                        [
+                                            [b.2, b.1, b.0]
+                                            ['0% 0%' '100% 100%' '100% 100%']
+                                        ]
+                                    # create effect
+                                    data.slide = c.map (param) ->
+                                        # prepare
+                                        box = param.0
+                                        transform = param.1
+                                        deep = -(b.1.innerWidth!) / 5
+                                        duration = [5, 30]
+                                        # create timeline
+                                        c = new TimelineLite {
+                                            paused: true
+                                        }
+                                        # step 0
+                                        # initital state
+                                        c.set box.0, {
+                                            transformOrigin: transform.0
+                                            zIndex: 3
+                                            visibility: true
+                                        }, 0
+                                        c.set box.1, {
+                                            transformOrigin: transform.1
+                                            rotationY: 30
+                                            x: '100%'
+                                            zIndex: 2
+                                            visibility: true
+                                        }, 0
+                                        # step 1
+                                        # detach transition
+                                        c.to box, duration.0, {
+                                            className: '+=detached'
+                                        }, 0
+                                        c.addLabel 's1'
+                                        # step 2
+                                        # rotate transition
+                                        c.to box.0, duration.1, {
+                                            rotationY: -60
+                                            x: '-100%'
+                                            z: deep
+                                        }, 's1'
+                                        c.to box.1, duration.1, {
+                                            rotationY: 0
+                                            x: '0%'
+                                            z: deep
+                                        }, 's1'
+                                        # done
+                                        c
+                                # }}}
+                                # done
                                 true
                             # }}}
                             show: # {{{
@@ -353,6 +446,18 @@ $ \document .ready ->
                         init: ->
                             # modify show tween
                             @cfg.show.1.tween.className = @cfg.nav.id
+                            # invalidate data
+                            delete @cfg.refresh.data
+                            true
+                        refresh: ->
+                            # prepare data
+                            a = @cfg.refresh
+                            a.data = {} if not a.data
+                            data = a.data
+                            # delegate
+                            a = @cfg.nav.id
+                            return @[a].refresh.apply @, [data] if @[a].refresh
+                            # done
                             true
                         show: # {{{
                             {
@@ -387,7 +492,7 @@ $ \document .ready ->
                             click:
                                 ['.carousel .button.left'  'left']
                                 ['.carousel .button.right' 'right']
-                        render: ->
+                        render: -> # {{{
                             # prepare data
                             a = @data
                             b = @cfg.nav.current or 0
@@ -407,6 +512,110 @@ $ \document .ready ->
                                 next: if b == c
                                     then a.0.name
                                     else a[b + 1].name
+                        # }}}
+                        refresh: (data) -> # {{{
+                            # initialize data
+                            if not data.node
+                                data.node = @cfg.node.find '.carousel'
+                                data.box = @cfg.node.find '.item'
+                                data.btn = @cfg.node.find '.button'
+                                data.list = @cfg.node.find '.data .item'
+                                data.time = @cfg.show.1.duration
+                            # initialize hover effect
+                            # {{{
+                            if not data.hover
+                                # prepare
+                                a = data.box
+                                b = data.btn
+                                # for left and right nodes
+                                c = [0 2].map (index) ->
+                                    # create timeline
+                                    c = new TimelineLite {
+                                        paused: true
+                                        data: a.eq index
+                                    }
+                                    c.to [a[index], b[index]], data.time, {
+                                        className: '+=active'
+                                    }, 0
+                                    d = {
+                                        className: '-=active'
+                                    }
+                                    d.borderLeft  = 0 if index == 0
+                                    d.borderRight = 0 if index == 2
+                                    c.to [a.1, b.1], data.time, d, 0
+                                    # done
+                                    c
+                                # save
+                                data.hover = c
+                            # }}}
+                            # initialize slide effect
+                            # {{{
+                            if not data.slide
+                                # prepare
+                                # define final state for carousel
+                                c =
+                                    ['item' 'button left']
+                                    ['item active' 'button center active']
+                                    ['item' 'button right']
+                                # ..
+                                debugger
+                                # add DOM node
+                                b = data.list.length - 1
+                                if direction
+                                    # from right
+                                    b = if a + 2 <= b
+                                        then a + 2
+                                        else a + 1 - b
+                                    # add
+                                    a = data.list.eq b .clone!
+                                    data.node.append a
+                                    c = [['item hidden' 'button hidden']] ++ c
+                                else
+                                    # from left
+                                    b = if a > 1
+                                        then a - 2
+                                        else a - 1 + b
+                                    # add
+                                    a = data.list.eq b .clone!
+                                    data.node.prepend a
+                                    c.push ['item hidden' 'button hidden']
+                                # get nodes
+                                a = data.node.find '.item'
+                                b = data.node.find '.button'
+                                # initialize carousel timeline
+                                d = new TimelineLite {
+                                    paused: true
+                                    onComplete: !->
+                                        # determine removal index
+                                        d = if direction
+                                            then 3
+                                            else 0
+                                        # cleanup inline styles
+                                        # and remove node from DOM
+                                        a.prop 'style', ''
+                                        b.prop 'style', ''
+                                        a.eq d .remove!
+                                        # invalidate hover effect
+                                        delete temp.hover
+                                        # reattach events
+                                        cfg.attach!
+                                }
+                                # add tweens
+                                c.forEach (item, index) !->
+                                    # container
+                                    d.to a[index], duration, {
+                                        className: item.0
+                                    }, 0
+                                    # button
+                                    d.to b[index], duration, {
+                                        className: item.1
+                                    }, 0
+                                # launch
+                                d.play!
+                            # }}}
+                            # done
+                            true
+                        # }}}
                 # }}}
         }, {
             get: (obj, id, prx) -> # {{{
@@ -511,7 +720,7 @@ $ \document .ready ->
                 w3ui.THREAD a
                 # done
                 return true
-            # execute
+            # internal, no thread
             walk.every (node) -> if node.cfg[func]
                 then node.cfg[func].apply node
                 else true
@@ -808,7 +1017,7 @@ $ \document .ready ->
                         # done
                         true
                     # render new content
-                    a = ['render' 'init' 'resize' 'refresh'].every (f) ->
+                    a = ['render' 'init' 'resize'].every (f) ->
                         V.walk id, true, f
                     # check the result
                     if not a
@@ -837,7 +1046,9 @@ $ \document .ready ->
                         # check node
                         return true if not node = @cfg.node
                         # create effect timeline
-                        tl = new TimelineLite {paused: true}
+                        tl = new TimelineLite {
+                            paused: true
+                        }
                         # add tweens
                         @cfg.show and @cfg.show.forEach (a) ->
                             tl.to node, a.duration, a.tween
@@ -866,6 +1077,11 @@ $ \document .ready ->
                     # wait
                     not busy
                 ->
+                    # refresh
+                    if not V.walk id, true, 'refresh'
+                        console.log 'refresh failed'
+                        delete P.construct.busy
+                        return null
                     # finish
                     V.walk id, false, 'finit'
                     # attach event handlers
@@ -895,34 +1111,14 @@ $ \document .ready ->
             # check
             return false if not @cfg
             # prepare
-            /***
-            @keyframes rotateCubeLeftOut {
-                0% { }
-                50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out;  -webkit-transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);  transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); }
-                100% { opacity: .3; -webkit-transform: translateX(-100%) rotateY(-90deg); transform: translateX(-100%) rotateY(-90deg); }
-            }
-            @keyframes rotateCubeLeftIn {
-                0% { opacity: .3; -webkit-transform: translateX(100%) rotateY(90deg); transform: translateX(100%) rotateY(90deg); }
-                50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out;  -webkit-transform: translateX(50%) translateZ(-200px) rotateY(45deg);  transform: translateX(50%) translateZ(-200px) rotateY(45deg); }
-            }
-            @keyframes rotateCubeRightOut {
-                0% { }
-                50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out; -webkit-transform: translateX(50%) translateZ(-200px) rotateY(45deg); transform: translateX(50%) translateZ(-200px) rotateY(45deg); }
-                100% { opacity: .3; -webkit-transform: translateX(100%) rotateY(90deg); transform: translateX(100%) rotateY(90deg); }
-            }
-            @keyframes rotateCubeRightIn {
-                0% { opacity: .3; -webkit-transform: translateX(-100%) rotateY(-90deg); transform: translateX(-100%) rotateY(-90deg); }
-                50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out; -webkit-transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); }
-            }
-            /***/
             me  = @
             cfg = me.cfg
             nav = cfg.nav
-            # prepare temporary data storage
+            # prepare data storage
             cfg.attach.data = {} if not cfg.attach.data
-            data = cfg.attach.data
-            data[nav.id] = {} if not data[nav.id]
-            data = data[nav.id]
+            a = cfg.node.data
+            a[nav.id] = {} if not a[nav.id]
+            data = a[nav.id]
             # handle event
             switch cfg.id
             | 'menu' =>
@@ -936,85 +1132,62 @@ $ \document .ready ->
                 | 'menu' =>
                     # {{{
                     # prepare
-                    duration  = 0.4
-                    direction = event.data == 'left'
-                    # initialize
-                    # {{{
-                    # all items
-                    if not data.list
+                    direction = if event.data == 'left'
+                        then 0
+                        else 1
+                    if not data.menu
+                        data.menu = V.skel['menu'].cfg.node.find '.box'
                         data.list = cfg.node.find '.data .item'
-                    if not data.node
                         data.node = cfg.node.find '.carousel'
-                    # tweens
-                    if not data.hover
-                        # prepare
-                        a = data.node.find '.item'
-                        b = data.node.find '.button'
-                        # create hover effects
-                        # for left and right nodes
-                        c = [0 2].map (index) ->
-                            # create timeline
-                            c = new TimelineLite {
-                                paused: true
-                                data: a.eq index
-                            }
-                            c.to [a[index], b[index]], duration, {
-                                className: '+=active'
-                            }, 0
-                            d = {
-                                className: '-=active'
-                            }
-                            d.borderLeft  = 0 if index == 0
-                            d.borderRight = 0 if index == 2
-                            c.to [a.1, b.1], duration, d, 0
-                            # done
-                            c
-                        # save
-                        data.hover = c
-                    # }}}
                     # check action type
                     switch event.type
                     | 'mouseover' =>
                         # activate hover effect
-                        a = if direction
-                            then 0
-                            else 1
-                        data.hover[a].play!
+                        # get effect
+                        a = V.skel.console.cfg.refresh.data.hover
+                        # play
+                        a[direction].play!
                     | 'mouseout' =>
                         # deactivate hover effect
-                        a = if direction
-                            then 0
-                            else 1
-                        data.hover[a].reverse!
+                        # get effect
+                        a = V.skel.console.cfg.refresh.data.hover
+                        # reverse play
+                        a[direction].reverse!
                     | 'click' =>
-                        # carousel slide
-                        # {{{
                         # detach events
                         cfg.detach!
+                        # change model state
+                        # {{{
                         # determine current
                         c = cfg.level + 1
                         a = M.nav[c].current
                         a = 0 if not a
-                        b = data.list.length - 1
-                        # change model
                         # determine new current
+                        b = data.list.length - 1
                         if direction
-                            M.nav[c].current = if a > 0
+                            b = if a > 0
                                 then a - 1
                                 else b
                         else
-                            M.nav[c].current = if a < b
+                            b = if a < b
                                 then a + 1
                                 else 0
+                        # save both
+                        M.nav[c].current = b
+                        data.current = [b, a]
+                        # }}}
+                        # carousel slide
+                        # {{{
                         # animate
                         # define final state (classes for carousel elements)
                         c =
                             ['item' 'button left']
                             ['item active' 'button center active']
                             ['item' 'button right']
-                        # add node
+                        # add DOM node
+                        b = data.list.length - 1
                         if direction
-                            # previous
+                            # from left
                             b = if a > 1
                                 then a - 2
                                 else a - 1 + b
@@ -1023,7 +1196,7 @@ $ \document .ready ->
                             data.node.prepend a
                             c.push ['item hidden' 'button hidden']
                         else
-                            # next
+                            # from right
                             b = if a + 2 <= b
                                 then a + 2
                                 else a + 1 - b
@@ -1035,7 +1208,7 @@ $ \document .ready ->
                         a = data.node.find '.item'
                         b = data.node.find '.button'
                         # initialize carousel timeline
-                        d = new TimelineMax {
+                        d = new TimelineLite {
                             paused: true
                             onComplete: !->
                                 # determine removal index
@@ -1047,8 +1220,8 @@ $ \document .ready ->
                                 a.prop 'style', ''
                                 b.prop 'style', ''
                                 a.eq d .remove!
-                                # invalidate hover
-                                delete data.hover
+                                # invalidate hover effect
+                                delete temp.hover
                                 # reattach events
                                 cfg.attach!
                         }
@@ -1064,6 +1237,86 @@ $ \document .ready ->
                             }, 0
                         # launch
                         d.play!
+                        # }}}
+                        # menu slide
+                        a = V.skel.menu.cfg.refresh.data.slide
+                        a.0.play!
+                        # get active and new active box
+                        # {{{
+                        /***
+                        do ->
+                            a = data.menu.eq data.current.1
+                            b = data.menu.eq data.current.0
+                            c = new TimelineLite {
+                                paused: true
+                            }
+                            d = a.innerWidth!
+                            d = -d / 5
+                            duration = 10
+                            c.set a, {
+                                transformOrigin: '100% 100%'
+                                className: '+=selected'
+                            }, 0
+                            c.set b, {
+                                transformOrigin: '0% 0%'
+                                rotationY: 30
+                                x: '100%'
+                                className: '+=selected cube'
+                            }, 0
+                            c.to [a, b], duration / 5, {
+                                className: '+=cube'
+                            }, 0
+                            c.addLabel 'h1'
+                            c.to a, duration, {
+                                rotationY: -60
+                                x: '-100%'
+                                z: d
+                            }, 'h1'
+                            c.to b, duration, {
+                                rotationY: 0
+                                x: '0%'
+                                z: d
+                            }, 'h1'
+                            c.play!
+                        @keyframes rotateCubeLeftOut {
+                            0% { }
+                            50% {
+                                transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
+                            }
+                            100% {
+                                opacity: .3;
+                                transform: translateX(-100%) rotateY(-90deg);
+                            }
+                        }
+                        @keyframes rotateCubeLeftIn {
+                            0% {
+                                opacity: .3;
+                                transform: translateX(100%) rotateY(90deg);
+                            }
+                            50% {
+                                transform: translateX(50%) translateZ(-200px) rotateY(45deg);
+                            }
+                        }
+                        @keyframes rotateCubeRightOut {
+                            0% { }
+                            50% {
+                                transform: translateX(50%) translateZ(-200px) rotateY(45deg);
+                            }
+                            100% {
+                                opacity: .3;
+                                transform: translateX(100%) rotateY(90deg);
+                            }
+                        }
+                        @keyframes rotateCubeRightIn {
+                            0% {
+                                opacity: .3;
+                                transform: translateX(-100%) rotateY(-90deg);
+                            }
+                            50% {
+                                transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
+                            }
+                        }
+                        /***/
                         # }}}
                     # }}}
             # done

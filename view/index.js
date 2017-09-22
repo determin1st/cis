@@ -84,7 +84,16 @@ $('document').ready(function(){
         level: 0,
         nav: null,
         namespace: '',
-        render: true
+        render: true,
+        refresh: function(){
+          var a, b;
+          a = this.cfg.root.box.innerWidth;
+          b = this.cfg.root.box.innerHeight;
+          this.cfg.root.style.vWidth = a;
+          this.cfg.root.style.vHeight = b;
+          this.cfg.root.style.vPerspective = a + 'px';
+          return true;
+        }
       },
       wa: {
         cfg: {
@@ -195,9 +204,66 @@ $('document').ready(function(){
               render: true,
               init: function(){
                 var a, b;
-                a = this.cfg.nav.current || 0;
-                b = this.cfg.node.find('.box');
-                b.eq(a).addClass('active');
+                a = this.cfg.node.find('.box');
+                b = this.cfg.nav.current || 0;
+                a.eq(b).addClass('active');
+                return true;
+              },
+              refresh: function(){
+                var me, data, a, b, c;
+                me = this.cfg.refresh;
+                if (!me.data) {
+                  me.data = {};
+                }
+                data = me.data;
+                if (!data.boxes) {
+                  data.boxes = this.cfg.node.find('.box');
+                  data.boxes.addClass('attached');
+                }
+                if (!data.slide) {
+                  a = this.cfg.nav.current || 0;
+                  b = data.boxes.length - 1;
+                  c = [a > 0 ? a - 1 : b, a < b ? a + 1 : 0];
+                  b = [data.boxes.eq(c[0]), data.boxes.eq(a), data.boxes.eq(c[1])];
+                  c = [[[b[0], b[1], b[2]], ['100% 100%', '0% 0%', '0% 0%']], [[b[2], b[1], b[0]], ['0% 0%', '100% 100%', '100% 100%']]];
+                  data.slide = c.map(function(param){
+                    var box, transform, deep, duration, c;
+                    box = param[0];
+                    transform = param[1];
+                    deep = -b[1].innerWidth() / 5;
+                    duration = [5, 30];
+                    c = new TimelineLite({
+                      paused: true
+                    });
+                    c.set(box[0], {
+                      transformOrigin: transform[0],
+                      zIndex: 3,
+                      visibility: true
+                    }, 0);
+                    c.set(box[1], {
+                      transformOrigin: transform[1],
+                      rotationY: 30,
+                      x: '100%',
+                      zIndex: 2,
+                      visibility: true
+                    }, 0);
+                    c.to(box, duration[0], {
+                      className: '+=detached'
+                    }, 0);
+                    c.addLabel('s1');
+                    c.to(box[0], duration[1], {
+                      rotationY: -60,
+                      x: '-100%',
+                      z: deep
+                    }, 's1');
+                    c.to(box[1], duration[1], {
+                      rotationY: 0,
+                      x: '0%',
+                      z: deep
+                    }, 's1');
+                    return c;
+                  });
+                }
                 return true;
               },
               show: [
@@ -329,6 +395,20 @@ $('document').ready(function(){
             attach: true,
             init: function(){
               this.cfg.show[1].tween.className = this.cfg.nav.id;
+              delete this.cfg.refresh.data;
+              return true;
+            },
+            refresh: function(){
+              var a, data;
+              a = this.cfg.refresh;
+              if (!a.data) {
+                a.data = {};
+              }
+              data = a.data;
+              a = this.cfg.nav.id;
+              if (this[a].refresh) {
+                return this[a].refresh.apply(this, [data]);
+              }
               return true;
             },
             show: [
@@ -380,6 +460,86 @@ $('document').ready(function(){
                   ? a[0].name
                   : a[b + 1].name
               };
+            },
+            refresh: function(data){
+              var a, b, c, d;
+              if (!data.node) {
+                data.node = this.cfg.node.find('.carousel');
+                data.box = this.cfg.node.find('.item');
+                data.btn = this.cfg.node.find('.button');
+                data.list = this.cfg.node.find('.data .item');
+                data.time = this.cfg.show[1].duration;
+              }
+              if (!data.hover) {
+                a = data.box;
+                b = data.btn;
+                c = [0, 2].map(function(index){
+                  var c, d;
+                  c = new TimelineLite({
+                    paused: true,
+                    data: a.eq(index)
+                  });
+                  c.to([a[index], b[index]], data.time, {
+                    className: '+=active'
+                  }, 0);
+                  d = {
+                    className: '-=active'
+                  };
+                  if (index === 0) {
+                    d.borderLeft = 0;
+                  }
+                  if (index === 2) {
+                    d.borderRight = 0;
+                  }
+                  c.to([a[1], b[1]], data.time, d, 0);
+                  return c;
+                });
+                data.hover = c;
+              }
+              if (!data.slide) {
+                c = [['item', 'button left'], ['item active', 'button center active'], ['item', 'button right']];
+                debugger;
+                b = data.list.length - 1;
+                if (direction) {
+                  b = a + 2 <= b
+                    ? a + 2
+                    : a + 1 - b;
+                  a = data.list.eq(b).clone();
+                  data.node.append(a);
+                  c = [['item hidden', 'button hidden']].concat(c);
+                } else {
+                  b = a > 1
+                    ? a - 2
+                    : a - 1 + b;
+                  a = data.list.eq(b).clone();
+                  data.node.prepend(a);
+                  c.push(['item hidden', 'button hidden']);
+                }
+                a = data.node.find('.item');
+                b = data.node.find('.button');
+                d = new TimelineLite({
+                  paused: true,
+                  onComplete: function(){
+                    var d;
+                    d = direction ? 3 : 0;
+                    a.prop('style', '');
+                    b.prop('style', '');
+                    a.eq(d).remove();
+                    delete temp.hover;
+                    cfg.attach();
+                  }
+                });
+                c.forEach(function(item, index){
+                  d.to(a[index], duration, {
+                    className: item[0]
+                  }, 0);
+                  d.to(b[index], duration, {
+                    className: item[1]
+                  }, 0);
+                });
+                d.play();
+              }
+              return true;
             }
           }
         }
@@ -814,7 +974,7 @@ $('document').ready(function(){
             }
             return true;
           });
-          a = ['render', 'init', 'resize', 'refresh'].every(function(f){
+          a = ['render', 'init', 'resize'].every(function(f){
             return V.walk(id, true, f);
           });
           if (!a) {
@@ -865,6 +1025,11 @@ $('document').ready(function(){
         }, function(){
           return !busy;
         }, function(){
+          if (!V.walk(id, true, 'refresh')) {
+            console.log('refresh failed');
+            delete P.construct.busy;
+            return null;
+          }
           V.walk(id, false, 'finit');
           if (!V.walk(id, true, 'attach')) {
             console.log('attach failed');
@@ -886,41 +1051,21 @@ $('document').ready(function(){
       this.update();
     },
     event: function(event){
-      var me, cfg, nav, data, duration, direction, a, b, c, d;
+      var me, cfg, nav, a, data, direction, c, b, d;
       if (!this.cfg) {
         return false;
       }
-      /***
-      @keyframes rotateCubeLeftOut {
-          0% { }
-          50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out;  -webkit-transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);  transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); }
-          100% { opacity: .3; -webkit-transform: translateX(-100%) rotateY(-90deg); transform: translateX(-100%) rotateY(-90deg); }
-      }
-      @keyframes rotateCubeLeftIn {
-          0% { opacity: .3; -webkit-transform: translateX(100%) rotateY(90deg); transform: translateX(100%) rotateY(90deg); }
-          50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out;  -webkit-transform: translateX(50%) translateZ(-200px) rotateY(45deg);  transform: translateX(50%) translateZ(-200px) rotateY(45deg); }
-      }
-      @keyframes rotateCubeRightOut {
-          0% { }
-          50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out; -webkit-transform: translateX(50%) translateZ(-200px) rotateY(45deg); transform: translateX(50%) translateZ(-200px) rotateY(45deg); }
-          100% { opacity: .3; -webkit-transform: translateX(100%) rotateY(90deg); transform: translateX(100%) rotateY(90deg); }
-      }
-      @keyframes rotateCubeRightIn {
-          0% { opacity: .3; -webkit-transform: translateX(-100%) rotateY(-90deg); transform: translateX(-100%) rotateY(-90deg); }
-          50% { -webkit-animation-timing-function: ease-out; animation-timing-function: ease-out; -webkit-transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); transform: translateX(-50%) translateZ(-200px) rotateY(-45deg); }
-      }
-      /***/
       me = this;
       cfg = me.cfg;
       nav = cfg.nav;
       if (!cfg.attach.data) {
         cfg.attach.data = {};
       }
-      data = cfg.attach.data;
-      if (!data[nav.id]) {
-        data[nav.id] = {};
+      a = cfg.node.data;
+      if (!a[nav.id]) {
+        a[nav.id] = {};
       }
-      data = data[nav.id];
+      data = a[nav.id];
       switch (cfg.id) {
       case 'menu':
         true;
@@ -928,48 +1073,20 @@ $('document').ready(function(){
       case 'console':
         switch (nav.id) {
         case 'menu':
-          duration = 0.4;
-          direction = event.data === 'left';
-          if (!data.list) {
+          direction = event.data === 'left' ? 0 : 1;
+          if (!data.menu) {
+            data.menu = V.skel['menu'].cfg.node.find('.box');
             data.list = cfg.node.find('.data .item');
-          }
-          if (!data.node) {
             data.node = cfg.node.find('.carousel');
-          }
-          if (!data.hover) {
-            a = data.node.find('.item');
-            b = data.node.find('.button');
-            c = [0, 2].map(function(index){
-              var c, d;
-              c = new TimelineLite({
-                paused: true,
-                data: a.eq(index)
-              });
-              c.to([a[index], b[index]], duration, {
-                className: '+=active'
-              }, 0);
-              d = {
-                className: '-=active'
-              };
-              if (index === 0) {
-                d.borderLeft = 0;
-              }
-              if (index === 2) {
-                d.borderRight = 0;
-              }
-              c.to([a[1], b[1]], duration, d, 0);
-              return c;
-            });
-            data.hover = c;
           }
           switch (event.type) {
           case 'mouseover':
-            a = direction ? 0 : 1;
-            data.hover[a].play();
+            a = V.skel.console.cfg.refresh.data.hover;
+            a[direction].play();
             break;
           case 'mouseout':
-            a = direction ? 0 : 1;
-            data.hover[a].reverse();
+            a = V.skel.console.cfg.refresh.data.hover;
+            a[direction].reverse();
             break;
           case 'click':
             cfg.detach();
@@ -980,11 +1097,14 @@ $('document').ready(function(){
             }
             b = data.list.length - 1;
             if (direction) {
-              M.nav[c].current = a > 0 ? a - 1 : b;
+              b = a > 0 ? a - 1 : b;
             } else {
-              M.nav[c].current = a < b ? a + 1 : 0;
+              b = a < b ? a + 1 : 0;
             }
+            M.nav[c].current = b;
+            data.current = [b, a];
             c = [['item', 'button left'], ['item active', 'button center active'], ['item', 'button right']];
+            b = data.list.length - 1;
             if (direction) {
               b = a > 1
                 ? a - 2
@@ -1002,7 +1122,7 @@ $('document').ready(function(){
             }
             a = data.node.find('.item');
             b = data.node.find('.button');
-            d = new TimelineMax({
+            d = new TimelineLite({
               paused: true,
               onComplete: function(){
                 var d;
@@ -1010,7 +1130,7 @@ $('document').ready(function(){
                 a.prop('style', '');
                 b.prop('style', '');
                 a.eq(d).remove();
-                delete data.hover;
+                delete temp.hover;
                 cfg.attach();
               }
             });
@@ -1023,6 +1143,82 @@ $('document').ready(function(){
               }, 0);
             });
             d.play();
+            a = V.skel.menu.cfg.refresh.data.slide;
+            a[0].play();
+            /***
+            do ->
+                a = data.menu.eq data.current.1
+                b = data.menu.eq data.current.0
+                c = new TimelineLite {
+                    paused: true
+                }
+                d = a.innerWidth!
+                d = -d / 5
+                duration = 10
+                c.set a, {
+                    transformOrigin: '100% 100%'
+                    className: '+=selected'
+                }, 0
+                c.set b, {
+                    transformOrigin: '0% 0%'
+                    rotationY: 30
+                    x: '100%'
+                    className: '+=selected cube'
+                }, 0
+                c.to [a, b], duration / 5, {
+                    className: '+=cube'
+                }, 0
+                c.addLabel 'h1'
+                c.to a, duration, {
+                    rotationY: -60
+                    x: '-100%'
+                    z: d
+                }, 'h1'
+                c.to b, duration, {
+                    rotationY: 0
+                    x: '0%'
+                    z: d
+                }, 'h1'
+                c.play!
+            @keyframes rotateCubeLeftOut {
+                0% { }
+                50% {
+                    transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
+                }
+                100% {
+                    opacity: .3;
+                    transform: translateX(-100%) rotateY(-90deg);
+                }
+            }
+            @keyframes rotateCubeLeftIn {
+                0% {
+                    opacity: .3;
+                    transform: translateX(100%) rotateY(90deg);
+                }
+                50% {
+                    transform: translateX(50%) translateZ(-200px) rotateY(45deg);
+                }
+            }
+            @keyframes rotateCubeRightOut {
+                0% { }
+                50% {
+                    transform: translateX(50%) translateZ(-200px) rotateY(45deg);
+                }
+                100% {
+                    opacity: .3;
+                    transform: translateX(100%) rotateY(90deg);
+                }
+            }
+            @keyframes rotateCubeRightIn {
+                0% {
+                    opacity: .3;
+                    transform: translateX(-100%) rotateY(-90deg);
+                }
+                50% {
+                    transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
+                }
+            }
+            /***/
           }
         }
       }
