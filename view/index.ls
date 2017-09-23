@@ -82,6 +82,8 @@ $ \document .ready ->
                 node: w3ui '#skel'  # DOM node object
                 root: w3ui 'html'   # DOM root
                 parent: null        # backlink
+                context: null       # primary context (for adjacent node)
+                data: {}            # data storage
                 level: 0            # node level in skeleton tree
                 nav: null           # navigation for the level
                 namespace: ''       # event namespace
@@ -446,17 +448,16 @@ $ \document .ready ->
                         init: ->
                             # modify show tween
                             @cfg.show.1.tween.className = @cfg.nav.id
-                            # invalidate data
-                            delete @cfg.refresh.data
                             true
+                        resize: ->
+                            # invalidate data
+                            @cfg.data = {}
+                            # refresh
+                            @cfg.refresh.apply @
                         refresh: ->
-                            # prepare data
-                            a = @cfg.refresh
-                            a.data = {} if not a.data
-                            data = a.data
                             # delegate
                             a = @cfg.nav.id
-                            return @[a].refresh.apply @, [data] if @[a].refresh
+                            return @[a].refresh.apply @, [@cfg.data] if @[a].refresh
                             # done
                             true
                         show: # {{{
@@ -517,10 +518,11 @@ $ \document .ready ->
                             # initialize data
                             if not data.node
                                 data.node = @cfg.node.find '.carousel'
-                                data.box = @cfg.node.find '.item'
-                                data.btn = @cfg.node.find '.button'
                                 data.list = @cfg.node.find '.data .item'
                                 data.time = @cfg.show.1.duration
+                            if not data.box
+                                data.box = data.node.find '.item'
+                                data.btn = data.node.find '.button'
                             # initialize hover effect
                             # {{{
                             if not data.hover
@@ -534,15 +536,9 @@ $ \document .ready ->
                                         paused: true
                                         data: a.eq index
                                     }
-                                    c.to [a[index], b[index]], data.time, {
-                                        className: '+=active'
-                                    }, 0
-                                    d = {
-                                        className: '-=active'
+                                    c.to [a[index], b[index], a.1, b.1], data.time, {
+                                        className: '+=hover'
                                     }
-                                    d.borderLeft  = 0 if index == 0
-                                    d.borderRight = 0 if index == 2
-                                    c.to [a.1, b.1], data.time, d, 0
                                     # done
                                     c
                                 # save
@@ -551,67 +547,102 @@ $ \document .ready ->
                             # initialize slide effect
                             # {{{
                             if not data.slide
-                                # prepare
-                                # define final state for carousel
-                                c =
-                                    ['item' 'button left']
-                                    ['item active' 'button center active']
-                                    ['item' 'button right']
-                                # ..
-                                debugger
-                                # add DOM node
+                                # prepare data
+                                # determine active node index
+                                a = @cfg.context.cfg.nav.current or 0
                                 b = data.list.length - 1
-                                if direction
-                                    # from right
-                                    b = if a + 2 <= b
-                                        then a + 2
-                                        else a + 1 - b
-                                    # add
-                                    a = data.list.eq b .clone!
-                                    data.node.append a
-                                    c = [['item hidden' 'button hidden']] ++ c
-                                else
+                                # determine indexes of new elements
+                                # that may appear
+                                c =
                                     # from left
-                                    b = if a > 1
+                                    if a > 1
                                         then a - 2
                                         else a - 1 + b
-                                    # add
-                                    a = data.list.eq b .clone!
-                                    data.node.prepend a
-                                    c.push ['item hidden' 'button hidden']
-                                # get nodes
-                                a = data.node.find '.item'
-                                b = data.node.find '.button'
-                                # initialize carousel timeline
-                                d = new TimelineLite {
-                                    paused: true
-                                    onComplete: !->
-                                        # determine removal index
-                                        d = if direction
-                                            then 3
-                                            else 0
-                                        # cleanup inline styles
-                                        # and remove node from DOM
-                                        a.prop 'style', ''
-                                        b.prop 'style', ''
-                                        a.eq d .remove!
-                                        # invalidate hover effect
-                                        delete temp.hover
-                                        # reattach events
-                                        cfg.attach!
-                                }
-                                # add tweens
-                                c.forEach (item, index) !->
-                                    # container
-                                    d.to a[index], duration, {
-                                        className: item.0
-                                    }, 0
-                                    # button
-                                    d.to b[index], duration, {
-                                        className: item.1
-                                    }, 0
-                                # launch
-                                d.play!
+                                    # from right
+                                    if a + 2 <= b
+                                        then a + 2
+                                        else a + 1 - b
+                                # get boxes
+                                a =
+                                    data.list.eq c.0 .clone!
+                                    data.list.eq c.1 .clone!
+                                # get buttons
+                                b =
+                                    a.0.find '.button'
+                                    a.1.find '.button'
+                                # combine them
+                                c =
+                                    [a.0, b.0]
+                                    [a.1, b.1]
+                                # define classes
+                                # final state
+                                a =
+                                    ['item' 'button left']
+                                    ['item active' 'button center']
+                                    ['item' 'button right']
+                                # removal state
+                                b = [['item hidden' 'button hidden']]
+                                # combine it
+                                a =
+                                    a ++ b  # +left -right
+                                    b ++ a  # -left +right
+                                # combine both classes and nodes
+                                a = a.map (side, direction) ->
+                                    a = side.map (item, index) ->
+                                        # new element
+                                        if direction == 0 and index == 0 or
+                                           direction == 1 and index == 3
+                                            # done
+                                            return [
+                                                [c[direction].0, item.0]
+                                                [c[direction].1, item.1]
+                                            ]
+                                        # current elements
+                                        index = index - 1 if not direction
+                                        a =
+                                            data.box.eq index
+                                            data.btn.eq index
+                                        return [
+                                            [a.0, item.0]
+                                            [a.1, item.1]
+                                        ]
+                                # create effects
+                                data.slide = a.map (side, direction) ->
+                                    a = new TimelineLite {
+                                        paused: true
+                                        onStart: !->
+                                            # add new node
+                                            if direction
+                                                data.node.append c.1.0
+                                            else
+                                                data.node.prepend c.0.0
+                                        onComplete: !->
+                                            # cleanup inline styles
+                                            side.forEach (item) !->
+                                                item.0.0.prop 'style', ''
+                                                item.1.0.prop 'style', ''
+                                            # remove node
+                                            b = if direction
+                                                then 0
+                                                else side.length - 1
+                                            side[b].0.0.remove!
+                                            # invalidate current data
+                                            delete data.box
+                                            delete data.hover
+                                            delete data.slide
+                                    }
+                                    # add tweens
+                                    side.forEach (item) !->
+                                        # container
+                                        a.to item.0.0, data.time, {
+                                            className: item.0.1
+                                        }, 0
+                                        # button
+                                        a.to item.1.0, data.time, {
+                                            className: item.1.1
+                                        }, 0
+                                    # done
+                                    a
                             # }}}
                             # done
                             true
@@ -665,6 +696,7 @@ $ \document .ready ->
             b.render    = w3ui.PARTIAL a, @render if b.render
             b.attach    = w3ui.PARTIAL a, @attach, b.attach if b.attach
             b.template  = templ
+            b.data      = {}
             # recurse to children
             for own b,c of a when b != 'cfg' and c and c.cfg
                 return false if not @init b, a, level + 1, namespace, templ
@@ -743,6 +775,8 @@ $ \document .ready ->
                 b = ''
                 # get context of the primary node
                 return true if not a = a[a.cfg.nav.id][id]
+                # save context
+                @cfg.context = a
                 # generate data
                 c = @[id].render.apply a
             # determine template id
@@ -951,16 +985,6 @@ $ \document .ready ->
             # done
             true
         # }}}
-        ###
-        update: (id = '') -> # {{{
-            # reset event data
-            V.walk id, true, ->
-                if @cfg.node and @cfg.attach and @cfg.attach.data
-                    delete @cfg.attach.data
-                true
-            # run procedures
-            ['resize' 'refresh'].every (f) -> V.walk id, true, f
-        # }}}
         construct: (id = '') !-> # {{{
             # get root of construction
             return if not node = V.skel[id]
@@ -1103,9 +1127,9 @@ $ \document .ready ->
                 # set timer
                 f = w3ui.PARTIAL @, me
                 me.timer = window.setTimeout f, 250
-                return
             # resize
-            @update!
+            else if not V.walk '', true, 'resize'
+                console.log 'resize failed'
         # }}}
         event: (event) -> # {{{
             # check
@@ -1135,112 +1159,63 @@ $ \document .ready ->
                     direction = if event.data == 'left'
                         then 0
                         else 1
-                    if not data.menu
-                        data.menu = V.skel['menu'].cfg.node.find '.box'
-                        data.list = cfg.node.find '.data .item'
-                        data.node = cfg.node.find '.carousel'
                     # check action type
                     switch event.type
                     | 'mouseover' =>
                         # activate hover effect
                         # get effect
-                        a = V.skel.console.cfg.refresh.data.hover
+                        a = V.skel.console.cfg.data.hover
                         # play
                         a[direction].play!
                     | 'mouseout' =>
                         # deactivate hover effect
                         # get effect
-                        a = V.skel.console.cfg.refresh.data.hover
+                        a = V.skel.console.cfg.data.hover
                         # reverse play
                         a[direction].reverse!
                     | 'click' =>
-                        # detach events
-                        cfg.detach!
-                        # change model state
-                        # {{{
-                        # determine current
-                        c = cfg.level + 1
-                        a = M.nav[c].current
-                        a = 0 if not a
-                        # determine new current
-                        b = data.list.length - 1
-                        if direction
-                            b = if a > 0
-                                then a - 1
-                                else b
-                        else
-                            b = if a < b
-                                then a + 1
-                                else 0
-                        # save both
-                        M.nav[c].current = b
-                        data.current = [b, a]
-                        # }}}
-                        # carousel slide
-                        # {{{
-                        # animate
-                        # define final state (classes for carousel elements)
-                        c =
-                            ['item' 'button left']
-                            ['item active' 'button center active']
-                            ['item' 'button right']
-                        # add DOM node
-                        b = data.list.length - 1
-                        if direction
-                            # from left
-                            b = if a > 1
-                                then a - 2
-                                else a - 1 + b
-                            # add
-                            a = data.list.eq b .clone!
-                            data.node.prepend a
-                            c.push ['item hidden' 'button hidden']
-                        else
-                            # from right
-                            b = if a + 2 <= b
-                                then a + 2
-                                else a + 1 - b
-                            # add
-                            a = data.list.eq b .clone!
-                            data.node.append a
-                            c = [['item hidden' 'button hidden']] ++ c
-                        # get nodes
-                        a = data.node.find '.item'
-                        b = data.node.find '.button'
-                        # initialize carousel timeline
-                        d = new TimelineLite {
+                        # get effects
+                        a = V.skel.console.cfg.data.slide
+                        # create timeline
+                        t = new TimelineLite {
                             paused: true
+                            onStart: !->
+                                # detach events
+                                cfg.detach!
                             onComplete: !->
-                                # determine removal index
-                                d = if direction
-                                    then 3
-                                    else 0
-                                # cleanup inline styles
-                                # and remove node from DOM
-                                a.prop 'style', ''
-                                b.prop 'style', ''
-                                a.eq d .remove!
-                                # invalidate hover effect
-                                delete temp.hover
-                                # reattach events
-                                cfg.attach!
+                                # change model state
+                                # determine current
+                                c = cfg.level + 1
+                                a = M.nav[c].current or 0
+                                # determine new current
+                                b = cfg.context.data.length - 1
+                                if direction
+                                    b = if a < b
+                                        then a + 1
+                                        else 0
+                                else
+                                    b = if a > 0
+                                        then a - 1
+                                        else b
+                                # change
+                                M.nav[c].current = b
+                                # refresh
+                                V.walk 'wa', true, 'refresh', ->
+                                    # reattach events
+                                    cfg.attach!
                         }
-                        # add tweens
-                        c.forEach (item, index) !->
-                            # container
-                            d.to a[index], duration, {
-                                className: item.0
-                            }, 0
-                            # button
-                            d.to b[index], duration, {
-                                className: item.1
-                            }, 0
+                        # add effects
+                        t.add a[direction].play!
                         # launch
-                        d.play!
-                        # }}}
+                        t.play!
+                        return true
                         # menu slide
-                        a = V.skel.menu.cfg.refresh.data.slide
-                        a.0.play!
+                        if not data.menu
+                            data.menu = V.skel['menu'].cfg.node.find '.box'
+                            data.list = cfg.node.find '.data .item'
+                            data.node = cfg.node.find '.carousel'
+                        #a = V.skel.menu.cfg.refresh.data.slide
+                        #a.0.play!
                         # get active and new active box
                         # {{{
                         /***

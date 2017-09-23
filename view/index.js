@@ -81,6 +81,8 @@ $('document').ready(function(){
         node: w3ui('#skel'),
         root: w3ui('html'),
         parent: null,
+        context: null,
+        data: {},
         level: 0,
         nav: null,
         namespace: '',
@@ -395,19 +397,17 @@ $('document').ready(function(){
             attach: true,
             init: function(){
               this.cfg.show[1].tween.className = this.cfg.nav.id;
-              delete this.cfg.refresh.data;
               return true;
             },
+            resize: function(){
+              this.cfg.data = {};
+              return this.cfg.refresh.apply(this);
+            },
             refresh: function(){
-              var a, data;
-              a = this.cfg.refresh;
-              if (!a.data) {
-                a.data = {};
-              }
-              data = a.data;
+              var a;
               a = this.cfg.nav.id;
               if (this[a].refresh) {
-                return this[a].refresh.apply(this, [data]);
+                return this[a].refresh.apply(this, [this.cfg.data]);
               }
               return true;
             },
@@ -462,82 +462,98 @@ $('document').ready(function(){
               };
             },
             refresh: function(data){
-              var a, b, c, d;
+              var a, b, c;
               if (!data.node) {
                 data.node = this.cfg.node.find('.carousel');
-                data.box = this.cfg.node.find('.item');
-                data.btn = this.cfg.node.find('.button');
                 data.list = this.cfg.node.find('.data .item');
                 data.time = this.cfg.show[1].duration;
+              }
+              if (!data.box) {
+                data.box = data.node.find('.item');
+                data.btn = data.node.find('.button');
               }
               if (!data.hover) {
                 a = data.box;
                 b = data.btn;
                 c = [0, 2].map(function(index){
-                  var c, d;
+                  var c;
                   c = new TimelineLite({
                     paused: true,
                     data: a.eq(index)
                   });
-                  c.to([a[index], b[index]], data.time, {
-                    className: '+=active'
-                  }, 0);
-                  d = {
-                    className: '-=active'
-                  };
-                  if (index === 0) {
-                    d.borderLeft = 0;
-                  }
-                  if (index === 2) {
-                    d.borderRight = 0;
-                  }
-                  c.to([a[1], b[1]], data.time, d, 0);
+                  c.to([a[index], b[index], a[1], b[1]], data.time, {
+                    className: '+=hover'
+                  });
                   return c;
                 });
                 data.hover = c;
               }
               if (!data.slide) {
-                c = [['item', 'button left'], ['item active', 'button center active'], ['item', 'button right']];
-                debugger;
+                a = this.cfg.context.cfg.nav.current || 0;
                 b = data.list.length - 1;
-                if (direction) {
-                  b = a + 2 <= b
-                    ? a + 2
-                    : a + 1 - b;
-                  a = data.list.eq(b).clone();
-                  data.node.append(a);
-                  c = [['item hidden', 'button hidden']].concat(c);
-                } else {
-                  b = a > 1
+                c = [
+                  a > 1
                     ? a - 2
-                    : a - 1 + b;
-                  a = data.list.eq(b).clone();
-                  data.node.prepend(a);
-                  c.push(['item hidden', 'button hidden']);
-                }
-                a = data.node.find('.item');
-                b = data.node.find('.button');
-                d = new TimelineLite({
-                  paused: true,
-                  onComplete: function(){
-                    var d;
-                    d = direction ? 3 : 0;
-                    a.prop('style', '');
-                    b.prop('style', '');
-                    a.eq(d).remove();
-                    delete temp.hover;
-                    cfg.attach();
-                  }
+                    : a - 1 + b, a + 2 <= b
+                    ? a + 2
+                    : a + 1 - b
+                ];
+                a = [data.list.eq(c[0]).clone(), data.list.eq(c[1]).clone()];
+                b = [a[0].find('.button'), a[1].find('.button')];
+                c = [[a[0], b[0]], [a[1], b[1]]];
+                a = [['item', 'button left'], ['item active', 'button center'], ['item', 'button right']];
+                b = [['item hidden', 'button hidden']];
+                a = [a.concat(b), b.concat(a)];
+                a = a.map(function(side, direction){
+                  var a;
+                  return a = side.map(function(item, index){
+                    var a;
+                    if (direction === 0 && index === 0 || direction === 1 && index === 3) {
+                      return [[c[direction][0], item[0]], [c[direction][1], item[1]]];
+                    }
+                    if (!direction) {
+                      index = index - 1;
+                    }
+                    a = [data.box.eq(index), data.btn.eq(index)];
+                    return [[a[0], item[0]], [a[1], item[1]]];
+                  });
                 });
-                c.forEach(function(item, index){
-                  d.to(a[index], duration, {
-                    className: item[0]
-                  }, 0);
-                  d.to(b[index], duration, {
-                    className: item[1]
-                  }, 0);
+                data.slide = a.map(function(side, direction){
+                  var a;
+                  a = new TimelineLite({
+                    paused: true,
+                    onStart: function(){
+                      if (direction) {
+                        data.node.append(c[1][0]);
+                      } else {
+                        data.node.prepend(c[0][0]);
+                      }
+                    },
+                    onComplete: function(){
+                      var b;
+                      side.forEach(function(item){
+                        item[0][0].prop('style', '');
+                        item[1][0].prop('style', '');
+                      });
+                      b = direction
+                        ? 0
+                        : side.length - 1;
+                      side[b][0][0].remove();
+                      delete data.box;
+                      delete data.hover;
+                      delete data.slide;
+                    }
+                  });
+                  side.forEach(function(item){
+                    a.to(item[0][0], data.time, {
+                      className: item[0][1]
+                    }, 0);
+                    a.to(item[1][0], data.time, {
+                      className: item[1][1]
+                    }, 0);
+                  });
+                  return a;
                 });
-                d.play();
               }
               return true;
             }
@@ -605,6 +621,7 @@ $('document').ready(function(){
         b.attach = w3ui.PARTIAL(a, this.attach, b.attach);
       }
       b.template = templ;
+      b.data = {};
       for (b in a) if (own$.call(a, b)) {
         c = a[b];
         if (b !== 'cfg' && c && c.cfg) {
@@ -704,6 +721,7 @@ $('document').ready(function(){
         if (!(a = a[a.cfg.nav.id][id])) {
           return true;
         }
+        this.cfg.context = a;
         c = this[id].render.apply(a);
       }
       a = this;
@@ -906,18 +924,6 @@ $('document').ready(function(){
       });
       return true;
     },
-    update: function(id){
-      id == null && (id = '');
-      V.walk(id, true, function(){
-        if (this.cfg.node && this.cfg.attach && this.cfg.attach.data) {
-          delete this.cfg.attach.data;
-        }
-        return true;
-      });
-      return ['resize', 'refresh'].every(function(f){
-        return V.walk(id, true, f);
-      });
-    },
     construct: function(id){
       var node, busy;
       id == null && (id = '');
@@ -1046,12 +1052,12 @@ $('document').ready(function(){
         window.clearTimeout(me.timer);
         f = w3ui.PARTIAL(this, me);
         me.timer = window.setTimeout(f, 250);
-        return;
+      } else if (!V.walk('', true, 'resize')) {
+        console.log('resize failed');
       }
-      this.update();
     },
     event: function(event){
-      var me, cfg, nav, a, data, direction, c, b, d;
+      var me, cfg, nav, a, data, direction, t;
       if (!this.cfg) {
         return false;
       }
@@ -1074,77 +1080,46 @@ $('document').ready(function(){
         switch (nav.id) {
         case 'menu':
           direction = event.data === 'left' ? 0 : 1;
-          if (!data.menu) {
-            data.menu = V.skel['menu'].cfg.node.find('.box');
-            data.list = cfg.node.find('.data .item');
-            data.node = cfg.node.find('.carousel');
-          }
           switch (event.type) {
           case 'mouseover':
-            a = V.skel.console.cfg.refresh.data.hover;
+            a = V.skel.console.cfg.data.hover;
             a[direction].play();
             break;
           case 'mouseout':
-            a = V.skel.console.cfg.refresh.data.hover;
+            a = V.skel.console.cfg.data.hover;
             a[direction].reverse();
             break;
           case 'click':
-            cfg.detach();
-            c = cfg.level + 1;
-            a = M.nav[c].current;
-            if (!a) {
-              a = 0;
-            }
-            b = data.list.length - 1;
-            if (direction) {
-              b = a > 0 ? a - 1 : b;
-            } else {
-              b = a < b ? a + 1 : 0;
-            }
-            M.nav[c].current = b;
-            data.current = [b, a];
-            c = [['item', 'button left'], ['item active', 'button center active'], ['item', 'button right']];
-            b = data.list.length - 1;
-            if (direction) {
-              b = a > 1
-                ? a - 2
-                : a - 1 + b;
-              a = data.list.eq(b).clone();
-              data.node.prepend(a);
-              c.push(['item hidden', 'button hidden']);
-            } else {
-              b = a + 2 <= b
-                ? a + 2
-                : a + 1 - b;
-              a = data.list.eq(b).clone();
-              data.node.append(a);
-              c = [['item hidden', 'button hidden']].concat(c);
-            }
-            a = data.node.find('.item');
-            b = data.node.find('.button');
-            d = new TimelineLite({
+            a = V.skel.console.cfg.data.slide;
+            t = new TimelineLite({
               paused: true,
+              onStart: function(){
+                cfg.detach();
+              },
               onComplete: function(){
-                var d;
-                d = direction ? 3 : 0;
-                a.prop('style', '');
-                b.prop('style', '');
-                a.eq(d).remove();
-                delete temp.hover;
-                cfg.attach();
+                var c, a, b;
+                c = cfg.level + 1;
+                a = M.nav[c].current || 0;
+                b = cfg.context.data.length - 1;
+                if (direction) {
+                  b = a < b ? a + 1 : 0;
+                } else {
+                  b = a > 0 ? a - 1 : b;
+                }
+                M.nav[c].current = b;
+                V.walk('wa', true, 'refresh', function(){
+                  return cfg.attach();
+                });
               }
             });
-            c.forEach(function(item, index){
-              d.to(a[index], duration, {
-                className: item[0]
-              }, 0);
-              d.to(b[index], duration, {
-                className: item[1]
-              }, 0);
-            });
-            d.play();
-            a = V.skel.menu.cfg.refresh.data.slide;
-            a[0].play();
+            t.add(a[direction].play());
+            t.play();
+            return true;
+            if (!data.menu) {
+              data.menu = V.skel['menu'].cfg.node.find('.box');
+              data.list = cfg.node.find('.data .item');
+              data.node = cfg.node.find('.carousel');
+            }
             /***
             do ->
                 a = data.menu.eq data.current.1
