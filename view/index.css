@@ -261,9 +261,14 @@ body
 }
 /* }}} */
 /* menu {{{ */
+#view.menu
+{
+  /*perspective: var(--v-perspective);/***/
+}
 #menu
 {
-  perspective: var(--v-perspective);
+  perspective: var(--v-perspective);/***/
+  transform-style: preserve-3d;/***/
 }
 #menu .box
 {

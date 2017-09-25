@@ -205,66 +205,139 @@ $('document').ready(function(){
             cfg: {
               render: true,
               init: function(){
-                var a, b;
-                a = this.cfg.node.find('.box');
-                b = this.cfg.nav.current || 0;
-                a.eq(b).addClass('active');
+                var a;
+                if (!this.cfg.data.box) {
+                  this.cfg.data.box = this.cfg.node.find('.box');
+                }
+                a = this.cfg.nav.current || 0;
+                this.cfg.data.box.eq(a).addClass('active');
                 return true;
               },
               refresh: function(){
-                var me, data, a, b, c;
-                me = this.cfg.refresh;
-                if (!me.data) {
-                  me.data = {};
-                }
-                data = me.data;
-                if (!data.boxes) {
-                  data.boxes = this.cfg.node.find('.box');
-                  data.boxes.addClass('attached');
+                var data, a, b, c;
+                data = this.cfg.data;
+                if (!data.box.hasClass('attached')) {
+                  data.box.addClass('attached');
                 }
                 if (!data.slide) {
                   a = this.cfg.nav.current || 0;
-                  b = data.boxes.length - 1;
+                  b = data.box.length - 1;
                   c = [a > 0 ? a - 1 : b, a < b ? a + 1 : 0];
-                  b = [data.boxes.eq(c[0]), data.boxes.eq(a), data.boxes.eq(c[1])];
-                  c = [[[b[0], b[1], b[2]], ['100% 100%', '0% 0%', '0% 0%']], [[b[2], b[1], b[0]], ['0% 0%', '100% 100%', '100% 100%']]];
-                  data.slide = c.map(function(param){
-                    var box, transform, deep, duration, c;
+                  a = [[c[1], a, c[0]], [c[0], a, c[1]]];
+                  a = a.map(function(side){
+                    return side.map(function(index){
+                      return data.box.eq(index);
+                    });
+                  });
+                  a = [[a[0], ['100% 0%', '0% 0%', '0% 0%']], [a[1], ['100% 0%', '0% 0%']]];
+                  data.slide = a.map(function(param, index){
+                    var box, transform, w, deep, duration, a, b;
+                    if (index === 0) {
+                      return null;
+                    }
                     box = param[0];
                     transform = param[1];
-                    deep = -b[1].innerWidth() / 5;
-                    duration = [5, 30];
-                    c = new TimelineLite({
+                    w = box[1].innerWidth();
+                    deep = -w / 1.0;
+                    duration = [5, 10];
+                    a = new TimelineLite({
                       paused: true
                     });
-                    c.set(box[0], {
-                      transformOrigin: transform[0],
-                      zIndex: 3,
-                      visibility: true
-                    }, 0);
-                    c.set(box[1], {
-                      transformOrigin: transform[1],
-                      rotationY: 30,
-                      x: '100%',
-                      zIndex: 2,
-                      visibility: true
-                    }, 0);
-                    c.to(box, duration[0], {
+                    a.set(box[0], {
+                      rotationY: -45,
+                      x: '-50%',
+                      zIndex: 1
+                    });
+                    a.set(box[1], {
+                      zIndex: 2
+                    });
+                    a.set(box[2], {
+                      rotationY: 45,
+                      x: '50%',
+                      zIndex: 3
+                    });
+                    a.set(box, {
+                      visibility: 'visible'
+                    });
+                    a.addLabel('s1');
+                    a.to(box, duration[0], {
                       className: '+=detached'
-                    }, 0);
-                    c.addLabel('s1');
-                    c.to(box[0], duration[1], {
-                      rotationY: -60,
-                      x: '-100%',
+                    }, 's1');
+                    a.to(box, duration[0], {
                       z: deep
                     }, 's1');
-                    c.to(box[1], duration[1], {
-                      rotationY: 0,
-                      x: '0%',
-                      z: deep
-                    }, 's1');
-                    return c;
+                    a.addLabel('s2');
+                    b = 100 * Math.SQRT1_2;
+                    a.to(box[0], duration[1], {
+                      rotationY: -65
+                    }, 's2');
+                    a.to(box[1], duration[1], {
+                      rotationY: -45
+                    }, 's2');
+                    a.to(box[2], duration[1], {
+                      rotationY: 0
+                    }, 's2');
+                    /***
+                    a.to box.0, duration.1, {
+                        rotationY: -45
+                        x: '-=90%'
+                    }, 's2'
+                    a.addLabel 's2'
+                    a.to box.0, duration.1, {
+                        transformOrigin: '50% 50%'
+                        rotationY: -45
+                        x: '-100%'
+                        z: deep * 2
+                    }, 's1'
+                    a.to box, duration.1, {
+                        transformOrigin: '50% 50%'
+                        roatationY: 0
+                        x: 0
+                        z: 0
+                    }
+                    /***/
+                    return a;
                   });
+                  /***
+                  @keyframes rotateCubeLeftOut {
+                      0% { }
+                      50% {
+                          transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
+                      }
+                      100% {
+                          opacity: .3;
+                          transform: translateX(-100%) rotateY(-90deg);
+                      }
+                  }
+                  @keyframes rotateCubeLeftIn {
+                      0% {
+                          opacity: .3;
+                          transform: translateX(100%) rotateY(90deg);
+                      }
+                      50% {
+                          transform: translateX(50%) translateZ(-200px) rotateY(45deg);
+                      }
+                  }
+                  @keyframes rotateCubeRightOut {
+                      0% { }
+                      50% {
+                          transform: translateX(50%) translateZ(-200px) rotateY(45deg);
+                      }
+                      100% {
+                          opacity: .3;
+                          transform: translateX(100%) rotateY(90deg);
+                      }
+                  }
+                  @keyframes rotateCubeRightIn {
+                      0% {
+                          opacity: .3;
+                          transform: translateX(-100%) rotateY(-90deg);
+                      }
+                      50% {
+                          transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
+                      }
+                  }
+                  /***/
                 }
                 return true;
               },
@@ -1057,7 +1130,7 @@ $('document').ready(function(){
       }
     },
     event: function(event){
-      var me, cfg, nav, a, data, direction, t;
+      var me, cfg, nav, a, data, direction, b, t;
       if (!this.cfg) {
         return false;
       }
@@ -1091,6 +1164,11 @@ $('document').ready(function(){
             break;
           case 'click':
             a = V.skel.console.cfg.data.slide;
+            b = V.skel.menu.cfg.data.slide;
+            if (b) {
+              b[1].play();
+              return true;
+            }
             t = new TimelineLite({
               paused: true,
               onStart: function(){
@@ -1114,86 +1192,6 @@ $('document').ready(function(){
             });
             t.add(a[direction].play());
             t.play();
-            return true;
-            if (!data.menu) {
-              data.menu = V.skel['menu'].cfg.node.find('.box');
-              data.list = cfg.node.find('.data .item');
-              data.node = cfg.node.find('.carousel');
-            }
-            /***
-            do ->
-                a = data.menu.eq data.current.1
-                b = data.menu.eq data.current.0
-                c = new TimelineLite {
-                    paused: true
-                }
-                d = a.innerWidth!
-                d = -d / 5
-                duration = 10
-                c.set a, {
-                    transformOrigin: '100% 100%'
-                    className: '+=selected'
-                }, 0
-                c.set b, {
-                    transformOrigin: '0% 0%'
-                    rotationY: 30
-                    x: '100%'
-                    className: '+=selected cube'
-                }, 0
-                c.to [a, b], duration / 5, {
-                    className: '+=cube'
-                }, 0
-                c.addLabel 'h1'
-                c.to a, duration, {
-                    rotationY: -60
-                    x: '-100%'
-                    z: d
-                }, 'h1'
-                c.to b, duration, {
-                    rotationY: 0
-                    x: '0%'
-                    z: d
-                }, 'h1'
-                c.play!
-            @keyframes rotateCubeLeftOut {
-                0% { }
-                50% {
-                    transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
-                }
-                100% {
-                    opacity: .3;
-                    transform: translateX(-100%) rotateY(-90deg);
-                }
-            }
-            @keyframes rotateCubeLeftIn {
-                0% {
-                    opacity: .3;
-                    transform: translateX(100%) rotateY(90deg);
-                }
-                50% {
-                    transform: translateX(50%) translateZ(-200px) rotateY(45deg);
-                }
-            }
-            @keyframes rotateCubeRightOut {
-                0% { }
-                50% {
-                    transform: translateX(50%) translateZ(-200px) rotateY(45deg);
-                }
-                100% {
-                    opacity: .3;
-                    transform: translateX(100%) rotateY(90deg);
-                }
-            }
-            @keyframes rotateCubeRightIn {
-                0% {
-                    opacity: .3;
-                    transform: translateX(-100%) rotateY(-90deg);
-                }
-                50% {
-                    transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
-                }
-            }
-            /***/
           }
         }
       }

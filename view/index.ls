@@ -221,94 +221,174 @@ $ \document .ready ->
                         cfg:
                             render: true
                             init: -> # {{{
+                                # prepare
+                                if not @cfg.data.box
+                                    @cfg.data.box = @cfg.node.find '.box'
                                 # set style
-                                a = @cfg.node.find '.box'
-                                b = @cfg.nav.current or 0
-                                a.eq b .addClass 'active'
+                                a = @cfg.nav.current or 0
+                                @cfg.data.box.eq a .addClass 'active'
                                 true
                             # }}}
                             refresh: -> # {{{
                                 # prepare
-                                me = @cfg.refresh
-                                me.data = {} if not me.data
-                                data = me.data
-                                # initialize data
-                                if not data.boxes
-                                    data.boxes = @cfg.node.find '.box'
-                                    data.boxes.addClass 'attached'
-                                # initialize 3d-slide effect (rotation)
+                                data = @cfg.data
+                                # set style
+                                if not data.box.hasClass 'attached'
+                                    data.box.addClass 'attached'
+                                # initialize menu slide effect (3d-rotation)
                                 # {{{
                                 if not data.slide
+                                    # prepare data
                                     # determine indexes
                                     a = @cfg.nav.current or 0
-                                    b = data.boxes.length - 1
+                                    b = data.box.length - 1
                                     c =
                                         if a > 0 then a - 1 else b # left
                                         if a < b then a + 1 else 0 # right
+                                    a =
+                                        [c.1, a, c.0]
+                                        [c.0, a, c.1]
                                     # get boxes
-                                    b =
-                                        data.boxes.eq c.0
-                                        data.boxes.eq a
-                                        data.boxes.eq c.1
-                                    # define stage 1 parameters
-                                    c =
+                                    a = a.map (side) -> side.map (index) ->
+                                        data.box.eq index
+                                    # add main box
+                                    #a.0 = [@cfg.node] ++ a.0
+                                    #a.1 = [@cfg.node] ++ a.1
+                                    # define effect parameters
+                                    a =
                                         # left slide
                                         [
                                             # boxes
-                                            [b.0, b.1, b.2]
+                                            a.0
                                             # transform origin
-                                            ['100% 100%' '0% 0%' '0% 0%']
+                                            ['100% 0%' '0% 0%' '0% 0%']
                                         ]
                                         # right slide
                                         [
-                                            [b.2, b.1, b.0]
-                                            ['0% 0%' '100% 100%' '100% 100%']
+                                            a.1
+                                            ['100% 0%' '0% 0%']
                                         ]
                                     # create effect
-                                    data.slide = c.map (param) ->
+                                    data.slide = a.map (param, index) ->
                                         # prepare
+                                        return null if index == 0
                                         box = param.0
                                         transform = param.1
-                                        deep = -(b.1.innerWidth!) / 5
-                                        duration = [5, 30]
+                                        w = box.1.innerWidth!
+                                        deep = -w / 1.0
+                                        duration = [5, 10]
                                         # create timeline
-                                        c = new TimelineLite {
+                                        a = new TimelineLite {
                                             paused: true
                                         }
                                         # step 0
                                         # initital state
-                                        c.set box.0, {
-                                            transformOrigin: transform.0
-                                            zIndex: 3
-                                            visibility: true
-                                        }, 0
-                                        c.set box.1, {
-                                            transformOrigin: transform.1
-                                            rotationY: 30
-                                            x: '100%'
+                                        a.set box.0, {
+                                            #transformOrigin: '100% 0%'
+                                            rotationY: -45
+                                            x: '-50%'
+                                            zIndex: 1
+                                        }
+                                        a.set box.1, {
+                                            #transformOrigin: '100% 0%'
                                             zIndex: 2
-                                            visibility: true
-                                        }, 0
+                                        }
+                                        a.set box.2, {
+                                            #transformOrigin: '0% 0%'
+                                            rotationY: 45
+                                            x: '50%'
+                                            zIndex: 3
+                                        }
+                                        a.set box, {
+                                            visibility: 'visible'
+                                        }
                                         # step 1
-                                        # detach transition
-                                        c.to box, duration.0, {
+                                        # detach elements
+                                        a.addLabel 's1'
+                                        a.to box, duration.0, {
                                             className: '+=detached'
-                                        }, 0
-                                        c.addLabel 's1'
+                                        }, 's1'
+                                        a.to box, duration.0, {
+                                            z: deep
+                                        }, 's1'
                                         # step 2
                                         # rotate transition
-                                        c.to box.0, duration.1, {
-                                            rotationY: -60
-                                            x: '-100%'
-                                            z: deep
-                                        }, 's1'
-                                        c.to box.1, duration.1, {
+                                        a.addLabel 's2'
+                                        b = 100 * Math.SQRT1_2
+                                        a.to box.0, duration.1, {
+                                            #z: '-=' + (w * Math.SQRT1_2)
+                                            #x: '-' + b + '%'
+                                            rotationY: -65
+                                        }, 's2'
+                                        a.to box.1, duration.1, {
+                                            rotationY: -45
+                                            #x: '-100%'
+                                        }, 's2'
+                                        a.to box.2, duration.1, {
+                                            #x: '0%'
                                             rotationY: 0
-                                            x: '0%'
-                                            z: deep
+                                        }, 's2'
+                                        /***
+                                        a.to box.0, duration.1, {
+                                            rotationY: -45
+                                            x: '-=90%'
+                                        }, 's2'
+                                        a.addLabel 's2'
+                                        a.to box.0, duration.1, {
+                                            transformOrigin: '50% 50%'
+                                            rotationY: -45
+                                            x: '-100%'
+                                            z: deep * 2
                                         }, 's1'
+                                        a.to box, duration.1, {
+                                            transformOrigin: '50% 50%'
+                                            roatationY: 0
+                                            x: 0
+                                            z: 0
+                                        }
+                                        /***/
                                         # done
-                                        c
+                                        a
+                                    /***
+                                    @keyframes rotateCubeLeftOut {
+                                        0% { }
+                                        50% {
+                                            transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
+                                        }
+                                        100% {
+                                            opacity: .3;
+                                            transform: translateX(-100%) rotateY(-90deg);
+                                        }
+                                    }
+                                    @keyframes rotateCubeLeftIn {
+                                        0% {
+                                            opacity: .3;
+                                            transform: translateX(100%) rotateY(90deg);
+                                        }
+                                        50% {
+                                            transform: translateX(50%) translateZ(-200px) rotateY(45deg);
+                                        }
+                                    }
+                                    @keyframes rotateCubeRightOut {
+                                        0% { }
+                                        50% {
+                                            transform: translateX(50%) translateZ(-200px) rotateY(45deg);
+                                        }
+                                        100% {
+                                            opacity: .3;
+                                            transform: translateX(100%) rotateY(90deg);
+                                        }
+                                    }
+                                    @keyframes rotateCubeRightIn {
+                                        0% {
+                                            opacity: .3;
+                                            transform: translateX(-100%) rotateY(-90deg);
+                                        }
+                                        50% {
+                                            transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
+                                        }
+                                    }
+                                    /***/
                                 # }}}
                                 # done
                                 true
@@ -1176,6 +1256,10 @@ $ \document .ready ->
                     | 'click' =>
                         # get effects
                         a = V.skel.console.cfg.data.slide
+                        b = V.skel.menu.cfg.data.slide
+                        if b
+                            b.1.play!
+                            return true
                         # create timeline
                         t = new TimelineLite {
                             paused: true
@@ -1208,91 +1292,6 @@ $ \document .ready ->
                         t.add a[direction].play!
                         # launch
                         t.play!
-                        return true
-                        # menu slide
-                        if not data.menu
-                            data.menu = V.skel['menu'].cfg.node.find '.box'
-                            data.list = cfg.node.find '.data .item'
-                            data.node = cfg.node.find '.carousel'
-                        #a = V.skel.menu.cfg.refresh.data.slide
-                        #a.0.play!
-                        # get active and new active box
-                        # {{{
-                        /***
-                        do ->
-                            a = data.menu.eq data.current.1
-                            b = data.menu.eq data.current.0
-                            c = new TimelineLite {
-                                paused: true
-                            }
-                            d = a.innerWidth!
-                            d = -d / 5
-                            duration = 10
-                            c.set a, {
-                                transformOrigin: '100% 100%'
-                                className: '+=selected'
-                            }, 0
-                            c.set b, {
-                                transformOrigin: '0% 0%'
-                                rotationY: 30
-                                x: '100%'
-                                className: '+=selected cube'
-                            }, 0
-                            c.to [a, b], duration / 5, {
-                                className: '+=cube'
-                            }, 0
-                            c.addLabel 'h1'
-                            c.to a, duration, {
-                                rotationY: -60
-                                x: '-100%'
-                                z: d
-                            }, 'h1'
-                            c.to b, duration, {
-                                rotationY: 0
-                                x: '0%'
-                                z: d
-                            }, 'h1'
-                            c.play!
-                        @keyframes rotateCubeLeftOut {
-                            0% { }
-                            50% {
-                                transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
-                            }
-                            100% {
-                                opacity: .3;
-                                transform: translateX(-100%) rotateY(-90deg);
-                            }
-                        }
-                        @keyframes rotateCubeLeftIn {
-                            0% {
-                                opacity: .3;
-                                transform: translateX(100%) rotateY(90deg);
-                            }
-                            50% {
-                                transform: translateX(50%) translateZ(-200px) rotateY(45deg);
-                            }
-                        }
-                        @keyframes rotateCubeRightOut {
-                            0% { }
-                            50% {
-                                transform: translateX(50%) translateZ(-200px) rotateY(45deg);
-                            }
-                            100% {
-                                opacity: .3;
-                                transform: translateX(100%) rotateY(90deg);
-                            }
-                        }
-                        @keyframes rotateCubeRightIn {
-                            0% {
-                                opacity: .3;
-                                transform: translateX(-100%) rotateY(-90deg);
-                            }
-                            50% {
-                                transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
-                            }
-                        }
-                        /***/
-                        # }}}
                     # }}}
             # done
             true
