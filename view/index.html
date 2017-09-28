@@ -54,14 +54,11 @@
       <!-- console {{{ -->
       <div id='t-wa-console-menu'>
         <div class='carousel'>
+          <div class='item hidden'><div class='button left hidden'></div></div>
           <div class='item'><div class='button left'>{{prev}}</div></div>
           <div class='item active'><div class='button center'>{{current}}</div></div>
           <div class='item'><div class='button right'>{{next}}</div></div>
-        </div>
-        <div class='data' style='display:none;'>
-          {{#list}}
-          <div class='item hidden'><div class='button hidden'>{{name}}</div></div>
-          {{/list}}
+          <div class='item hidden'><div class='button right hidden'></div></div>
         </div>
         <div class='separator'></div>
       </div>

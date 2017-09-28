@@ -172,7 +172,15 @@ $('document').ready(function(){
             }
           ],
           attach: {
-            click: [['#header .b1 .button', 'mode'], ['#header .b2 .button', 'config']]
+            click: [
+              {
+                el: '#header .b1 .button',
+                id: 'mode'
+              }, {
+                el: '#header .b2 .button',
+                id: 'config'
+              }
+            ]
           }
         },
         view: {
@@ -208,6 +216,7 @@ $('document').ready(function(){
                 var a;
                 if (!this.cfg.data.box) {
                   this.cfg.data.box = this.cfg.node.find('.box');
+                  this.cfg.data.time = this.cfg.show[1].duration;
                 }
                 a = this.cfg.nav.current || 0;
                 this.cfg.data.box.eq(a).addClass('active');
@@ -223,121 +232,50 @@ $('document').ready(function(){
                   a = this.cfg.nav.current || 0;
                   b = data.box.length - 1;
                   c = [a > 0 ? a - 1 : b, a < b ? a + 1 : 0];
-                  a = [[c[1], a, c[0]], [c[0], a, c[1]]];
+                  a = [[a, c[0]], [a, c[1]]];
                   a = a.map(function(side){
                     return side.map(function(index){
                       return data.box.eq(index);
                     });
                   });
-                  a = [[a[0], ['100% 0%', '0% 0%', '0% 0%']], [a[1], ['100% 0%', '0% 0%']]];
-                  data.slide = a.map(function(param, index){
-                    var box, transform, w, deep, duration, a, b;
-                    if (index === 0) {
-                      return null;
-                    }
-                    box = param[0];
-                    transform = param[1];
-                    w = box[1].innerWidth();
-                    deep = -w / 1.0;
-                    duration = [5, 10];
-                    a = new TimelineLite({
-                      paused: true
+                  c = [['0%', '100%', '-100%', '0%'], ['0%', '-100%', '100%', '0%']];
+                  data.slide = a.map(function(a, index){
+                    var b;
+                    b = new TimelineLite({
+                      paused: true,
+                      onComplete: function(){
+                        data.box.prop('style', '');
+                        delete data.slide;
+                      }
                     });
-                    a.set(box[0], {
-                      rotationY: -45,
-                      x: '-50%',
+                    b.set(a[0], {
+                      transformOrigin: '0% 50%',
+                      x: c[index][0],
                       zIndex: 1
                     });
-                    a.set(box[1], {
+                    b.set(a[1], {
+                      transformOrigin: '0% 50%',
+                      x: c[index][2],
                       zIndex: 2
                     });
-                    a.set(box[2], {
-                      rotationY: 45,
-                      x: '50%',
-                      zIndex: 3
-                    });
-                    a.set(box, {
+                    b.set(a, {
                       visibility: 'visible'
                     });
-                    a.addLabel('s1');
-                    a.to(box, duration[0], {
-                      className: '+=detached'
+                    b.addLabel('s1');
+                    b.to(a[0], data.time, {
+                      x: c[index][1]
                     }, 's1');
-                    a.to(box, duration[0], {
-                      z: deep
+                    b.to(a[1], data.time, {
+                      x: c[index][3]
                     }, 's1');
-                    a.addLabel('s2');
-                    b = 100 * Math.SQRT1_2;
-                    a.to(box[0], duration[1], {
-                      rotationY: -65
-                    }, 's2');
-                    a.to(box[1], duration[1], {
-                      rotationY: -45
-                    }, 's2');
-                    a.to(box[2], duration[1], {
-                      rotationY: 0
-                    }, 's2');
-                    /***
-                    a.to box.0, duration.1, {
-                        rotationY: -45
-                        x: '-=90%'
-                    }, 's2'
-                    a.addLabel 's2'
-                    a.to box.0, duration.1, {
-                        transformOrigin: '50% 50%'
-                        rotationY: -45
-                        x: '-100%'
-                        z: deep * 2
-                    }, 's1'
-                    a.to box, duration.1, {
-                        transformOrigin: '50% 50%'
-                        roatationY: 0
-                        x: 0
-                        z: 0
-                    }
-                    /***/
-                    return a;
+                    b.set(a[0], {
+                      className: '-=active'
+                    });
+                    b.set(a[1], {
+                      className: '+=active'
+                    });
+                    return b;
                   });
-                  /***
-                  @keyframes rotateCubeLeftOut {
-                      0% { }
-                      50% {
-                          transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
-                      }
-                      100% {
-                          opacity: .3;
-                          transform: translateX(-100%) rotateY(-90deg);
-                      }
-                  }
-                  @keyframes rotateCubeLeftIn {
-                      0% {
-                          opacity: .3;
-                          transform: translateX(100%) rotateY(90deg);
-                      }
-                      50% {
-                          transform: translateX(50%) translateZ(-200px) rotateY(45deg);
-                      }
-                  }
-                  @keyframes rotateCubeRightOut {
-                      0% { }
-                      50% {
-                          transform: translateX(50%) translateZ(-200px) rotateY(45deg);
-                      }
-                      100% {
-                          opacity: .3;
-                          transform: translateX(100%) rotateY(90deg);
-                      }
-                  }
-                  @keyframes rotateCubeRightIn {
-                      0% {
-                          opacity: .3;
-                          transform: translateX(-100%) rotateY(-90deg);
-                      }
-                      50% {
-                          transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
-                      }
-                  }
-                  /***/
                 }
                 return true;
               },
@@ -364,7 +302,10 @@ $('document').ready(function(){
                 }
               }],
               attach: {
-                click: [['.button', 'nav']]
+                click: [{
+                  el: '.button',
+                  id: 'nav'
+                }]
               }
             },
             title: ['Главное меню', 'Меню'],
@@ -508,9 +449,35 @@ $('document').ready(function(){
           },
           menu: {
             attach: {
-              mouseover: [['.carousel .button.left', 'left'], ['.carousel .button.right', 'right']],
-              mouseout: [['.carousel .button.left', 'left'], ['.carousel .button.right', 'right']],
-              click: [['.carousel .button.left', 'left'], ['.carousel .button.right', 'right']]
+              mouseover: [
+                {
+                  el: '.carousel .button.left',
+                  id: 'left'
+                }, {
+                  el: '.carousel .button.right',
+                  id: 'right'
+                }
+              ],
+              mouseout: [
+                {
+                  el: '.carousel .button.left',
+                  id: 'left'
+                }, {
+                  el: '.carousel .button.right',
+                  id: 'right'
+                }
+              ],
+              click: [
+                {
+                  el: '.carousel .button.left',
+                  id: 'left',
+                  delay: true
+                }, {
+                  el: '.carousel .button.right',
+                  id: 'right',
+                  delay: true
+                }
+              ]
             },
             render: function(){
               var a, b, c, d;
@@ -535,10 +502,9 @@ $('document').ready(function(){
               };
             },
             refresh: function(data){
-              var a, b, c;
+              var a, b, main, c;
               if (!data.node) {
                 data.node = this.cfg.node.find('.carousel');
-                data.list = this.cfg.node.find('.data .item');
                 data.time = this.cfg.show[1].duration;
               }
               if (!data.box) {
@@ -548,22 +514,31 @@ $('document').ready(function(){
               if (!data.hover) {
                 a = data.box;
                 b = data.btn;
-                c = [0, 2].map(function(index){
+                data.hover = [1, 3].map(function(index){
                   var c;
                   c = new TimelineLite({
                     paused: true,
                     data: a.eq(index)
                   });
-                  c.to([a[index], b[index], a[1], b[1]], data.time, {
+                  c.to([a[index], b[index], a[2], b[2]], data.time, {
                     className: '+=hover'
                   });
                   return c;
                 });
-                data.hover = c;
+              }
+              if (!data.unhover) {
+                a = new TimelineLite({
+                  paused: true
+                });
+                a.to([data.box, data.btn], data.time / 2, {
+                  className: '-=hover'
+                });
+                data.unhover = a;
               }
               if (!data.slide) {
-                a = this.cfg.context.cfg.nav.current || 0;
-                b = data.list.length - 1;
+                main = this.cfg.context;
+                a = main.cfg.nav.current || 0;
+                b = main.data.length - 1;
                 c = [
                   a > 1
                     ? a - 2
@@ -571,60 +546,64 @@ $('document').ready(function(){
                     ? a + 2
                     : a + 1 - b
                 ];
-                a = [data.list.eq(c[0]).clone(), data.list.eq(c[1]).clone()];
+                data.btn.eq(0).text(main.data[c[0]].name);
+                data.btn.eq(4).text(main.data[c[1]].name);
+                a = data.box.eq(0);
+                b = data.box.eq(4);
+                a = [a.clone(), b.clone()];
                 b = [a[0].find('.button'), a[1].find('.button')];
-                c = [[a[0], b[0]], [a[1], b[1]]];
-                a = [['item', 'button left'], ['item active', 'button center'], ['item', 'button right']];
-                b = [['item hidden', 'button hidden']];
-                a = [a.concat(b), b.concat(a)];
-                a = a.map(function(side, direction){
-                  var a;
-                  return a = side.map(function(item, index){
-                    var a;
-                    if (direction === 0 && index === 0 || direction === 1 && index === 3) {
-                      return [[c[direction][0], item[0]], [c[direction][1], item[1]]];
-                    }
-                    if (!direction) {
-                      index = index - 1;
-                    }
-                    a = [data.box.eq(index), data.btn.eq(index)];
-                    return [[a[0], item[0]], [a[1], item[1]]];
-                  });
-                });
-                data.slide = a.map(function(side, direction){
-                  var a;
-                  a = new TimelineLite({
+                a = [[a[0], b[0]], [a[1], b[1]]];
+                data.slide = a.map(function(box, index){
+                  var a, b;
+                  a = new TimelineMax({
                     paused: true,
                     onStart: function(){
-                      if (direction) {
-                        data.node.append(c[1][0]);
+                      if (index) {
+                        data.node.append(box[0]);
+                        data.box.eq(0).remove();
                       } else {
-                        data.node.prepend(c[0][0]);
+                        data.node.prepend(box[0]);
+                        data.box.eq(4).remove();
                       }
                     },
                     onComplete: function(){
-                      var b;
-                      side.forEach(function(item){
-                        item[0][0].prop('style', '');
-                        item[1][0].prop('style', '');
-                      });
-                      b = direction
-                        ? 0
-                        : side.length - 1;
-                      side[b][0][0].remove();
+                      data.box.prop('style', '');
+                      data.btn.prop('style', '');
                       delete data.box;
                       delete data.hover;
+                      delete data.unhover;
                       delete data.slide;
                     }
                   });
-                  side.forEach(function(item){
-                    a.to(item[0][0], data.time, {
-                      className: item[0][1]
-                    }, 0);
-                    a.to(item[1][0], data.time, {
-                      className: item[1][1]
-                    }, 0);
-                  });
+                  if (index) {
+                    b = [['+=hidden', '-=active', '+=active', '-=hidden'], ['+=hidden', 'button left', 'button center', '-=hidden']];
+                  } else {
+                    b = [['-=hidden', '+=active', '-=active', '+=hidden'], ['-=hidden', 'button center', 'button right', '+=hidden']];
+                  }
+                  a.to(data.box[index + 0], data.time, {
+                    className: b[0][0]
+                  }, 0);
+                  a.to(data.box[index + 1], data.time, {
+                    className: b[0][1]
+                  }, 0);
+                  a.to(data.box[index + 2], data.time, {
+                    className: b[0][2]
+                  }, 0);
+                  a.to(data.box[index + 3], data.time, {
+                    className: b[0][3]
+                  }, 0);
+                  a.to(data.btn[index + 0], data.time, {
+                    className: b[1][0]
+                  }, 0);
+                  a.to(data.btn[index + 1], data.time, {
+                    className: b[1][1]
+                  }, 0);
+                  a.to(data.btn[index + 2], data.time, {
+                    className: b[1][2]
+                  }, 0);
+                  a.to(data.btn[index + 3], data.time, {
+                    className: b[1][3]
+                  }, 0);
                   return a;
                 });
               }
@@ -831,8 +810,7 @@ $('document').ready(function(){
         a = a + '.' + this.cfg.namespace;
         for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
           d = b[i$];
-          c = $('#' + this.cfg.id + ' ' + d[0]);
-          d = d[1];
+          c = $('#' + this.cfg.id + ' ' + d.el);
           if (!c || !c.length) {
             continue;
           }
@@ -1130,12 +1108,10 @@ $('document').ready(function(){
       }
     },
     event: function(event){
-      var me, cfg, nav, a, data, direction, b, t;
-      if (!this.cfg) {
-        return false;
-      }
-      me = this;
-      cfg = me.cfg;
+      var me, node, cfg, nav, a, data;
+      me = P.event;
+      node = this;
+      cfg = node.cfg;
       nav = cfg.nav;
       if (!cfg.attach.data) {
         cfg.attach.data = {};
@@ -1145,6 +1121,34 @@ $('document').ready(function(){
         a[nav.id] = {};
       }
       data = a[nav.id];
+      if (!me.busy) {
+        me.busy = P.eventHandler.apply(node, [event, data, cfg, nav]);
+      } else if (event.data.delay) {
+        a = !!me.delayed;
+        me.delayed = w3ui.PARTIAL(this, P.eventHandler, event, data, cfg, nav);
+        if (a) {
+          return true;
+        }
+        if (typeof me.busy === 'object') {
+          me.busy.timeScale(2);
+        }
+        w3ui.THREAD([
+          function(){
+            return !me.busy;
+          }, function(){
+            me.busy = me.delayed();
+            delete me.delayed;
+            return true;
+          }
+        ]);
+      }
+      return true;
+    },
+    eventHandler: function(event, data, cfg, nav){
+      var id, a, c, b, t;
+      if (!cfg.detach) {
+        return false;
+      }
       switch (cfg.id) {
       case 'menu':
         true;
@@ -1152,50 +1156,51 @@ $('document').ready(function(){
       case 'console':
         switch (nav.id) {
         case 'menu':
-          direction = event.data === 'left' ? 0 : 1;
+          id = event.data.id === 'left' ? 0 : 1;
           switch (event.type) {
           case 'mouseover':
-            a = V.skel.console.cfg.data.hover;
-            a[direction].play();
+            a = V.skel.console.cfg.data.hover[id];
+            a.play();
             break;
           case 'mouseout':
-            a = V.skel.console.cfg.data.hover;
-            a[direction].reverse();
+            a = V.skel.console.cfg.data.hover[id];
+            a.reverse();
             break;
           case 'click':
-            a = V.skel.console.cfg.data.slide;
-            b = V.skel.menu.cfg.data.slide;
-            if (b) {
-              b[1].play();
-              return true;
+            c = cfg.level + 1;
+            a = M.nav[c].current || 0;
+            b = cfg.context.data.length - 1;
+            if (id) {
+              b = a < b ? a + 1 : 0;
+            } else {
+              b = a > 0 ? a - 1 : b;
             }
+            M.nav[c].current = b;
             t = new TimelineLite({
               paused: true,
-              onStart: function(){
-                cfg.detach();
-              },
+              ease: Power2.easeInOut,
               onComplete: function(){
-                var c, a, b;
-                c = cfg.level + 1;
-                a = M.nav[c].current || 0;
-                b = cfg.context.data.length - 1;
-                if (direction) {
-                  b = a < b ? a + 1 : 0;
-                } else {
-                  b = a > 0 ? a - 1 : b;
-                }
-                M.nav[c].current = b;
                 V.walk('wa', true, 'refresh', function(){
-                  return cfg.attach();
+                  var ref$, ref1$;
+                  cfg.detach();
+                  cfg.attach();
+                  return ref1$ = (ref$ = P.event).busy, delete ref$.busy, ref1$;
                 });
               }
             });
-            t.add(a[direction].play());
+            a = V.skel.console.cfg.data;
+            b = V.skel.menu.cfg.data;
+            if (a.box.hasClass('hover')) {
+              t.add(a.unhover.play());
+            }
+            t.add(a.slide[id].play());
+            t.add(b.slide[id].play(), 0);
             t.play();
+            return t;
           }
         }
       }
-      return true;
+      return false;
     }
   };
   if (M && V && P) {

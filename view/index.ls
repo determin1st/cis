@@ -175,8 +175,14 @@ $ \document .ready ->
                     # }}}
                     attach: # {{{
                         click:
-                            ['#header .b1 .button' 'mode']
-                            ['#header .b2 .button' 'config']
+                            {
+                                el: '#header .b1 .button'
+                                id: 'mode'
+                            }
+                            {
+                                el: '#header .b2 .button'
+                                id: 'config'
+                            }
                     # }}}
                 # }}}
                 view: # {{{
@@ -224,6 +230,7 @@ $ \document .ready ->
                                 # prepare
                                 if not @cfg.data.box
                                     @cfg.data.box = @cfg.node.find '.box'
+                                    @cfg.data.time = @cfg.show.1.duration
                                 # set style
                                 a = @cfg.nav.current or 0
                                 @cfg.data.box.eq a .addClass 'active'
@@ -236,7 +243,6 @@ $ \document .ready ->
                                 if not data.box.hasClass 'attached'
                                     data.box.addClass 'attached'
                                 # initialize menu slide effect (3d-rotation)
-                                # {{{
                                 if not data.slide
                                     # prepare data
                                     # determine indexes
@@ -246,150 +252,60 @@ $ \document .ready ->
                                         if a > 0 then a - 1 else b # left
                                         if a < b then a + 1 else 0 # right
                                     a =
-                                        [c.1, a, c.0]
-                                        [c.0, a, c.1]
+                                        [a, c.0]
+                                        [a, c.1]
                                     # get boxes
                                     a = a.map (side) -> side.map (index) ->
                                         data.box.eq index
-                                    # add main box
-                                    #a.0 = [@cfg.node] ++ a.0
-                                    #a.1 = [@cfg.node] ++ a.1
-                                    # define effect parameters
-                                    a =
-                                        # left slide
-                                        [
-                                            # boxes
-                                            a.0
-                                            # transform origin
-                                            ['100% 0%' '0% 0%' '0% 0%']
-                                        ]
-                                        # right slide
-                                        [
-                                            a.1
-                                            ['100% 0%' '0% 0%']
-                                        ]
+                                    # transition parameters
+                                    c =
+                                        ['0%' '100%' '-100%' '0%']
+                                        ['0%' '-100%' '100%' '0%']
                                     # create effect
-                                    data.slide = a.map (param, index) ->
-                                        # prepare
-                                        return null if index == 0
-                                        box = param.0
-                                        transform = param.1
-                                        w = box.1.innerWidth!
-                                        deep = -w / 1.0
-                                        duration = [5, 10]
+                                    data.slide = a.map (a, index) ->
                                         # create timeline
-                                        a = new TimelineLite {
+                                        b = new TimelineLite {
                                             paused: true
+                                            onComplete: !->
+                                                # cleanup inline styles
+                                                data.box.prop 'style', ''
+                                                # invalidate current data
+                                                delete data.slide
                                         }
+                                        # prepare
                                         # step 0
                                         # initital state
-                                        a.set box.0, {
-                                            #transformOrigin: '100% 0%'
-                                            rotationY: -45
-                                            x: '-50%'
+                                        b.set a.0, {
+                                            transformOrigin: '0% 50%'
+                                            x: c[index].0
                                             zIndex: 1
                                         }
-                                        a.set box.1, {
-                                            #transformOrigin: '100% 0%'
+                                        b.set a.1, {
+                                            transformOrigin: '0% 50%'
+                                            x: c[index].2
                                             zIndex: 2
                                         }
-                                        a.set box.2, {
-                                            #transformOrigin: '0% 0%'
-                                            rotationY: 45
-                                            x: '50%'
-                                            zIndex: 3
-                                        }
-                                        a.set box, {
+                                        b.set a, {
                                             visibility: 'visible'
                                         }
                                         # step 1
-                                        # detach elements
-                                        a.addLabel 's1'
-                                        a.to box, duration.0, {
-                                            className: '+=detached'
+                                        # move transition
+                                        b.addLabel 's1'
+                                        b.to a.0, data.time, {
+                                            x: c[index].1
                                         }, 's1'
-                                        a.to box, duration.0, {
-                                            z: deep
+                                        b.to a.1, data.time, {
+                                            x: c[index].3
                                         }, 's1'
-                                        # step 2
-                                        # rotate transition
-                                        a.addLabel 's2'
-                                        b = 100 * Math.SQRT1_2
-                                        a.to box.0, duration.1, {
-                                            #z: '-=' + (w * Math.SQRT1_2)
-                                            #x: '-' + b + '%'
-                                            rotationY: -65
-                                        }, 's2'
-                                        a.to box.1, duration.1, {
-                                            rotationY: -45
-                                            #x: '-100%'
-                                        }, 's2'
-                                        a.to box.2, duration.1, {
-                                            #x: '0%'
-                                            rotationY: 0
-                                        }, 's2'
-                                        /***
-                                        a.to box.0, duration.1, {
-                                            rotationY: -45
-                                            x: '-=90%'
-                                        }, 's2'
-                                        a.addLabel 's2'
-                                        a.to box.0, duration.1, {
-                                            transformOrigin: '50% 50%'
-                                            rotationY: -45
-                                            x: '-100%'
-                                            z: deep * 2
-                                        }, 's1'
-                                        a.to box, duration.1, {
-                                            transformOrigin: '50% 50%'
-                                            roatationY: 0
-                                            x: 0
-                                            z: 0
+                                        # finish
+                                        b.set a.0, {
+                                            className: '-=active'
                                         }
-                                        /***/
+                                        b.set a.1, {
+                                            className: '+=active'
+                                        }
                                         # done
-                                        a
-                                    /***
-                                    @keyframes rotateCubeLeftOut {
-                                        0% { }
-                                        50% {
-                                            transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
-                                        }
-                                        100% {
-                                            opacity: .3;
-                                            transform: translateX(-100%) rotateY(-90deg);
-                                        }
-                                    }
-                                    @keyframes rotateCubeLeftIn {
-                                        0% {
-                                            opacity: .3;
-                                            transform: translateX(100%) rotateY(90deg);
-                                        }
-                                        50% {
-                                            transform: translateX(50%) translateZ(-200px) rotateY(45deg);
-                                        }
-                                    }
-                                    @keyframes rotateCubeRightOut {
-                                        0% { }
-                                        50% {
-                                            transform: translateX(50%) translateZ(-200px) rotateY(45deg);
-                                        }
-                                        100% {
-                                            opacity: .3;
-                                            transform: translateX(100%) rotateY(90deg);
-                                        }
-                                    }
-                                    @keyframes rotateCubeRightIn {
-                                        0% {
-                                            opacity: .3;
-                                            transform: translateX(-100%) rotateY(-90deg);
-                                        }
-                                        50% {
-                                            transform: translateX(-50%) translateZ(-200px) rotateY(-45deg);
-                                        }
-                                    }
-                                    /***/
-                                # }}}
+                                        b
                                 # done
                                 true
                             # }}}
@@ -416,10 +332,14 @@ $ \document .ready ->
                                 }
                                 ...
                             # }}}
-                            attach:
+                            attach: # {{{
                                 click:
-                                    ['.button' 'nav']
+                                    {
+                                        el: '.button'
+                                        id: 'nav'
+                                    }
                                     ...
+                            # }}}
                         title:
                             'Главное меню'
                             'Меню'
@@ -563,16 +483,37 @@ $ \document .ready ->
                             ...
                         # }}}
                     menu:
-                        attach:
+                        attach: # {{{
                             mouseover:
-                                ['.carousel .button.left'  'left']
-                                ['.carousel .button.right' 'right']
+                                {
+                                    el: '.carousel .button.left'
+                                    id: 'left'
+                                }
+                                {
+                                    el: '.carousel .button.right'
+                                    id: 'right'
+                                }
                             mouseout:
-                                ['.carousel .button.left'  'left']
-                                ['.carousel .button.right' 'right']
+                                {
+                                    el: '.carousel .button.left'
+                                    id: 'left'
+                                }
+                                {
+                                    el: '.carousel .button.right'
+                                    id: 'right'
+                                }
                             click:
-                                ['.carousel .button.left'  'left']
-                                ['.carousel .button.right' 'right']
+                                {
+                                    el: '.carousel .button.left'
+                                    id: 'left'
+                                    delay: true
+                                }
+                                {
+                                    el: '.carousel .button.right'
+                                    id: 'right'
+                                    delay: true
+                                }
+                        # }}}
                         render: -> # {{{
                             # prepare data
                             a = @data
@@ -598,7 +539,6 @@ $ \document .ready ->
                             # initialize data
                             if not data.node
                                 data.node = @cfg.node.find '.carousel'
-                                data.list = @cfg.node.find '.data .item'
                                 data.time = @cfg.show.1.duration
                             if not data.box
                                 data.box = data.node.find '.item'
@@ -610,29 +550,39 @@ $ \document .ready ->
                                 a = data.box
                                 b = data.btn
                                 # for left and right nodes
-                                c = [0 2].map (index) ->
+                                data.hover = [1, 3].map (index) ->
                                     # create timeline
                                     c = new TimelineLite {
                                         paused: true
                                         data: a.eq index
                                     }
-                                    c.to [a[index], b[index], a.1, b.1], data.time, {
+                                    c.to [a[index], b[index], a.2, b.2], data.time, {
                                         className: '+=hover'
                                     }
                                     # done
                                     c
-                                # save
-                                data.hover = c
+                            # }}}
+                            # initialize unhover effect
+                            # {{{
+                            if not data.unhover
+                                # create timeline
+                                a = new TimelineLite {
+                                    paused: true
+                                }
+                                a.to [data.box, data.btn], data.time / 2, {
+                                    className: '-=hover'
+                                }
+                                data.unhover = a
                             # }}}
                             # initialize slide effect
                             # {{{
                             if not data.slide
-                                # prepare data
-                                # determine active node index
-                                a = @cfg.context.cfg.nav.current or 0
-                                b = data.list.length - 1
-                                # determine indexes of new elements
-                                # that may appear
+                                # prepare
+                                main = @cfg.context
+                                # determine current
+                                a = main.cfg.nav.current or 0
+                                b = main.data.length - 1
+                                # determine new
                                 c =
                                     # from left
                                     if a > 1
@@ -642,85 +592,83 @@ $ \document .ready ->
                                     if a + 2 <= b
                                         then a + 2
                                         else a + 1 - b
-                                # get boxes
+                                # set captions
+                                data.btn.eq 0 .text main.data[c.0].name
+                                data.btn.eq 4 .text main.data[c.1].name
+                                # clone elements
+                                a = data.box.eq 0
+                                b = data.box.eq 4
                                 a =
-                                    data.list.eq c.0 .clone!
-                                    data.list.eq c.1 .clone!
-                                # get buttons
+                                    a.clone!
+                                    b.clone!
                                 b =
                                     a.0.find '.button'
                                     a.1.find '.button'
-                                # combine them
-                                c =
+                                # merge container and button
+                                a =
                                     [a.0, b.0]
                                     [a.1, b.1]
-                                # define classes
-                                # final state
-                                a =
-                                    ['item' 'button left']
-                                    ['item active' 'button center']
-                                    ['item' 'button right']
-                                # removal state
-                                b = [['item hidden' 'button hidden']]
-                                # combine it
-                                a =
-                                    a ++ b  # +left -right
-                                    b ++ a  # -left +right
-                                # combine both classes and nodes
-                                a = a.map (side, direction) ->
-                                    a = side.map (item, index) ->
-                                        # new element
-                                        if direction == 0 and index == 0 or
-                                           direction == 1 and index == 3
-                                            # done
-                                            return [
-                                                [c[direction].0, item.0]
-                                                [c[direction].1, item.1]
-                                            ]
-                                        # current elements
-                                        index = index - 1 if not direction
-                                        a =
-                                            data.box.eq index
-                                            data.btn.eq index
-                                        return [
-                                            [a.0, item.0]
-                                            [a.1, item.1]
-                                        ]
                                 # create effects
-                                data.slide = a.map (side, direction) ->
-                                    a = new TimelineLite {
+                                data.slide = a.map (box, index) ->
+                                    # create timeline
+                                    a = new TimelineMax {
                                         paused: true
                                         onStart: !->
-                                            # add new node
-                                            if direction
-                                                data.node.append c.1.0
+                                            # add and remove
+                                            if index
+                                                # +right -left
+                                                data.node.append box.0
+                                                data.box.eq 0 .remove!
                                             else
-                                                data.node.prepend c.0.0
+                                                # -right +left
+                                                data.node.prepend box.0
+                                                data.box.eq 4 .remove!
                                         onComplete: !->
                                             # cleanup inline styles
-                                            side.forEach (item) !->
-                                                item.0.0.prop 'style', ''
-                                                item.1.0.prop 'style', ''
-                                            # remove node
-                                            b = if direction
-                                                then 0
-                                                else side.length - 1
-                                            side[b].0.0.remove!
+                                            data.box.prop 'style', ''
+                                            data.btn.prop 'style', ''
                                             # invalidate current data
                                             delete data.box
                                             delete data.hover
+                                            delete data.unhover
                                             delete data.slide
                                     }
+                                    # define transition classes
+                                    if index
+                                        b =
+                                            ['+=hidden' '-=active' '+=active' '-=hidden']
+                                            ['+=hidden' 'button left' 'button center' '-=hidden']
+                                    else
+                                        b =
+                                            ['-=hidden' '+=active' '-=active' '+=hidden']
+                                            ['-=hidden' 'button center' 'button right' '+=hidden']
                                     # add tweens
-                                    side.forEach (item) !->
-                                        # container
-                                        a.to item.0.0, data.time, {
-                                            className: item.0.1
-                                        }, 0
-                                        # button
-                                        a.to item.1.0, data.time, {
-                                            className: item.1.1
-                                        }, 0
+                                    # container
+                                    a.to data.box[index + 0], data.time, {
+                                        className: b.0.0
+                                    }, 0
+                                    a.to data.box[index + 1], data.time, {
+                                        className: b.0.1
+                                    }, 0
+                                    a.to data.box[index + 2], data.time, {
+                                        className: b.0.2
+                                    }, 0
+                                    a.to data.box[index + 3], data.time, {
+                                        className: b.0.3
+                                    }, 0
+                                    # button
+                                    a.to data.btn[index + 0], data.time, {
+                                        className: b.1.0
+                                    }, 0
+                                    a.to data.btn[index + 1], data.time, {
+                                        className: b.1.1
+                                    }, 0
+                                    a.to data.btn[index + 2], data.time, {
+                                        className: b.1.2
+                                    }, 0
+                                    a.to data.btn[index + 3], data.time, {
+                                        className: b.1.3
+                                    }, 0
                                     # done
                                     a
                             # }}}
@@ -897,8 +845,7 @@ $ \document .ready ->
                 # event targets
                 for d in b
                     # get node and data
-                    c = $ '#'+@cfg.id+' '+d.0
-                    d = d.1
+                    c = $ '#'+@cfg.id+' '+d.el
                     # check
                     continue if not c or not c.length
                     # add
@@ -1212,17 +1159,48 @@ $ \document .ready ->
                 console.log 'resize failed'
         # }}}
         event: (event) -> # {{{
-            # check
-            return false if not @cfg
             # prepare
-            me  = @
-            cfg = me.cfg
-            nav = cfg.nav
+            me   = P.event
+            node = @
+            cfg  = node.cfg
+            nav  = cfg.nav
             # prepare data storage
             cfg.attach.data = {} if not cfg.attach.data
             a = cfg.node.data
             a[nav.id] = {} if not a[nav.id]
             data = a[nav.id]
+            # check
+            if not me.busy
+                # handle event
+                me.busy = P.eventHandler.apply node, [event, data, cfg, nav]
+            else if event.data.delay
+                # check if already delayed
+                a = !!me.delayed
+                # delay (replace previous)
+                me.delayed = w3ui.PARTIAL @, P.eventHandler, event, data, cfg, nav
+                # check waiter started
+                return true if a
+                # speed up animations
+                if typeof me.busy == 'object'
+                    me.busy.timeScale 2
+                # start waiter
+                w3ui.THREAD [
+                    ->
+                        # wait
+                        not me.busy
+                    ->
+                        # run delayed
+                        me.busy = me.delayed!
+                        # cleanup
+                        delete me.delayed
+                        true
+                ]
+            # done
+            true
+        # }}}
+        eventHandler: (event, data, cfg, nav) -> # {{{
+            # check if events detached
+            return false if not cfg.detach
             # handle event
             switch cfg.id
             | 'menu' =>
@@ -1236,7 +1214,7 @@ $ \document .ready ->
                 | 'menu' =>
                     # {{{
                     # prepare
-                    direction = if event.data == 'left'
+                    id = if event.data.id == 'left'
                         then 0
                         else 1
                     # check action type
@@ -1244,57 +1222,60 @@ $ \document .ready ->
                     | 'mouseover' =>
                         # activate hover effect
                         # get effect
-                        a = V.skel.console.cfg.data.hover
+                        a = V.skel.console.cfg.data.hover[id]
                         # play
-                        a[direction].play!
+                        a.play!
                     | 'mouseout' =>
                         # deactivate hover effect
                         # get effect
-                        a = V.skel.console.cfg.data.hover
+                        a = V.skel.console.cfg.data.hover[id]
                         # reverse play
-                        a[direction].reverse!
+                        a.reverse!
                     | 'click' =>
-                        # get effects
-                        a = V.skel.console.cfg.data.slide
-                        b = V.skel.menu.cfg.data.slide
-                        if b
-                            b.1.play!
-                            return true
+                        # change model state
+                        # determine current
+                        c = cfg.level + 1
+                        a = M.nav[c].current or 0
+                        # determine new current
+                        b = cfg.context.data.length - 1
+                        if id
+                            b = if a < b
+                                then a + 1
+                                else 0
+                        else
+                            b = if a > 0
+                                then a - 1
+                                else b
+                        # change
+                        M.nav[c].current = b
                         # create timeline
                         t = new TimelineLite {
                             paused: true
-                            onStart: !->
-                                # detach events
-                                cfg.detach!
+                            ease: Power2.easeInOut
                             onComplete: !->
-                                # change model state
-                                # determine current
-                                c = cfg.level + 1
-                                a = M.nav[c].current or 0
-                                # determine new current
-                                b = cfg.context.data.length - 1
-                                if direction
-                                    b = if a < b
-                                        then a + 1
-                                        else 0
-                                else
-                                    b = if a > 0
-                                        then a - 1
-                                        else b
-                                # change
-                                M.nav[c].current = b
                                 # refresh
                                 V.walk 'wa', true, 'refresh', ->
-                                    # reattach events
+                                    # reattach
+                                    cfg.detach!
                                     cfg.attach!
+                                    # unlock
+                                    delete P.event.busy
                         }
-                        # add effects
-                        t.add a[direction].play!
-                        # launch
+                        # get effects
+                        a = V.skel.console.cfg.data
+                        b = V.skel.menu.cfg.data
+                        # add tweens
+                        if a.box.hasClass 'hover'
+                            t.add a.unhover.play!
+                        t.add a.slide[id].play!
+                        t.add b.slide[id].play!, 0
+                        # play effects
                         t.play!
+                        # lock
+                        return t
                     # }}}
             # done
-            true
+            false
         # }}}
     # }}}
     ###

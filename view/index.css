@@ -261,14 +261,8 @@ body
 }
 /* }}} */
 /* menu {{{ */
-#view.menu
-{
-  /*perspective: var(--v-perspective);/***/
-}
 #menu
 {
-  perspective: var(--v-perspective);/***/
-  transform-style: preserve-3d;/***/
 }
 #menu .box
 {
@@ -293,11 +287,6 @@ body
 {
   border: 0px solid var(--col95);
   background-color: var(--col95);
-}
-#menu .box.attached.detached
-{
-  border: 2px solid var(--col85);
-  background-color: var(--col93);
 }
 /* menu option buttons */
 #menu .box > div
