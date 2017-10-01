@@ -267,6 +267,7 @@ $ \document .ready ->
                                         b = new TimelineLite {
                                             paused: true
                                             onComplete: !->
+                                                debugger
                                                 # cleanup inline styles
                                                 data.box.prop 'style', ''
                                                 # invalidate current data
@@ -338,6 +339,15 @@ $ \document .ready ->
                                         el: '.button'
                                         id: 'nav'
                                     }
+                                    ...
+                                mousedown:
+                                    {}
+                                    ...
+                                mousemove:
+                                    {}
+                                    ...
+                                mouseup:
+                                    {}
                                     ...
                             # }}}
                         title:
@@ -827,45 +837,47 @@ $ \document .ready ->
             # done
             true
         # }}}
-        attach: (events) -> # {{{
+        attach: (event) -> # {{{
             # check
             return true if not @cfg.node
-            if events == true
+            if event == true
                 # adjacent event source
                 # extract
                 if not (a = @cfg.nav.id) or not (b = @[a])
                     return true
-                # get events
-                events = b.attach
-            # assemble events
+                # get event data
+                event = b.attach
+            # assemble event listeners
             e = []
-            for own a,b of events
-                # event name
-                a = a + '.' + @cfg.namespace
-                # event targets
+            for own a,b of event
                 for d in b
-                    # get node and data
-                    c = $ '#'+@cfg.id+' '+d.el
-                    # check
+                    # determine selector
+                    c = '#'+@cfg.id
+                    c = c+' '+d.el if d.el
+                    # get nodes
+                    c = document.querySelectorAll '#'+@cfg.id+c
                     continue if not c or not c.length
+                    # create event handler
+                    # combined with custom data
+                    d = w3ui.PARTIAL @, P.event, d
                     # add
-                    e.push [a, c, d]
+                    e.push [c, a, d]
             # check
             return true if not e.length
-            # define handler
-            # bind it to current node
-            d = w3ui.PARTIAL @, P.event
-            # attach
-            for [a, b, c] in e
-                b.on a, null, c, d
-            # define detach
+            # prepare detach procedure
             @cfg.detach = ->
-                # detach
                 for [a, b, c] in e
-                    b.off a
+                    a.forEach (a) !->
+                        a.removeEventListener b, c
                 # done
                 delete @detach
                 true
+            # prepare data storage
+            @cfg.detach.data = {}
+            # attach
+            for [a, b, c] in e
+                a.forEach (a) !->
+                    a.addEventListener b, c
             # done
             true
         # }}}
@@ -1158,26 +1170,22 @@ $ \document .ready ->
             else if not V.walk '', true, 'resize'
                 console.log 'resize failed'
         # }}}
-        event: (event) -> # {{{
+        event: (data, event) -> # {{{
             # prepare
             me   = P.event
-            node = @
-            cfg  = node.cfg
-            nav  = cfg.nav
-            # prepare data storage
-            cfg.attach.data = {} if not cfg.attach.data
-            a = cfg.node.data
-            a[nav.id] = {} if not a[nav.id]
-            data = a[nav.id]
+            cfg  = @cfg
+            nav  = @cfg.nav
+            # prepare event data
+            return false if not cfg.detach
+            event.data = data
             # check
             if not me.busy
                 # handle event
-                me.busy = P.eventHandler.apply node, [event, data, cfg, nav]
-            else if event.data.delay
-                # check if already delayed
-                a = !!me.delayed
-                # delay (replace previous)
-                me.delayed = w3ui.PARTIAL @, P.eventHandler, event, data, cfg, nav
+                me.busy = P.react.apply @, [event, cfg.detach.data, cfg, nav]
+            else if data.delay
+                # delay event (replace previous)
+                a = !!me.delay
+                me.delay = w3ui.PARTIAL @, P.react, event, cfg.detach.data, cfg, nav
                 # check waiter started
                 return true if a
                 # speed up animations
@@ -1190,25 +1198,130 @@ $ \document .ready ->
                         not me.busy
                     ->
                         # run delayed
-                        me.busy = me.delayed!
+                        me.busy = me.delay!
                         # cleanup
-                        delete me.delayed
+                        delete me.delay
                         true
                 ]
             # done
             true
         # }}}
-        eventHandler: (event, data, cfg, nav) -> # {{{
-            # check if events detached
-            return false if not cfg.detach
-            # handle event
+        react: (event, data, cfg, nav) -> # {{{
+            # prepare
             switch cfg.id
             | 'menu' =>
-                # change model
-                #M.2 = event.target.className
-                # construct
-                #P.construct 'view'
-                true
+                switch event.type
+                | 'mousedown' =>
+                    # drag start
+                    # {{{
+                    # check mouse position
+                    a = document.elementFromPoint event.pageX, event.pageY
+                    return false if a.className == 'button'
+                    # set style
+                    cfg.node.addClass 'drag'
+                    # define drag size
+                    a = cfg.node.box.innerWidth
+                    data.dragSize = a * 0.5
+                    # define start coordinate (horizontal drag)
+                    data.dragX = event.pageX
+                    # get effects
+                    a = V.skel.console.cfg.data.slide
+                    b = V.skel.menu.cfg.data.slide
+                    # create timelines
+                    c =
+                        new TimelineLite {paused: true}
+                        new TimelineLite {paused: true}
+                    # add tweens
+                    c.0.add a[0].play!, 0
+                    c.0.add b[0].play!, 0
+                    c.1.add a[1].play!, 0
+                    c.1.add b[1].play!, 0
+                    data.drag = c
+                    # set flag
+                    data.dragStarted = true
+                    # }}}
+                | 'mousemove' =>
+                    # drag
+                    # {{{
+                    # check if started
+                    return false if not data.dragStarted
+                    # determine drag distance
+                    a = data.dragX - event.pageX
+                    b = Math.abs a
+                    if b > data.dragSize
+                        b = data.dragSize
+                        a = -b if a < 0
+                    # determine direction (timeline)
+                    c = if a < 0
+                        then 0      # left
+                        else 1      # right
+                    # determine position on timeline
+                    a = b / data.dragSize
+                    # animate
+                    data.drag[c].progress a, true
+                    # }}}
+                | 'mouseup' =>
+                    # drag stop
+                    # {{{
+                    # stop drag
+                    data.dragStarted = false
+                    # remove style
+                    cfg.node.removeClass 'drag'
+                    # determine current state
+                    a =
+                        data.drag.0.progress!
+                        data.drag.1.progress!
+                    c =
+                        a.0 >= 0.55
+                        a.1 >= 0.55
+                    # check
+                    if c.0 or c.1
+                        # change model
+                        # determine current
+                        a = nav.current or 0
+                        # determine new
+                        b = @data.length - 1
+                        if c.0
+                            b = if a < b
+                                then a + 1
+                                else 0
+                        else
+                            b = if a > 0
+                                then a - 1
+                                else b
+                        # change
+                        nav.current = b
+                        # select timeline
+                        c = if c.0
+                            then data.drag.0
+                            else data.drag.1
+                        # define complete routine
+                        c.eventCallback 'onComplete', !->
+                            # refresh
+                            debugger
+                            V.walk 'wa', true, 'refresh', ->
+                                # reattach
+                                cfg.detach!
+                                cfg.attach!
+                                # unlock
+                                delete P.event.busy
+                        # play
+                        c.play null, true
+                        # lock
+                        return c
+                    # reset
+                    data.drag.0.reverse! if a.0 > 0.0001
+                    data.drag.1.reverse! if a.1 > 0.0001
+                    # }}}
+                | 'click' =>
+                    # menu button click
+                    # {{{
+                    # change model
+                    #M.2 = event.target.className
+                    # construct
+                    #P.construct 'view'
+                    debugger
+                    # }}}
             | 'console' =>
                 switch nav.id
                 | 'menu' =>
@@ -1249,7 +1362,7 @@ $ \document .ready ->
                         # change
                         M.nav[c].current = b
                         # create timeline
-                        t = new TimelineLite {
+                        c = new TimelineLite {
                             paused: true
                             ease: Power2.easeInOut
                             onComplete: !->
@@ -1266,13 +1379,13 @@ $ \document .ready ->
                         b = V.skel.menu.cfg.data
                         # add tweens
                         if a.box.hasClass 'hover'
-                            t.add a.unhover.play!
-                        t.add a.slide[id].play!
-                        t.add b.slide[id].play!, 0
+                            c.add a.unhover.play!
+                        c.add a.slide[id].play!
+                        c.add b.slide[id].play!, 0
                         # play effects
-                        t.play!
+                        c.play!
                         # lock
-                        return t
+                        return c
                     # }}}
             # done
             false

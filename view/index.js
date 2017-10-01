@@ -244,6 +244,7 @@ $('document').ready(function(){
                     b = new TimelineLite({
                       paused: true,
                       onComplete: function(){
+                        debugger;
                         data.box.prop('style', '');
                         delete data.slide;
                       }
@@ -305,7 +306,10 @@ $('document').ready(function(){
                 click: [{
                   el: '.button',
                   id: 'nav'
-                }]
+                }],
+                mousedown: [{}],
+                mousemove: [{}],
+                mouseup: [{}]
               }
             },
             title: ['Главное меню', 'Меню'],
@@ -793,48 +797,58 @@ $('document').ready(function(){
       }
       return true;
     },
-    attach: function(events){
+    attach: function(event){
       var a, b, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
       if (!this.cfg.node) {
         return true;
       }
-      if (events === true) {
+      if (event === true) {
         if (!(a = this.cfg.nav.id) || !(b = this[a])) {
           return true;
         }
-        events = b.attach;
+        event = b.attach;
       }
       e = [];
-      for (a in events) if (own$.call(events, a)) {
-        b = events[a];
-        a = a + '.' + this.cfg.namespace;
+      for (a in event) if (own$.call(event, a)) {
+        b = event[a];
         for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
           d = b[i$];
-          c = $('#' + this.cfg.id + ' ' + d.el);
+          c = '#' + this.cfg.id;
+          if (d.el) {
+            c = c + ' ' + d.el;
+          }
+          c = document.querySelectorAll('#' + this.cfg.id + c);
           if (!c || !c.length) {
             continue;
           }
-          e.push([a, c, d]);
+          d = w3ui.PARTIAL(this, P.event, d);
+          e.push([c, a, d]);
         }
       }
       if (!e.length) {
         return true;
       }
-      d = w3ui.PARTIAL(this, P.event);
-      for (i$ = 0, len$ = e.length; i$ < len$; ++i$) {
-        ref$ = e[i$], a = ref$[0], b = ref$[1], c = ref$[2];
-        b.on(a, null, c, d);
-      }
       this.cfg.detach = function(){
         var i$, ref$, len$, ref1$, a, b, c;
         for (i$ = 0, len$ = (ref$ = e).length; i$ < len$; ++i$) {
           ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1], c = ref1$[2];
-          b.off(a);
+          a.forEach(fn$);
         }
         delete this.detach;
         return true;
+        function fn$(a){
+          a.removeEventListener(b, c);
+        }
       };
+      this.cfg.detach.data = {};
+      for (i$ = 0, len$ = e.length; i$ < len$; ++i$) {
+        ref$ = e[i$], a = ref$[0], b = ref$[1], c = ref$[2];
+        a.forEach(fn$);
+      }
       return true;
+      function fn$(a){
+        a.addEventListener(b, c);
+      }
     },
     color: w3ui.PROXY({
       source: null,
@@ -1107,25 +1121,20 @@ $('document').ready(function(){
         console.log('resize failed');
       }
     },
-    event: function(event){
-      var me, node, cfg, nav, a, data;
+    event: function(data, event){
+      var me, cfg, nav, a;
       me = P.event;
-      node = this;
-      cfg = node.cfg;
-      nav = cfg.nav;
-      if (!cfg.attach.data) {
-        cfg.attach.data = {};
+      cfg = this.cfg;
+      nav = this.cfg.nav;
+      if (!cfg.detach) {
+        return false;
       }
-      a = cfg.node.data;
-      if (!a[nav.id]) {
-        a[nav.id] = {};
-      }
-      data = a[nav.id];
+      event.data = data;
       if (!me.busy) {
-        me.busy = P.eventHandler.apply(node, [event, data, cfg, nav]);
-      } else if (event.data.delay) {
-        a = !!me.delayed;
-        me.delayed = w3ui.PARTIAL(this, P.eventHandler, event, data, cfg, nav);
+        me.busy = P.react.apply(this, [event, cfg.detach.data, cfg, nav]);
+      } else if (data.delay) {
+        a = !!me.delay;
+        me.delay = w3ui.PARTIAL(this, P.react, event, cfg.detach.data, cfg, nav);
         if (a) {
           return true;
         }
@@ -1136,22 +1145,99 @@ $('document').ready(function(){
           function(){
             return !me.busy;
           }, function(){
-            me.busy = me.delayed();
-            delete me.delayed;
+            me.busy = me.delay();
+            delete me.delay;
             return true;
           }
         ]);
       }
       return true;
     },
-    eventHandler: function(event, data, cfg, nav){
-      var id, a, c, b, t;
-      if (!cfg.detach) {
-        return false;
-      }
+    react: function(event, data, cfg, nav){
+      var a, b, c, id;
       switch (cfg.id) {
       case 'menu':
-        true;
+        switch (event.type) {
+        case 'mousedown':
+          a = document.elementFromPoint(event.pageX, event.pageY);
+          if (a.className === 'button') {
+            return false;
+          }
+          cfg.node.addClass('drag');
+          a = cfg.node.box.innerWidth;
+          data.dragSize = a * 0.5;
+          data.dragX = event.pageX;
+          a = V.skel.console.cfg.data.slide;
+          b = V.skel.menu.cfg.data.slide;
+          c = [
+            new TimelineLite({
+              paused: true
+            }), new TimelineLite({
+              paused: true
+            })
+          ];
+          c[0].add(a[0].play(), 0);
+          c[0].add(b[0].play(), 0);
+          c[1].add(a[1].play(), 0);
+          c[1].add(b[1].play(), 0);
+          data.drag = c;
+          data.dragStarted = true;
+          break;
+        case 'mousemove':
+          if (!data.dragStarted) {
+            return false;
+          }
+          a = data.dragX - event.pageX;
+          b = Math.abs(a);
+          if (b > data.dragSize) {
+            b = data.dragSize;
+            if (a < 0) {
+              a = -b;
+            }
+          }
+          c = a < 0 ? 0 : 1;
+          a = b / data.dragSize;
+          data.drag[c].progress(a, true);
+          break;
+        case 'mouseup':
+          data.dragStarted = false;
+          cfg.node.removeClass('drag');
+          a = [data.drag[0].progress(), data.drag[1].progress()];
+          c = [a[0] >= 0.55, a[1] >= 0.55];
+          if (c[0] || c[1]) {
+            a = nav.current || 0;
+            b = this.data.length - 1;
+            if (c[0]) {
+              b = a < b ? a + 1 : 0;
+            } else {
+              b = a > 0 ? a - 1 : b;
+            }
+            nav.current = b;
+            c = c[0]
+              ? data.drag[0]
+              : data.drag[1];
+            c.eventCallback('onComplete', function(){
+              debugger;
+              V.walk('wa', true, 'refresh', function(){
+                var ref$, ref1$;
+                cfg.detach();
+                cfg.attach();
+                return ref1$ = (ref$ = P.event).busy, delete ref$.busy, ref1$;
+              });
+            });
+            c.play(null, true);
+            return c;
+          }
+          if (a[0] > 0.0001) {
+            data.drag[0].reverse();
+          }
+          if (a[1] > 0.0001) {
+            data.drag[1].reverse();
+          }
+          break;
+        case 'click':
+          debugger;
+        }
         break;
       case 'console':
         switch (nav.id) {
@@ -1176,7 +1262,7 @@ $('document').ready(function(){
               b = a > 0 ? a - 1 : b;
             }
             M.nav[c].current = b;
-            t = new TimelineLite({
+            c = new TimelineLite({
               paused: true,
               ease: Power2.easeInOut,
               onComplete: function(){
@@ -1191,12 +1277,12 @@ $('document').ready(function(){
             a = V.skel.console.cfg.data;
             b = V.skel.menu.cfg.data;
             if (a.box.hasClass('hover')) {
-              t.add(a.unhover.play());
+              c.add(a.unhover.play());
             }
-            t.add(a.slide[id].play());
-            t.add(b.slide[id].play(), 0);
-            t.play();
-            return t;
+            c.add(a.slide[id].play());
+            c.add(b.slide[id].play(), 0);
+            c.play();
+            return c;
           }
         }
       }

@@ -61,6 +61,12 @@ body
   color: var(--col40);
 }
 /* }}} */
+/* common {{{ */
+.button
+{
+  -webkit-user-select: none;
+}
+/* }}} */
 
 /* workarea {{{ */
 #wa
@@ -141,7 +147,7 @@ body
   font-size: var(--f-size0);
   white-space: nowrap;
 }
-#header  .button
+#header .button
 {
   display: flex;
   align-items: center;
@@ -263,6 +269,12 @@ body
 /* menu {{{ */
 #menu
 {
+  cursor: grab;
+}
+#menu.drag
+{
+  cursor: ew-resize;
+  cursor: grabbing;
 }
 #menu .box
 {
@@ -306,12 +318,15 @@ body
   color: var(--col40);
   border: 1px solid var(--col85);
   border-radius: 6px;
-  cursor: pointer;
   font-weight: 700;
   font-size: var(--f-size6);
   transition: All 0.6s ease;
 }
-#menu .button:hover
+#menu:not(.drag) .button
+{
+  cursor: pointer;
+}
+#menu:not(.drag) .button:hover
 {
   flex: 1 1 100%;
   max-height: 72px;
