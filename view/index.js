@@ -93,7 +93,6 @@ $('document').ready(function(){
           b = this.cfg.root.box.innerHeight;
           this.cfg.root.style.vWidth = a;
           this.cfg.root.style.vHeight = b;
-          this.cfg.root.style.vPerspective = a + 'px';
           return true;
         }
       },
@@ -243,10 +242,11 @@ $('document').ready(function(){
                     var b;
                     b = new TimelineLite({
                       paused: true,
-                      onComplete: function(){
-                        debugger;
-                        data.box.prop('style', '');
-                        delete data.slide;
+                      data: {
+                        complete: function(){
+                          data.box.prop('style', '');
+                          delete data.slide;
+                        }
                       }
                     });
                     b.set(a[0], {
@@ -303,13 +303,19 @@ $('document').ready(function(){
                 }
               }],
               attach: {
-                click: [{
+                click: {
                   el: '.button',
                   id: 'nav'
-                }],
-                mousedown: [{}],
-                mousemove: [{}],
-                mouseup: [{}]
+                },
+                mousedown: {
+                  el: ''
+                },
+                mousemove: {
+                  el: ''
+                },
+                mouseup: {
+                  el: ''
+                }
               }
             },
             title: ['Главное меню', 'Меню'],
@@ -336,6 +342,9 @@ $('document').ready(function(){
                   }, {
                     id: 'payment',
                     name: 'Оплата'
+                  }, {
+                    id: 'storno',
+                    name: 'Сторно'
                   }
                 ]
               }, {
@@ -347,7 +356,7 @@ $('document').ready(function(){
                     name: 'Расчеты'
                   }, {
                     id: 'document',
-                    name: 'Документы'
+                    name: 'Отчеты'
                   }
                 ]
               }
@@ -455,31 +464,40 @@ $('document').ready(function(){
             attach: {
               mouseover: [
                 {
-                  el: '.carousel .button.left',
+                  el: '.button.left',
                   id: 'left'
                 }, {
-                  el: '.carousel .button.right',
+                  el: '.button.right',
                   id: 'right'
                 }
               ],
               mouseout: [
                 {
-                  el: '.carousel .button.left',
+                  el: '.button.left',
                   id: 'left'
                 }, {
-                  el: '.carousel .button.right',
+                  el: '.button.right',
                   id: 'right'
                 }
               ],
               click: [
                 {
-                  el: '.carousel .button.left',
+                  el: '.button.left',
                   id: 'left',
-                  delay: true
+                  delayed: true
                 }, {
-                  el: '.carousel .button.right',
+                  el: '.button.right',
                   id: 'right',
-                  delay: true
+                  delayed: true
+                }
+              ],
+              keypress: [
+                {
+                  id: 'left',
+                  key: 'ArrowLeft'
+                }, {
+                  id: 'right',
+                  key: 'ArrowRight'
                 }
               ]
             },
@@ -561,22 +579,22 @@ $('document').ready(function(){
                   var a, b;
                   a = new TimelineMax({
                     paused: true,
-                    onStart: function(){
-                      if (index) {
-                        data.node.append(box[0]);
-                        data.box.eq(0).remove();
-                      } else {
-                        data.node.prepend(box[0]);
-                        data.box.eq(4).remove();
+                    data: {
+                      complete: function(){
+                        data.box.prop('style', '');
+                        data.btn.prop('style', '');
+                        if (index) {
+                          data.node.append(box[0]);
+                          data.box.eq(0).remove();
+                        } else {
+                          data.node.prepend(box[0]);
+                          data.box.eq(4).remove();
+                        }
+                        delete data.box;
+                        delete data.hover;
+                        delete data.unhover;
+                        delete data.slide;
                       }
-                    },
-                    onComplete: function(){
-                      data.box.prop('style', '');
-                      data.btn.prop('style', '');
-                      delete data.box;
-                      delete data.hover;
-                      delete data.unhover;
-                      delete data.slide;
                     }
                   });
                   if (index) {
@@ -811,16 +829,16 @@ $('document').ready(function(){
       e = [];
       for (a in event) if (own$.call(event, a)) {
         b = event[a];
+        if (!Array.isArray(b)) {
+          b = [b];
+        }
         for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
           d = b[i$];
-          c = '#' + this.cfg.id;
-          if (d.el) {
-            c = c + ' ' + d.el;
-          }
-          c = document.querySelectorAll('#' + this.cfg.id + c);
-          if (!c || !c.length) {
-            continue;
-          }
+          c = d.el
+            ? document.querySelectorAll('#' + this.cfg.id + ' ' + d.el)
+            : d.el === ''
+              ? [this.cfg.node[0]]
+              : [document];
           d = w3ui.PARTIAL(this, P.event, d);
           e.push([c, a, d]);
         }
@@ -1110,6 +1128,13 @@ $('document').ready(function(){
         }
       ]);
     },
+    update: function(id){
+      id == null && (id = M[0]);
+      ['refresh', 'detach', 'attach'].every(function(f){
+        return V.walk(id, true, f);
+      });
+      delete P.event.busy;
+    },
     resize: function(){
       var me, f;
       me = this.resize;
@@ -1130,9 +1155,9 @@ $('document').ready(function(){
         return false;
       }
       event.data = data;
-      if (!me.busy) {
+      if (!me.busy && !me.delay) {
         me.busy = P.react.apply(this, [event, cfg.detach.data, cfg, nav]);
-      } else if (data.delay) {
+      } else if (data.delayed) {
         a = !!me.delay;
         me.delay = w3ui.PARTIAL(this, P.react, event, cfg.detach.data, cfg, nav);
         if (a) {
@@ -1154,7 +1179,7 @@ $('document').ready(function(){
       return true;
     },
     react: function(event, data, cfg, nav){
-      var a, b, c, id;
+      var a, b, c, d, id;
       switch (cfg.id) {
       case 'menu':
         switch (event.type) {
@@ -1176,73 +1201,110 @@ $('document').ready(function(){
               paused: true
             })
           ];
+          d = function(index){
+            return function(){
+              a[index].data.complete();
+              b[index].data.complete();
+              P.update();
+            };
+          };
           c[0].add(a[0].play(), 0);
           c[0].add(b[0].play(), 0);
+          c[0].add(d(0));
           c[1].add(a[1].play(), 0);
           c[1].add(b[1].play(), 0);
+          c[1].add(d(1));
           data.drag = c;
-          data.dragStarted = true;
           break;
         case 'mousemove':
-          if (!data.dragStarted) {
-            return false;
+          if (!data.drag) {
+            break;
           }
-          a = data.dragX - event.pageX;
-          b = Math.abs(a);
-          if (b > data.dragSize) {
-            b = data.dragSize;
-            if (a < 0) {
-              a = -b;
-            }
+          a = event.pageX - data.dragX;
+          b = a < 0
+            ? [0, 1]
+            : [1, 0];
+          a = Math.abs(a);
+          if (a < 0.0001) {
+            break;
           }
-          c = a < 0 ? 0 : 1;
-          a = b / data.dragSize;
-          data.drag[c].progress(a, true);
+          b = b.map(function(index){
+            return data.drag[index];
+          });
+          a = a / data.dragSize;
+          if (a > 0.99) {
+            a = 0.99;
+          }
+          if (b[0].progress() > 0.0001) {
+            b[0].progress(0);
+          }
+          b[1].progress(a);
           break;
         case 'mouseup':
-          data.dragStarted = false;
+          if (!data.drag) {
+            break;
+          }
           cfg.node.removeClass('drag');
           a = [data.drag[0].progress(), data.drag[1].progress()];
-          c = [a[0] >= 0.55, a[1] >= 0.55];
-          if (c[0] || c[1]) {
-            a = nav.current || 0;
-            b = this.data.length - 1;
-            if (c[0]) {
-              b = a < b ? a + 1 : 0;
-            } else {
-              b = a > 0 ? a - 1 : b;
+          b = [a[0] > 0.35, a[1] > 0.35];
+          if (!b[0] && !b[1]) {
+            if (a[0] > 0.0001) {
+              data.drag[0].reverse();
             }
-            nav.current = b;
-            c = c[0]
-              ? data.drag[0]
-              : data.drag[1];
-            c.eventCallback('onComplete', function(){
-              debugger;
-              V.walk('wa', true, 'refresh', function(){
-                var ref$, ref1$;
-                cfg.detach();
-                cfg.attach();
-                return ref1$ = (ref$ = P.event).busy, delete ref$.busy, ref1$;
-              });
-            });
-            c.play(null, true);
-            return c;
+            if (a[1] > 0.0001) {
+              data.drag[1].reverse();
+            }
+            delete data.drag;
+            break;
           }
-          if (a[0] > 0.0001) {
-            data.drag[0].reverse();
+          a = nav.current || 0;
+          c = this.data.length - 1;
+          if (b[0]) {
+            b = a > 0 ? a - 1 : c;
+            c = 0;
+          } else {
+            b = a < c ? a + 1 : 0;
+            c = 1;
           }
-          if (a[1] > 0.0001) {
-            data.drag[1].reverse();
-          }
-          break;
+          nav.current = b;
+          return data.drag[c].play();
         case 'click':
-          debugger;
         }
         break;
       case 'console':
         switch (nav.id) {
         case 'menu':
           id = event.data.id === 'left' ? 0 : 1;
+          !data.change && (data.change = function(id){
+            var c, a, b;
+            c = cfg.level + 1;
+            a = M.nav[c].current || 0;
+            b = cfg.context.data.length - 1;
+            if (id) {
+              b = a < b ? a + 1 : 0;
+            } else {
+              b = a > 0 ? a - 1 : b;
+            }
+            M.nav[c].current = b;
+            a = V.skel.console.cfg.data;
+            b = V.skel.menu.cfg.data;
+            c = new TimelineLite({
+              paused: true,
+              ease: Power2.easeInOut
+            });
+            if (a.box.hasClass('hover')) {
+              c.add(a.unhover.play());
+            }
+            c.addLabel('a');
+            c.add(a.slide[id].play(), 'a');
+            c.add(b.slide[id].play(), 'a');
+            c.add(function(){
+              a.slide[id].data.complete();
+              b.slide[id].data.complete();
+              P.update();
+            });
+            return c.play();
+          });
           switch (event.type) {
           case 'mouseover':
             a = V.skel.console.cfg.data.hover[id];
@@ -1253,36 +1315,12 @@ $('document').ready(function(){
             a.reverse();
             break;
           case 'click':
-            c = cfg.level + 1;
-            a = M.nav[c].current || 0;
-            b = cfg.context.data.length - 1;
-            if (id) {
-              b = a < b ? a + 1 : 0;
-            } else {
-              b = a > 0 ? a - 1 : b;
+            return data.change(id);
+          case 'keypress':
+            if (event.key !== event.data.key) {
+              break;
             }
-            M.nav[c].current = b;
-            c = new TimelineLite({
-              paused: true,
-              ease: Power2.easeInOut,
-              onComplete: function(){
-                V.walk('wa', true, 'refresh', function(){
-                  var ref$, ref1$;
-                  cfg.detach();
-                  cfg.attach();
-                  return ref1$ = (ref$ = P.event).busy, delete ref$.busy, ref1$;
-                });
-              }
-            });
-            a = V.skel.console.cfg.data;
-            b = V.skel.menu.cfg.data;
-            if (a.box.hasClass('hover')) {
-              c.add(a.unhover.play());
-            }
-            c.add(a.slide[id].play());
-            c.add(b.slide[id].play(), 0);
-            c.play();
-            return c;
+            return data.change(id);
           }
         }
       }
