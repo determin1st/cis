@@ -307,13 +307,13 @@ $('document').ready(function(){
                   el: '.button',
                   id: 'nav'
                 },
-                mousedown: {
+                pointerdown: {
                   el: ''
                 },
-                mousemove: {
+                pointermove: {
                   el: ''
                 },
-                mouseup: {
+                pointerup: {
                   el: ''
                 }
               }
@@ -462,7 +462,7 @@ $('document').ready(function(){
           },
           menu: {
             attach: {
-              mouseover: [
+              pointerover: [
                 {
                   el: '.button.left',
                   id: 'left'
@@ -471,7 +471,7 @@ $('document').ready(function(){
                   id: 'right'
                 }
               ],
-              mouseout: [
+              pointerout: [
                 {
                   el: '.button.left',
                   id: 'left'
@@ -491,15 +491,10 @@ $('document').ready(function(){
                   delayed: true
                 }
               ],
-              keypress: [
-                {
-                  id: 'left',
-                  key: 'ArrowLeft'
-                }, {
-                  id: 'right',
-                  key: 'ArrowRight'
-                }
-              ]
+              keydown: {
+                keys: ['ArrowLeft', 'ArrowRight'],
+                delayed: true
+              }
             },
             render: function(){
               var a, b, c, d;
@@ -816,7 +811,7 @@ $('document').ready(function(){
       return true;
     },
     attach: function(event){
-      var a, b, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
+      var a, b, x, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
       if (!this.cfg.node) {
         return true;
       }
@@ -826,6 +821,7 @@ $('document').ready(function(){
         }
         event = b.attach;
       }
+      x = /^key.+/;
       e = [];
       for (a in event) if (own$.call(event, a)) {
         b = event[a];
@@ -839,6 +835,7 @@ $('document').ready(function(){
             : d.el === ''
               ? [this.cfg.node[0]]
               : [document];
+          d.preventDefault = !x.test(a);
           d = w3ui.PARTIAL(this, P.event, d);
           e.push([c, a, d]);
         }
@@ -1147,47 +1144,52 @@ $('document').ready(function(){
       }
     },
     event: function(data, event){
-      var me, cfg, nav, a;
+      var me, a, cfg, nav;
       me = P.event;
-      cfg = this.cfg;
-      nav = this.cfg.nav;
-      if (!cfg.detach) {
-        return false;
+      if (data.preventDefault && event.cancelable) {
+        event.preventDefault();
       }
-      event.data = data;
-      if (!me.busy && !me.delay) {
-        me.busy = P.react.apply(this, [event, cfg.detach.data, cfg, nav]);
-      } else if (data.delayed) {
-        a = !!me.delay;
-        me.delay = w3ui.PARTIAL(this, P.react, event, cfg.detach.data, cfg, nav);
+      if (!this.cfg.detach || me.busy && !data.delayed) {
+        return true;
+      }
+      if (me.busy) {
+        event.stopPropagation();
+        a = !!me.delayed;
+        me.delayed = w3ui.PARTIAL(this, me, data, event);
         if (a) {
-          return true;
+          return false;
         }
         if (typeof me.busy === 'object') {
           me.busy.timeScale(2);
         }
-        w3ui.THREAD([
-          function(){
-            return !me.busy;
-          }, function(){
-            me.busy = me.delay();
-            delete me.delay;
-            return true;
+        w3ui.THREAD([function(){
+          if (me.busy) {
+            return false;
           }
-        ]);
+          me.delayed();
+          delete me.delayed;
+          return true;
+        }]);
+        return false;
       }
+      cfg = this.cfg;
+      nav = this.cfg.nav;
+      event.data = data;
+      data = cfg.detach.data;
+      me.busy = P.react.apply(this, [event, data, cfg, nav]);
       return true;
     },
     react: function(event, data, cfg, nav){
-      var a, b, c, d, id;
+      var a, b, c, d;
       switch (cfg.id) {
       case 'menu':
         switch (event.type) {
-        case 'mousedown':
+        case 'pointerdown':
           a = document.elementFromPoint(event.pageX, event.pageY);
           if (a.className === 'button') {
-            return false;
+            break;
           }
+          event.stopPropagation();
           cfg.node.addClass('drag');
           a = cfg.node.box.innerWidth;
           data.dragSize = a * 0.5;
@@ -1196,9 +1198,11 @@ $('document').ready(function(){
           b = V.skel.menu.cfg.data.slide;
           c = [
             new TimelineLite({
-              paused: true
+              paused: true,
+              ease: Power3.easeIn
             }), new TimelineLite({
-              paused: true
+              paused: true,
+              ease: Power3.easeIn
             })
           ];
           d = function(index){
@@ -1216,10 +1220,11 @@ $('document').ready(function(){
           c[1].add(d(1));
           data.drag = c;
           break;
-        case 'mousemove':
+        case 'pointermove':
           if (!data.drag) {
             break;
           }
+          event.stopPropagation();
           a = event.pageX - data.dragX;
           b = a < 0
             ? [0, 1]
@@ -1240,10 +1245,11 @@ $('document').ready(function(){
           }
           b[1].progress(a);
           break;
-        case 'mouseup':
+        case 'pointerup':
           if (!data.drag) {
             break;
           }
+          event.stopPropagation();
           cfg.node.removeClass('drag');
           a = [data.drag[0].progress(), data.drag[1].progress()];
           b = [a[0] > 0.35, a[1] > 0.35];
@@ -1269,12 +1275,12 @@ $('document').ready(function(){
           nav.current = b;
           return data.drag[c].play();
         case 'click':
+          event.stopPropagation();
         }
         break;
       case 'console':
         switch (nav.id) {
         case 'menu':
-          id = event.data.id === 'left' ? 0 : 1;
           !data.change && (data.change = function(id){
             var c, a, b;
             c = cfg.level + 1;
@@ -1306,21 +1312,30 @@ $('document').ready(function(){
             return c.play();
           });
           switch (event.type) {
-          case 'mouseover':
-            a = V.skel.console.cfg.data.hover[id];
+          case 'pointerover':
+            event.stopPropagation();
+            a = event.data.id === 'left' ? 0 : 1;
+            a = V.skel.console.cfg.data.hover[a];
             a.play();
             break;
-          case 'mouseout':
-            a = V.skel.console.cfg.data.hover[id];
+          case 'pointerout':
+            event.stopPropagation();
+            a = event.data.id === 'left' ? 0 : 1;
+            a = V.skel.console.cfg.data.hover[a];
             a.reverse();
             break;
           case 'click':
-            return data.change(id);
-          case 'keypress':
-            if (event.key !== event.data.key) {
+            event.stopPropagation();
+            a = event.data.id === 'left' ? 0 : 1;
+            return data.change(a);
+          case 'keydown':
+            a = event.data.keys.indexOf(event.key);
+            if (a < 0) {
               break;
             }
-            return data.change(id);
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return data.change(a);
           }
         }
       }

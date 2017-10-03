@@ -61,9 +61,10 @@ body
 }
 /* }}} */
 /* common {{{ */
-.button
+.button, .title
 {
   -webkit-user-select: none;
+  user-select: none;
 }
 /* }}} */
 
@@ -268,11 +269,12 @@ body
 /* menu {{{ */
 #menu
 {
+  cursor: -webkit-grab;
   cursor: grab;
 }
 #menu.drag
 {
-  cursor: ew-resize;
+  cursor: -webkit-grabbing;
   cursor: grabbing;
 }
 #menu .box

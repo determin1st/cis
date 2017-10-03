@@ -336,17 +336,18 @@ $ 'document' .ready ->
                                 click:
                                     el: '.button'
                                     id: 'nav'
-                                mousedown:
+                                pointerdown:
                                     el: ''
-                                mousemove:
+                                pointermove:
                                     el: ''
-                                mouseup:
+                                pointerup:
                                     el: ''
                             # }}}
                         title:
                             'Главное меню'
                             'Меню'
                         data:
+                            # {{{
                             {
                                 id: 'card'
                                 name: 'Картотека'
@@ -390,6 +391,7 @@ $ 'document' .ready ->
                                         name: 'Отчеты'
                                     }
                             }
+                            # }}}
                     # }}}
                     address: # {{{
                         cfg:
@@ -448,7 +450,7 @@ $ 'document' .ready ->
                             list: null
                 # }}}
                 console: # {{{
-                    cfg:
+                    cfg: # {{{
                         render: true
                         attach: true
                         init: ->
@@ -488,9 +490,10 @@ $ 'document' .ready ->
                             }
                             ...
                         # }}}
+                    # }}}
                     menu:
                         attach: # {{{
-                            mouseover:
+                            pointerover:
                                 {
                                     el: '.button.left'
                                     id: 'left'
@@ -499,7 +502,7 @@ $ 'document' .ready ->
                                     el: '.button.right'
                                     id: 'right'
                                 }
-                            mouseout:
+                            pointerout:
                                 {
                                     el: '.button.left'
                                     id: 'left'
@@ -519,15 +522,9 @@ $ 'document' .ready ->
                                     id: 'right'
                                     delayed: true
                                 }
-                            keypress:
-                                {
-                                    id: 'left'
-                                    key: 'ArrowLeft'
-                                }
-                                {
-                                    id: 'right'
-                                    key: 'ArrowRight'
-                                }
+                            keydown:
+                                keys: ['ArrowLeft' 'ArrowRight']
+                                delayed: true
                         # }}}
                         render: -> # {{{
                             # prepare data
@@ -853,6 +850,7 @@ $ 'document' .ready ->
                 # get event data
                 event = b.attach
             # assemble event listeners
+            x = /^key.+/
             e = []
             for own a,b of event
                 b = [b] if not Array.isArray b
@@ -863,6 +861,8 @@ $ 'document' .ready ->
                         else if d.el == ''
                             then [@cfg.node.0]
                             else [document]
+                    # determine if default action prevented
+                    d.preventDefault = not x.test a
                     # create event handler
                     # combined with custom data
                     d = w3ui.PARTIAL @, P.event, d
@@ -1185,22 +1185,23 @@ $ 'document' .ready ->
         # }}}
         event: (data, event) -> # {{{
             # prepare
-            me   = P.event
-            cfg  = @cfg
-            nav  = @cfg.nav
-            # prepare event data
-            return false if not cfg.detach
-            event.data = data
+            me = P.event
+            if data.preventDefault and event.cancelable
+                # we are self-sufficient,
+                # always prevent default action!
+                event.preventDefault!
             # check
-            if not me.busy and not me.delay
-                # handle event
-                me.busy = P.react.apply @, [event, cfg.detach.data, cfg, nav]
-            else if data.delayed
-                # delay event (replace previous)
-                a = !!me.delay
-                me.delay = w3ui.PARTIAL @, P.react, event, cfg.detach.data, cfg, nav
+            if not @cfg.detach or me.busy and not data.delayed
+                return true
+            # delay event
+            if me.busy
+                # dont bubble
+                event.stopPropagation!
                 # check waiter started
-                return true if a
+                a = !!me.delayed
+                # create delayed routine
+                me.delayed = w3ui.PARTIAL @, me, data, event
+                return false if a
                 # speed up animations
                 if typeof me.busy == 'object'
                     me.busy.timeScale 2
@@ -1208,30 +1209,36 @@ $ 'document' .ready ->
                 w3ui.THREAD [
                     ->
                         # wait
-                        not me.busy
-                    ->
-                        # run delayed
-                        me.busy = me.delay!
-                        # cleanup
-                        delete me.delay
+                        return false if me.busy
+                        # process delayed event
+                        me.delayed!
+                        delete me.delayed
+                        # finish
                         true
                 ]
-            # done
-            true
+                return false
+            # prepare data
+            cfg = @cfg
+            nav = @cfg.nav
+            event.data = data
+            data = cfg.detach.data
+            # process event
+            me.busy = P.react.apply @, [event, data, cfg, nav]
+            return true
         # }}}
         react: (event, data, cfg, nav) -> # {{{
-            # prepare
             switch cfg.id
             | 'menu' =>
                 # {{{
                 switch event.type
-                | 'mousedown' =>
+                | 'pointerdown' =>
                     # drag start
                     # {{{
-                    # check mouse position
+                    # check pointer position
                     a = document.elementFromPoint event.pageX, event.pageY
-                    return false if a.className == 'button'
-                    # set style
+                    break if a.className == 'button'
+                    # prepare
+                    event.stopPropagation!
                     cfg.node.addClass 'drag'
                     # define drag size
                     a = cfg.node.box.innerWidth
@@ -1243,8 +1250,8 @@ $ 'document' .ready ->
                     b = V.skel.menu.cfg.data.slide
                     # create timelines
                     c =
-                        new TimelineLite {paused: true}
-                        new TimelineLite {paused: true}
+                        new TimelineLite {paused: true, ease: Power3.easeIn}
+                        new TimelineLite {paused: true, ease: Power3.easeIn}
                     # define complete routine
                     d = (index) -> !->
                         a[index].data.complete!
@@ -1260,11 +1267,13 @@ $ 'document' .ready ->
                     # done
                     data.drag = c
                     # }}}
-                | 'mousemove' =>
+                | 'pointermove' =>
                     # drag
                     # {{{
                     # check if started
                     break if not data.drag
+                    # prepare
+                    event.stopPropagation!
                     # determine drag distance
                     a = event.pageX - data.dragX
                     # determine timeline indeces
@@ -1283,12 +1292,13 @@ $ 'document' .ready ->
                     b.0.progress 0 if b.0.progress! > 0.0001
                     b.1.progress a
                     # }}}
-                | 'mouseup' =>
+                | 'pointerup' =>
                     # drag stop
                     # {{{
                     # check
                     break if not data.drag
-                    # remove style
+                    # prepare
+                    event.stopPropagation!
                     cfg.node.removeClass 'drag'
                     # determine current state
                     a =
@@ -1321,6 +1331,8 @@ $ 'document' .ready ->
                 | 'click' =>
                     # menu button click
                     # {{{
+                    # prepare
+                    event.stopPropagation!
                     # change model
                     #M.2 = event.target.className
                     # construct
@@ -1328,17 +1340,13 @@ $ 'document' .ready ->
                     # }}}
                 # }}}
             | 'console' =>
-                # {{{
                 switch nav.id
                 | 'menu' =>
                     # {{{
-                    # prepare
-                    id = if event.data.id == 'left'
-                        then 0
-                        else 1
                     # define model change routine
                     not data.change and data.change = (id) ->
                         # {{{
+                        # prepare
                         # determine current
                         c = cfg.level + 1
                         a = M.nav[c].current or 0
@@ -1380,35 +1388,51 @@ $ 'document' .ready ->
                         # }}}
                     # check action type
                     switch event.type
-                    | 'mouseover' =>
+                    | 'pointerover' =>
                         # activate hover effect
                         # {{{
-                        # get effect
-                        a = V.skel.console.cfg.data.hover[id]
+                        # prepare
+                        event.stopPropagation!
+                        a = if event.data.id == 'left'
+                            then 0
+                            else 1
+                        a = V.skel.console.cfg.data.hover[a]
                         # play
                         a.play!
                         # }}}
-                    | 'mouseout' =>
+                    | 'pointerout' =>
                         # deactivate hover effect
                         # {{{
-                        # get effect
-                        a = V.skel.console.cfg.data.hover[id]
-                        # reverse play
+                        # prepare
+                        event.stopPropagation!
+                        a = if event.data.id == 'left'
+                            then 0
+                            else 1
+                        a = V.skel.console.cfg.data.hover[a]
+                        # play
                         a.reverse!
                         # }}}
                     | 'click' =>
                         # carousel slide
                         # {{{
-                        return data.change id
+                        event.stopPropagation!
+                        a = if event.data.id == 'left'
+                            then 0
+                            else 1
+                        return data.change a
                         # }}}
-                    | 'keypress' =>
+                    | 'keydown' =>
                         # keyboard control
                         # {{{
-                        break if event.key != event.data.key
-                        return data.change id
+                        # check
+                        a = event.data.keys.indexOf event.key
+                        break if a < 0
+                        # change
+                        event.preventDefault!
+                        event.stopImmediatePropagation!
+                        return data.change a
                         # }}}
                     # }}}
-                # }}}
             # done
             false
         # }}}
