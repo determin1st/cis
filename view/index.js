@@ -222,7 +222,7 @@ $('document').ready(function(){
                 return true;
               },
               refresh: function(){
-                var data, a, b, c;
+                var data, a, b, c, d;
                 data = this.cfg.data;
                 if (!data.box.hasClass('attached')) {
                   data.box.addClass('attached');
@@ -277,6 +277,33 @@ $('document').ready(function(){
                     });
                     return b;
                   });
+                }
+                if (!data.drag) {
+                  a = V.skel.console.cfg.data.slide;
+                  b = data.slide;
+                  c = [
+                    new TimelineLite({
+                      paused: true,
+                      ease: Power3.easeInOut
+                    }), new TimelineLite({
+                      paused: true,
+                      ease: Power3.easeInOut
+                    })
+                  ];
+                  d = function(index){
+                    return function(){
+                      a[index].data.complete();
+                      b[index].data.complete();
+                      delete data.drag;
+                    };
+                  };
+                  c[0].add(a[0].play(), 0);
+                  c[0].add(b[0].play(), 0);
+                  c[0].add(d(0));
+                  c[1].add(a[1].play(), 0);
+                  c[1].add(b[1].play(), 0);
+                  c[1].add(d(1));
+                  data.drag = c;
                 }
                 return true;
               },
@@ -420,6 +447,7 @@ $('document').ready(function(){
         },
         console: {
           cfg: {
+            data: {},
             render: true,
             attach: true,
             init: function(){
@@ -427,7 +455,10 @@ $('document').ready(function(){
               return true;
             },
             resize: function(){
-              this.cfg.data = {};
+              var a, ref$, own$ = {}.hasOwnProperty;
+              for (a in ref$ = this.cfg.data) if (own$.call(ref$, a)) {
+                delete this.cfg.data[a];
+              }
               return this.cfg.refresh.apply(this);
             },
             refresh: function(){
@@ -535,8 +566,14 @@ $('document').ready(function(){
                   var c;
                   c = new TimelineLite({
                     paused: true,
-                    data: a.eq(index)
+                    ease: Power2.easeOut
                   });
+                  c.add((function(a, b){
+                    return function(){
+                      a.removeClass('hover');
+                      b.removeClass('hover');
+                    };
+                  }.call(this, a, b)));
                   c.to([a[index], b[index], a[2], b[2]], data.time, {
                     className: '+=hover'
                   });
@@ -545,9 +582,10 @@ $('document').ready(function(){
               }
               if (!data.unhover) {
                 a = new TimelineLite({
-                  paused: true
+                  paused: true,
+                  ease: Power2.easeIn
                 });
-                a.to([data.box, data.btn], data.time / 2, {
+                a.to([data.box, data.btn], data.time, {
                   className: '-=hover'
                 });
                 data.unhover = a;
@@ -587,7 +625,6 @@ $('document').ready(function(){
                         }
                         delete data.box;
                         delete data.hover;
-                        delete data.unhover;
                         delete data.slide;
                       }
                     }
@@ -1146,7 +1183,7 @@ $('document').ready(function(){
     event: function(data, event){
       var me, a, cfg, nav;
       me = P.event;
-      if (data.preventDefault && event.cancelable) {
+      if (data.preventDefault) {
         event.preventDefault();
       }
       if (!this.cfg.detach || me.busy && !data.delayed) {
@@ -1180,9 +1217,20 @@ $('document').ready(function(){
       return true;
     },
     react: function(event, data, cfg, nav){
-      var a, b, c, d;
+      var a, b, c, d, e, this$ = this;
       switch (cfg.id) {
       case 'menu':
+        !data.change && (data.change = function(active){
+          var a, b;
+          a = nav.current || 0;
+          b = this$.data.length - 1;
+          if (active) {
+            a = a > 0 ? a - 1 : b;
+          } else {
+            a = a < b ? a + 1 : 0;
+          }
+          nav.current = a;
+        });
         switch (event.type) {
         case 'pointerdown':
           a = document.elementFromPoint(event.pageX, event.pageY);
@@ -1190,90 +1238,81 @@ $('document').ready(function(){
             break;
           }
           event.stopPropagation();
-          cfg.node.addClass('drag');
-          a = cfg.node.box.innerWidth;
-          data.dragSize = a * 0.5;
-          data.dragX = event.pageX;
-          a = V.skel.console.cfg.data.slide;
-          b = V.skel.menu.cfg.data.slide;
-          c = [
-            new TimelineLite({
-              paused: true,
-              ease: Power3.easeIn
-            }), new TimelineLite({
-              paused: true,
-              ease: Power3.easeIn
-            })
-          ];
-          d = function(index){
-            return function(){
-              a[index].data.complete();
-              b[index].data.complete();
-              P.update();
-            };
-          };
-          c[0].add(a[0].play(), 0);
-          c[0].add(b[0].play(), 0);
-          c[0].add(d(0));
-          c[1].add(a[1].play(), 0);
-          c[1].add(b[1].play(), 0);
-          c[1].add(d(1));
-          data.drag = c;
+          data.swipe = event.pointerType !== 'mouse';
+          data.size = 0.5 * cfg.node.box.innerWidth;
+          data.x = event.pageX;
+          data.active = false;
+          data.drag = V.skel.menu.cfg.data.drag;
+          if (!data.swipe) {
+            cfg.node.addClass('drag');
+          }
           break;
         case 'pointermove':
           if (!data.drag) {
             break;
           }
           event.stopPropagation();
-          a = event.pageX - data.dragX;
-          b = a < 0
-            ? [0, 1]
-            : [1, 0];
-          a = Math.abs(a);
-          if (a < 0.0001) {
-            break;
+          if ((a = event.pageX - data.x) < 0) {
+            b = [0, 1];
+          } else {
+            b = [1, 0];
           }
-          b = b.map(function(index){
-            return data.drag[index];
-          });
-          a = a / data.dragSize;
-          if (a > 0.99) {
-            a = 0.99;
-          }
-          if (b[0].progress() > 0.0001) {
-            b[0].progress(0);
-          }
-          b[1].progress(a);
-          break;
-        case 'pointerup':
-          if (!data.drag) {
-            break;
-          }
-          event.stopPropagation();
-          cfg.node.removeClass('drag');
-          a = [data.drag[0].progress(), data.drag[1].progress()];
-          b = [a[0] > 0.35, a[1] > 0.35];
-          if (!b[0] && !b[1]) {
-            if (a[0] > 0.0001) {
-              data.drag[0].reverse();
-            }
-            if (a[1] > 0.0001) {
-              data.drag[1].reverse();
+          if ((a = Math.abs(a)) < 0.1) {
+            if (!data.swipe) {
+              break;
             }
             delete data.drag;
             break;
           }
-          a = nav.current || 0;
-          c = this.data.length - 1;
-          if (b[0]) {
-            b = a > 0 ? a - 1 : c;
-            c = 0;
-          } else {
-            b = a < c ? a + 1 : 0;
-            c = 1;
+          c = b.map(function(index){
+            return data.drag[index];
+          });
+          a = a / data.size;
+          if (a > 0.99) {
+            a = 0.99;
           }
-          nav.current = b;
-          return data.drag[c].play();
+          if (data.swipe) {
+            data.change(b[0]);
+            delete data.drag;
+            c[1].add(P.update);
+            return c[1].play();
+          }
+          d = !data.active || data.active[0] !== b[0];
+          e = d || Math.abs(a - c[1].progress()) > 0.001;
+          if (d) {
+            if (!c[0].paused()) {
+              c[0].pause();
+            }
+            c[0].progress(0);
+          }
+          if (e) {
+            if (!c[1].paused()) {
+              c[1].pause();
+            }
+            c[1].progress(a);
+          }
+          data.active = b;
+          break;
+        case 'pointerup':
+          if (!data.drag || data.swipe) {
+            break;
+          }
+          event.stopPropagation();
+          cfg.node.removeClass('drag');
+          if (!(a = data.active)) {
+            delete data.drag;
+            break;
+          }
+          b = data.drag[a[1]].progress();
+          if (b < 0.35) {
+            data.drag[a[1]].reverse();
+            delete data.drag;
+            break;
+          }
+          data.change(a[0]);
+          a = data.drag[a[1]];
+          a.add(P.update);
+          return a.play();
         case 'click':
           event.stopPropagation();
         }
@@ -1282,7 +1321,7 @@ $('document').ready(function(){
         switch (nav.id) {
         case 'menu':
           !data.change && (data.change = function(id){
-            var c, a, b;
+            var c, a, b, d;
             c = cfg.level + 1;
             a = M.nav[c].current || 0;
             b = cfg.context.data.length - 1;
@@ -1292,37 +1331,38 @@ $('document').ready(function(){
               b = a > 0 ? a - 1 : b;
             }
             M.nav[c].current = b;
-            a = V.skel.console.cfg.data;
-            b = V.skel.menu.cfg.data;
-            c = new TimelineLite({
-              paused: true,
-              ease: Power2.easeInOut
-            });
-            if (a.box.hasClass('hover')) {
-              c.add(a.unhover.play());
+            a = V.skel.console.cfg.data.hover;
+            b = V.skel.menu.cfg.data.drag[id];
+            c = [a[0].progress() > 0.0001, a[1].progress() > 0.0001];
+            if (c[0] || c[1]) {
+              d = b;
+              b = new TimelineLite({
+                paused: true,
+                ease: Power3.easeInOut
+              });
+              if (c[0]) {
+                b.add(a[0].reverse().timeScale(2, 0));
+              }
+              if (c[1]) {
+                b.add(a[1].reverse().timeScale(2, 0));
+              }
+              b.add(d.play(0));
             }
-            c.addLabel('a');
-            c.add(a.slide[id].play(), 'a');
-            c.add(b.slide[id].play(), 'a');
-            c.add(function(){
-              a.slide[id].data.complete();
-              b.slide[id].data.complete();
-              P.update();
-            });
-            return c.play();
+            b.add(P.update);
+            return b.play();
           });
           switch (event.type) {
           case 'pointerover':
             event.stopPropagation();
-            a = event.data.id === 'left' ? 0 : 1;
-            a = V.skel.console.cfg.data.hover[a];
-            a.play();
+            a = V.skel.console.cfg.data.hover;
+            b = event.data.id === 'left' ? 0 : 1;
+            a[b].play();
             break;
           case 'pointerout':
             event.stopPropagation();
-            a = event.data.id === 'left' ? 0 : 1;
-            a = V.skel.console.cfg.data.hover[a];
-            a.reverse();
+            a = V.skel.console.cfg.data.hover;
+            b = event.data.id === 'left' ? 0 : 1;
+            a[b].reverse();
             break;
           case 'click':
             event.stopPropagation();

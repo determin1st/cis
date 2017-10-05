@@ -241,7 +241,8 @@ $ 'document' .ready ->
                                 # set style
                                 if not data.box.hasClass 'attached'
                                     data.box.addClass 'attached'
-                                # initialize menu slide effect
+                                # initialize slide effect
+                                # {{{
                                 if not data.slide
                                     # prepare data
                                     # determine indexes
@@ -306,6 +307,32 @@ $ 'document' .ready ->
                                         }
                                         # done
                                         b
+                                # }}}
+                                # initialize menu drag/swipe effect
+                                # {{{
+                                if not data.drag
+                                    # get both slide effects
+                                    a = V.skel.console.cfg.data.slide
+                                    b = data.slide
+                                    # create timelines
+                                    c =
+                                        new TimelineLite {paused: true, ease: Power3.easeInOut}
+                                        new TimelineLite {paused: true, ease: Power3.easeInOut}
+                                    # define complete routine
+                                    d = (index) -> !->
+                                        a[index].data.complete!
+                                        b[index].data.complete!
+                                        delete data.drag
+                                    # add tweens
+                                    c.0.add a.0.play!, 0
+                                    c.0.add b.0.play!, 0
+                                    c.0.add d 0
+                                    c.1.add a.1.play!, 0
+                                    c.1.add b.1.play!, 0
+                                    c.1.add d 1
+                                    # done
+                                    data.drag = c
+                                # }}}
                                 # done
                                 true
                             # }}}
@@ -451,6 +478,7 @@ $ 'document' .ready ->
                 # }}}
                 console: # {{{
                     cfg: # {{{
+                        data: {}
                         render: true
                         attach: true
                         init: ->
@@ -459,7 +487,8 @@ $ 'document' .ready ->
                             true
                         resize: ->
                             # invalidate data
-                            @cfg.data = {}
+                            for own a of @cfg.data
+                                delete @cfg.data[a]
                             # refresh
                             @cfg.refresh.apply @
                         refresh: ->
@@ -566,8 +595,14 @@ $ 'document' .ready ->
                                     # create timeline
                                     c = new TimelineLite {
                                         paused: true
-                                        data: a.eq index
+                                        ease: Power2.easeOut
                                     }
+                                    # unhover all at start
+                                    c.add let a = a, b = b
+                                        !->
+                                            a.removeClass 'hover'
+                                            b.removeClass 'hover'
+                                    # hover
                                     c.to [a[index], b[index], a.2, b.2], data.time, {
                                         className: '+=hover'
                                     }
@@ -580,8 +615,9 @@ $ 'document' .ready ->
                                 # create timeline
                                 a = new TimelineLite {
                                     paused: true
+                                    ease: Power2.easeIn
                                 }
-                                a.to [data.box, data.btn], data.time / 2, {
+                                a.to [data.box, data.btn], data.time, {
                                     className: '-=hover'
                                 }
                                 data.unhover = a
@@ -642,7 +678,6 @@ $ 'document' .ready ->
                                                 # invalidate current data
                                                 delete data.box
                                                 delete data.hover
-                                                delete data.unhover
                                                 delete data.slide
                                     }
                                     # define transition classes
@@ -1186,7 +1221,7 @@ $ 'document' .ready ->
         event: (data, event) -> # {{{
             # prepare
             me = P.event
-            if data.preventDefault and event.cancelable
+            if data.preventDefault
                 # we are self-sufficient,
                 # always prevent default action!
                 event.preventDefault!
@@ -1224,12 +1259,26 @@ $ 'document' .ready ->
             data = cfg.detach.data
             # process event
             me.busy = P.react.apply @, [event, data, cfg, nav]
-            return true
+            true
         # }}}
         react: (event, data, cfg, nav) -> # {{{
             switch cfg.id
             | 'menu' =>
                 # {{{
+                # define model change routine
+                # {{{
+                not data.change and data.change = (active) !~>
+                    # determine menu index
+                    a = nav.current or 0
+                    b = @data.length - 1
+                    if active
+                        a = if a > 0 then a - 1 else b
+                    else
+                        a = if a < b then a + 1 else 0
+                    # change
+                    nav.current = a
+                # }}}
+                # react
                 switch event.type
                 | 'pointerdown' =>
                     # drag start
@@ -1239,33 +1288,14 @@ $ 'document' .ready ->
                     break if a.className == 'button'
                     # prepare
                     event.stopPropagation!
-                    cfg.node.addClass 'drag'
-                    # define drag size
-                    a = cfg.node.box.innerWidth
-                    data.dragSize = a * 0.5
-                    # define start coordinate (horizontal drag)
-                    data.dragX = event.pageX
-                    # get effects
-                    a = V.skel.console.cfg.data.slide
-                    b = V.skel.menu.cfg.data.slide
-                    # create timelines
-                    c =
-                        new TimelineLite {paused: true, ease: Power3.easeIn}
-                        new TimelineLite {paused: true, ease: Power3.easeIn}
-                    # define complete routine
-                    d = (index) -> !->
-                        a[index].data.complete!
-                        b[index].data.complete!
-                        P.update!
-                    # add tweens
-                    c.0.add a.0.play!, 0
-                    c.0.add b.0.play!, 0
-                    c.0.add d 0
-                    c.1.add a.1.play!, 0
-                    c.1.add b.1.play!, 0
-                    c.1.add d 1
-                    # done
-                    data.drag = c
+                    # set drag parameters
+                    data.swipe = event.pointerType != 'mouse'
+                    data.size = 0.5 * cfg.node.box.innerWidth
+                    data.x = event.pageX
+                    data.active = false
+                    data.drag = V.skel.menu.cfg.data.drag
+                    # set style
+                    cfg.node.addClass 'drag' if not data.swipe
                     # }}}
                 | 'pointermove' =>
                     # drag
@@ -1275,61 +1305,74 @@ $ 'document' .ready ->
                     # prepare
                     event.stopPropagation!
                     # determine drag distance
-                    a = event.pageX - data.dragX
-                    # determine timeline indeces
-                    b = if a < 0
-                        then [0 1]
-                        else [1 0]
+                    # and active timeline
+                    if (a = event.pageX - data.x) < 0
+                        b = [0 1]
+                    else
+                        b = [1 0]
                     # check
-                    a = Math.abs a
-                    break if a < 0.0001
+                    if (a = Math.abs a) < 0.1
+                        # cancel drag
+                        break if not data.swipe
+                        # cancel swipe
+                        delete data.drag
+                        break
                     # select timelines
-                    b = b.map (index) -> data.drag[index]
+                    c = b.map (index) -> data.drag[index]
                     # determine position
-                    a = a / data.dragSize
+                    a = a / data.size
                     a = 0.99 if a > 0.99
+                    # swipe!
+                    if data.swipe
+                        # change model
+                        data.change b.0
+                        # play effect
+                        delete data.drag
+                        c.1.add P.update
+                        return c.1.play!
+                    # drag!
+                    # check active
+                    d = not data.active or data.active.0 != b.0
+                    e = d or (Math.abs a - c.1.progress!) > 0.001
                     # animate
-                    b.0.progress 0 if b.0.progress! > 0.0001
-                    b.1.progress a
+                    if d
+                        c.0.pause! if not c.0.paused!
+                        c.0.progress 0
+                    if e
+                        c.1.pause! if not c.1.paused!
+                        c.1.progress a
+                    # save active
+                    data.active = b
                     # }}}
                 | 'pointerup' =>
                     # drag stop
                     # {{{
                     # check
-                    break if not data.drag
+                    break if not data.drag or data.swipe
                     # prepare
                     event.stopPropagation!
                     cfg.node.removeClass 'drag'
-                    # determine current state
-                    a =
-                        data.drag.0.progress!
-                        data.drag.1.progress!
-                    b =
-                        a.0 > 0.35
-                        a.1 > 0.35
-                    # return to initial state
-                    if not b.0 and not b.1
-                        data.drag.0.reverse! if a.0 > 0.0001
-                        data.drag.1.reverse! if a.1 > 0.0001
+                    # check active
+                    if not (a = data.active)
                         delete data.drag
                         break
-                    # drop!
-                    # determine data index
-                    a = nav.current or 0
-                    c = @data.length - 1
-                    if b.0
-                        b = if a > 0 then a - 1 else c
-                        c = 0
-                    else
-                        b = if a < c then a + 1 else 0
-                        c = 1
+                    # determine current state
+                    b = data.drag[a.1].progress!
+                    # check
+                    if b < 0.35
+                        # return to initial state
+                        data.drag[a.1].reverse!
+                        delete data.drag
+                        break
                     # change model
-                    nav.current = b
-                    # lock events and play to the end
-                    return data.drag[c].play!
+                    data.change a.0
+                    # play to the end and update
+                    a = data.drag[a.1]
+                    a.add P.update
+                    return a.play!
                     # }}}
                 | 'click' =>
-                    # menu button click
+                    # menu select
                     # {{{
                     # prepare
                     event.stopPropagation!
@@ -1362,58 +1405,54 @@ $ 'document' .ready ->
                                 else b
                         # change
                         M.nav[c].current = b
-                        # get effects
-                        a = V.skel.console.cfg.data
-                        b = V.skel.menu.cfg.data
-                        # create timeline
-                        c = new TimelineLite {
-                            paused: true
-                            ease: Power2.easeInOut
-                        }
-                        # add tweens
-                        # unhover
-                        if a.box.hasClass 'hover'
-                            c.add a.unhover.play!
-                        # animation
-                        c.addLabel 'a'
-                        c.add a.slide[id].play!, 'a'
-                        c.add b.slide[id].play!, 'a'
-                        # complete
-                        c.add !->
-                            a.slide[id].data.complete!
-                            b.slide[id].data.complete!
-                            P.update!
-                        # play and lock
-                        return c.play!
+                        # construct effect
+                        a = V.skel.console.cfg.data.hover
+                        b = V.skel.menu.cfg.data.drag[id]
+                        c =
+                            a.0.progress! > 0.0001
+                            a.1.progress! > 0.0001
+                        if c.0 or c.1
+                            # unhover first
+                            d = b
+                            b = new TimelineLite {
+                                paused: true
+                                ease: Power3.easeInOut
+                            }
+                            b.add a.0.reverse!.timeScale 2, 0 if c.0
+                            b.add a.1.reverse!.timeScale 2, 0 if c.1
+                            b.add d.play 0
+                        # add update routine and play
+                        b.add P.update
+                        return b.play!
                         # }}}
-                    # check action type
+                    # react
                     switch event.type
                     | 'pointerover' =>
-                        # activate hover effect
+                        # hover
                         # {{{
                         # prepare
                         event.stopPropagation!
-                        a = if event.data.id == 'left'
+                        a = V.skel.console.cfg.data.hover
+                        b = if event.data.id == 'left'
                             then 0
                             else 1
-                        a = V.skel.console.cfg.data.hover[a]
                         # play
-                        a.play!
+                        a[b].play!
                         # }}}
                     | 'pointerout' =>
-                        # deactivate hover effect
+                        # unhover
                         # {{{
                         # prepare
                         event.stopPropagation!
-                        a = if event.data.id == 'left'
+                        a = V.skel.console.cfg.data.hover
+                        b = if event.data.id == 'left'
                             then 0
                             else 1
-                        a = V.skel.console.cfg.data.hover[a]
                         # play
-                        a.reverse!
+                        a[b].reverse!
                         # }}}
                     | 'click' =>
-                        # carousel slide
+                        # slide carousel
                         # {{{
                         event.stopPropagation!
                         a = if event.data.id == 'left'
@@ -1422,7 +1461,7 @@ $ 'document' .ready ->
                         return data.change a
                         # }}}
                     | 'keydown' =>
-                        # keyboard control
+                        # keyboard
                         # {{{
                         # check
                         a = event.data.keys.indexOf event.key
