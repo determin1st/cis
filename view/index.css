@@ -61,8 +61,7 @@ body
 }
 /* }}} */
 /* specs {{{ */
-.button,
-.title
+.button, .title
 {
   -webkit-user-select: none;
   user-select: none;
@@ -181,8 +180,6 @@ body
   border: 1px solid var(--col85);
 }
 /* }}} */
-/* toolbar {{{ */
-/* }}} */
 /* console {{{ */
 #console.menu
 {
@@ -204,8 +201,8 @@ body
   width: 25%;
   box-sizing: border-box;
   min-width: 0;
-  min-height: 100%;/***/
-  padding: 10px 0 10px 0;/***/
+  min-height: 100%;
+  padding: 10px 0 10px 0;
 }
 #console.menu .item.hidden
 {
@@ -228,7 +225,7 @@ body
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100%;/***/
+  min-height: 100%;
   min-width: 100%;
   box-sizing: border-box;
   white-space: nowrap;

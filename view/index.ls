@@ -1397,7 +1397,7 @@ $ 'document' .ready ->
                     # prepare
                     event.stopPropagation!
                     # change model
-                    nav.currentItem[nav.current] = a
+                    nav.currentItem[nav.current] = +a
                     # set focus
                     b = cfg.data.btn
                     b.removeClass 'active'

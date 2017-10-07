@@ -1346,7 +1346,7 @@ $('document').ready(function(){
             break;
           }
           event.stopPropagation();
-          nav.currentItem[nav.current] = a;
+          nav.currentItem[nav.current] = +a;
           b = cfg.data.btn;
           b.removeClass('active');
           b.eq(a).addClass('active');
