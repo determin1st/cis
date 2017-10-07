@@ -212,29 +212,46 @@ $('document').ready(function(){
             cfg: {
               render: true,
               init: function(){
-                var a;
-                if (!this.cfg.data.box) {
-                  this.cfg.data.box = this.cfg.node.find('.box');
+                var a, b, c;
+                if (!this.cfg.data.menu) {
+                  this.cfg.data.menu = this.cfg.node.find('.box');
                   this.cfg.data.time = this.cfg.show[1].duration;
                 }
-                a = this.cfg.nav.current || 0;
-                this.cfg.data.box.eq(a).addClass('active');
+                while ((a = this.cfg.nav.current) === undefined) {
+                  this.cfg.nav.current = 0;
+                }
+                while (!(b = this.cfg.nav.currentItem)) {
+                  this.cfg.nav.currentItem = this.data.map(fn$);
+                }
+                c = this.cfg.data.menu;
+                c.eq(a).addClass('active');
                 return true;
+                function fn$(){
+                  return 0;
+                }
               },
               refresh: function(){
-                var data, a, b, c, d;
+                var data, i$, to$, a, b, c, d, e, this$ = this;
                 data = this.cfg.data;
-                if (!data.box.hasClass('attached')) {
-                  data.box.addClass('attached');
+                data.menu.addClass('attached');
+                if (!data.box) {
+                  data.box = data.menu.eq(this.cfg.nav.current);
+                  data.btn = data.box.find('.button');
+                  for (i$ = 0, to$ = data.btn.length - 1; i$ <= to$; ++i$) {
+                    a = i$;
+                    data.btn[a].dataset.num = a;
+                  }
+                  a = this.cfg.nav.currentItem[this.cfg.nav.current];
+                  data.btn.eq(a).addClass('active');
                 }
                 if (!data.slide) {
                   a = this.cfg.nav.current || 0;
-                  b = data.box.length - 1;
+                  b = data.menu.length - 1;
                   c = [a > 0 ? a - 1 : b, a < b ? a + 1 : 0];
                   a = [[a, c[0]], [a, c[1]]];
                   a = a.map(function(side){
                     return side.map(function(index){
-                      return data.box.eq(index);
+                      return data.menu.eq(index);
                     });
                   });
                   c = [['0%', '100%', '-100%', '0%'], ['0%', '-100%', '100%', '0%']];
@@ -244,7 +261,7 @@ $('document').ready(function(){
                       paused: true,
                       data: {
                         complete: function(){
-                          data.box.prop('style', '');
+                          data.menu.prop('style', '');
                           delete data.slide;
                         }
                       }
@@ -290,19 +307,29 @@ $('document').ready(function(){
                       ease: Power3.easeInOut
                     })
                   ];
-                  d = function(index){
+                  d = function(){
+                    var a, b;
+                    a = 'drag';
+                    b = !this$.cfg.node.hasClass(a);
+                    this$.cfg.node.toggleClass(a, b);
+                  };
+                  e = function(index){
                     return function(){
+                      this$.cfg.node.removeClass('drag');
                       a[index].data.complete();
                       b[index].data.complete();
+                      delete data.box;
                       delete data.drag;
                     };
                   };
+                  c[0].add(d);
                   c[0].add(a[0].play(), 0);
                   c[0].add(b[0].play(), 0);
-                  c[0].add(d(0));
+                  c[0].add(e(0));
+                  c[1].add(d);
                   c[1].add(a[1].play(), 0);
                   c[1].add(b[1].play(), 0);
-                  c[1].add(d(1));
+                  c[1].add(e(1));
                   data.drag = c;
                 }
                 return true;
@@ -331,8 +358,10 @@ $('document').ready(function(){
               }],
               attach: {
                 click: {
-                  el: '.button',
-                  id: 'nav'
+                  el: '.button'
+                },
+                pointerover: {
+                  el: '.button'
                 },
                 pointerdown: {
                   el: ''
@@ -342,6 +371,9 @@ $('document').ready(function(){
                 },
                 pointerup: {
                   el: ''
+                },
+                keydown: {
+                  keys: ['ArrowUp', 'ArrowDown']
                 }
               }
             },
@@ -1243,9 +1275,6 @@ $('document').ready(function(){
           data.x = event.pageX;
           data.active = false;
           data.drag = V.skel.menu.cfg.data.drag;
-          if (!data.swipe) {
-            cfg.node.addClass('drag');
-          }
           break;
         case 'pointermove':
           if (!data.drag) {
@@ -1298,7 +1327,6 @@ $('document').ready(function(){
             break;
           }
           event.stopPropagation();
-          cfg.node.removeClass('drag');
           if (!(a = data.active)) {
             delete data.drag;
             break;
@@ -1313,6 +1341,37 @@ $('document').ready(function(){
           a = data.drag[a[1]];
           a.add(P.update);
           return a.play();
+        case 'pointerover':
+          if ((a = event.target.dataset.num) === undefined) {
+            break;
+          }
+          event.stopPropagation();
+          nav.currentItem[nav.current] = a;
+          b = cfg.data.btn;
+          b.removeClass('active');
+          b.eq(a).addClass('active');
+          true;
+          break;
+        case 'keydown':
+          a = event.data.keys.indexOf(event.key);
+          if (a < 0) {
+            break;
+          }
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          b = nav.currentItem[nav.current];
+          c = cfg.data.btn;
+          if (a) {
+            a = b < c.length - 1 ? b + 1 : 0;
+          } else {
+            a = b > 0
+              ? b - 1
+              : c.length - 1;
+          }
+          nav.currentItem[nav.current] = a;
+          c.removeClass('active');
+          c.eq(a).addClass('active');
+          break;
         case 'click':
           event.stopPropagation();
         }

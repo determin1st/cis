@@ -227,27 +227,41 @@ $ 'document' .ready ->
                             render: true
                             init: -> # {{{
                                 # prepare
-                                if not @cfg.data.box
-                                    @cfg.data.box = @cfg.node.find '.box'
+                                if not @cfg.data.menu
+                                    @cfg.data.menu = @cfg.node.find '.box'
                                     @cfg.data.time = @cfg.show.1.duration
-                                # set style
-                                a = @cfg.nav.current or 0
-                                @cfg.data.box.eq a .addClass 'active'
+                                # initialize model
+                                while (a = @cfg.nav.current) == undefined
+                                    @cfg.nav.current = 0
+                                while not (b = @cfg.nav.currentItem)
+                                    @cfg.nav.currentItem = @data.map -> 0
+                                # set pre-show style
+                                c = @cfg.data.menu
+                                c.eq a .addClass 'active'
+                                # done
                                 true
                             # }}}
                             refresh: -> # {{{
                                 # prepare
                                 data = @cfg.data
-                                # set style
-                                if not data.box.hasClass 'attached'
-                                    data.box.addClass 'attached'
+                                data.menu.addClass 'attached'
+                                if not data.box
+                                    # nodes
+                                    data.box = data.menu.eq @cfg.nav.current
+                                    data.btn = data.box.find '.button'
+                                    # numbers
+                                    for a from 0 to data.btn.length - 1
+                                        data.btn[a].dataset.num = a
+                                    # style
+                                    a = @cfg.nav.currentItem[@cfg.nav.current]
+                                    data.btn.eq a .addClass 'active'
                                 # initialize slide effect
                                 # {{{
                                 if not data.slide
                                     # prepare data
                                     # determine indexes
                                     a = @cfg.nav.current or 0
-                                    b = data.box.length - 1
+                                    b = data.menu.length - 1
                                     c =
                                         if a > 0 then a - 1 else b # left
                                         if a < b then a + 1 else 0 # right
@@ -256,7 +270,7 @@ $ 'document' .ready ->
                                         [a, c.1]
                                     # get boxes
                                     a = a.map (side) -> side.map (index) ->
-                                        data.box.eq index
+                                        data.menu.eq index
                                     # transition parameters
                                     c =
                                         ['0%' '100%' '-100%' '0%']
@@ -269,7 +283,7 @@ $ 'document' .ready ->
                                             data:
                                                 complete: !->
                                                     # cleanup inline styles
-                                                    data.box.prop 'style', ''
+                                                    data.menu.prop 'style', ''
                                                     # invalidate current data
                                                     delete data.slide
                                         }
@@ -299,12 +313,8 @@ $ 'document' .ready ->
                                             x: c[index].3
                                         }, 's1'
                                         # finish
-                                        b.set a.0, {
-                                            className: '-=active'
-                                        }
-                                        b.set a.1, {
-                                            className: '+=active'
-                                        }
+                                        b.set a.0, {className: '-=active'}
+                                        b.set a.1, {className: '+=active'}
                                         # done
                                         b
                                 # }}}
@@ -318,18 +328,27 @@ $ 'document' .ready ->
                                     c =
                                         new TimelineLite {paused: true, ease: Power3.easeInOut}
                                         new TimelineLite {paused: true, ease: Power3.easeInOut}
+                                    # define startup routine
+                                    d = !~>
+                                        a = 'drag'
+                                        b = not @cfg.node.hasClass a
+                                        @cfg.node.toggleClass a, b
                                     # define complete routine
-                                    d = (index) -> !->
+                                    e = (index) ~> !~>
+                                        @cfg.node.removeClass 'drag'
                                         a[index].data.complete!
                                         b[index].data.complete!
+                                        delete data.box
                                         delete data.drag
                                     # add tweens
+                                    c.0.add d
                                     c.0.add a.0.play!, 0
                                     c.0.add b.0.play!, 0
-                                    c.0.add d 0
+                                    c.0.add e 0
+                                    c.1.add d
                                     c.1.add a.1.play!, 0
                                     c.1.add b.1.play!, 0
-                                    c.1.add d 1
+                                    c.1.add e 1
                                     # done
                                     data.drag = c
                                 # }}}
@@ -362,13 +381,16 @@ $ 'document' .ready ->
                             attach: # {{{
                                 click:
                                     el: '.button'
-                                    id: 'nav'
+                                pointerover:
+                                    el: '.button'
                                 pointerdown:
                                     el: ''
                                 pointermove:
                                     el: ''
                                 pointerup:
                                     el: ''
+                                keydown:
+                                    keys: ['ArrowUp' 'ArrowDown']
                             # }}}
                         title:
                             'Главное меню'
@@ -422,8 +444,7 @@ $ 'document' .ready ->
                     # }}}
                     address: # {{{
                         cfg:
-                            refresh: ->
-                                true
+                            refresh: -> true
                         title:
                             'Картотека адресов'
                             'Адрес'
@@ -1265,7 +1286,7 @@ $ 'document' .ready ->
             switch cfg.id
             | 'menu' =>
                 # {{{
-                # define model change routine
+                # define menu change routine
                 # {{{
                 not data.change and data.change = (active) !~>
                     # determine menu index
@@ -1294,8 +1315,6 @@ $ 'document' .ready ->
                     data.x = event.pageX
                     data.active = false
                     data.drag = V.skel.menu.cfg.data.drag
-                    # set style
-                    cfg.node.addClass 'drag' if not data.swipe
                     # }}}
                 | 'pointermove' =>
                     # drag
@@ -1351,7 +1370,6 @@ $ 'document' .ready ->
                     break if not data.drag or data.swipe
                     # prepare
                     event.stopPropagation!
-                    cfg.node.removeClass 'drag'
                     # check active
                     if not (a = data.active)
                         delete data.drag
@@ -1371,8 +1389,51 @@ $ 'document' .ready ->
                     a.add P.update
                     return a.play!
                     # }}}
+                | 'pointerover' =>
+                    # hover
+                    # {{{
+                    # get node number
+                    break if (a = event.target.dataset.num) == undefined
+                    # prepare
+                    event.stopPropagation!
+                    # change model
+                    nav.currentItem[nav.current] = a
+                    # set focus
+                    b = cfg.data.btn
+                    b.removeClass 'active'
+                    b.eq a .addClass 'active'
+                    true
+                    # }}}
+                | 'keydown' =>
+                    # focus / navigate
+                    # {{{
+                    # check
+                    a = event.data.keys.indexOf event.key
+                    break if a < 0
+                    # prepare
+                    event.preventDefault!
+                    event.stopImmediatePropagation!
+                    # determine next index
+                    b = nav.currentItem[nav.current]
+                    c = cfg.data.btn
+                    if a
+                        # next
+                        a = if b < c.length - 1
+                            then b + 1
+                            else 0
+                    else
+                        # previous
+                        a = if b > 0
+                            then b - 1
+                            else c.length - 1
+                    # change model
+                    nav.currentItem[nav.current] = a
+                    # set focus
+                    c.removeClass 'active'
+                    c.eq a .addClass 'active'
+                    # }}}
                 | 'click' =>
-                    # menu select
+                    # navigate
                     # {{{
                     # prepare
                     event.stopPropagation!
@@ -1411,8 +1472,8 @@ $ 'document' .ready ->
                         c =
                             a.0.progress! > 0.0001
                             a.1.progress! > 0.0001
+                        # unhover first
                         if c.0 or c.1
-                            # unhover first
                             d = b
                             b = new TimelineLite {
                                 paused: true
