@@ -1,16 +1,12 @@
 'use strict'
 
-#######
-$ 'document' .ready ->
-    ###
-    return if not w3ui
-    ###
+w3ui and w3ui.ready ->
     M = w3ui.PROXY { # model {{{
         init: -> # {{{
             # initialize navigation store
             a = @nav
             @sav.forEach (save, level) !->
-                save[''] = w3ui.CLONE a.slice level + 1
+                save[''] = w3ui.COPY a.slice level + 1
             # done
             true
         # }}}
@@ -57,7 +53,7 @@ $ 'document' .ready ->
                 # remove higher levels
                 a.splice k + 1
                 # add higher levels from save
-                a = a ++ w3ui.CLONE d[v]
+                a = a ++ w3ui.COPY d[v]
             # change
             c.id = v
             true
@@ -86,7 +82,6 @@ $ 'document' .ready ->
                 data: {}            # data storage
                 level: 0            # node level in skeleton tree
                 nav: null           # navigation for the level
-                namespace: ''       # event namespace
                 render: true        # render flag-function
                 refresh: ->
                     # update document width/height css variable
@@ -116,7 +111,7 @@ $ 'document' .ready ->
                         # determine maximal value
                         a = @cfg.fontSizeMax
                         b = @header.title
-                        b = b.node.textMeasureFont b.text
+                        b = b.node.box.fontSize b.text
                         b = a if b > a
                         # update css variable
                         @cfg.node.style.fSize0 = b+'px'
@@ -236,8 +231,7 @@ $ 'document' .ready ->
                                 while not (b = @cfg.nav.currentItem)
                                     @cfg.nav.currentItem = @data.map -> 0
                                 # set pre-show style
-                                c = @cfg.data.menu
-                                c.eq a .addClass 'active'
+                                @cfg.data.menu.class[a].add 'active'
                                 # done
                                 true
                             # }}}
@@ -247,31 +241,31 @@ $ 'document' .ready ->
                                 data.menu.addClass 'attached'
                                 if not data.box
                                     # nodes
-                                    data.box = data.menu.eq @cfg.nav.current
+                                    a = @cfg.nav.current
+                                    data.box = data.menu.eq a
                                     data.btn = data.box.find '.button'
-                                    # numbers
-                                    for a from 0 to data.btn.length - 1
-                                        data.btn[a].dataset.num = a
+                                    # numbers & ids
+                                    for b from 0 to data.btn.length - 1
+                                        data.btn[b].dataset.num = b
+                                        data.btn[b].dataset.id = @data[a].list[b].id
                                     # style
                                     a = @cfg.nav.currentItem[@cfg.nav.current]
-                                    data.btn.eq a .addClass 'active'
+                                    data.btn.class[a].add 'active'
                                 # initialize slide effect
                                 # {{{
                                 if not data.slide
-                                    # prepare data
+                                    # prepare
                                     # determine indexes
                                     a = @cfg.nav.current or 0
                                     b = data.menu.length - 1
                                     c =
                                         if a > 0 then a - 1 else b # left
                                         if a < b then a + 1 else 0 # right
+                                    # define transition items
                                     a =
-                                        [a, c.0]
-                                        [a, c.1]
-                                    # get boxes
-                                    a = a.map (side) -> side.map (index) ->
-                                        data.menu.eq index
-                                    # transition parameters
+                                        [data.menu[a], data.menu[c.0]]
+                                        [data.menu[a], data.menu[c.1]]
+                                    # define transition parameters
                                     c =
                                         ['0%' '100%' '-100%' '0%']
                                         ['0%' '-100%' '100%' '0%']
@@ -283,11 +277,10 @@ $ 'document' .ready ->
                                             data:
                                                 complete: !->
                                                     # cleanup inline styles
-                                                    data.menu.prop 'style', ''
+                                                    data.menu.propRemove 'style'
                                                     # invalidate current data
                                                     delete data.slide
                                         }
-                                        # prepare
                                         # step 0
                                         # initital state
                                         b.set a.0, {
@@ -511,11 +504,11 @@ $ 'document' .ready ->
                             for own a of @cfg.data
                                 delete @cfg.data[a]
                             # refresh
-                            @cfg.refresh.apply @
+                            @cfg.refresh.call @
                         refresh: ->
                             # delegate
                             a = @cfg.nav.id
-                            return @[a].refresh.apply @, [@cfg.data] if @[a].refresh
+                            return @[a].refresh.call @, @cfg.data if @[a].refresh
                             # done
                             true
                         show: # {{{
@@ -618,7 +611,7 @@ $ 'document' .ready ->
                                         paused: true
                                         ease: Power2.easeOut
                                     }
-                                    # unhover all at start
+                                    # un-hover at start
                                     c.add let a = a, b = b
                                         !->
                                             a.removeClass 'hover'
@@ -629,19 +622,6 @@ $ 'document' .ready ->
                                     }
                                     # done
                                     c
-                            # }}}
-                            # initialize unhover effect
-                            # {{{
-                            if not data.unhover
-                                # create timeline
-                                a = new TimelineLite {
-                                    paused: true
-                                    ease: Power2.easeIn
-                                }
-                                a.to [data.box, data.btn], data.time, {
-                                    className: '-=hover'
-                                }
-                                data.unhover = a
                             # }}}
                             # initialize slide effect
                             # {{{
@@ -662,22 +642,20 @@ $ 'document' .ready ->
                                         then a + 2
                                         else a + 1 - b
                                 # set captions
-                                data.btn.eq 0 .text main.data[c.0].name
-                                data.btn.eq 4 .text main.data[c.1].name
-                                # clone elements
-                                a = data.box.eq 0
-                                b = data.box.eq 4
+                                data.btn.0.innerHTML = main.data[c.0].name
+                                data.btn.4.innerHTML = main.data[c.1].name
+                                # clone border nodes
                                 a =
-                                    a.clone!
-                                    b.clone!
+                                    data.box.node.0.clone!
+                                    data.box.node.4.clone!
                                 b =
-                                    a.0.find '.button'
-                                    a.1.find '.button'
-                                # merge container and button
+                                    w3ui '.button', true, a.0
+                                    w3ui '.button', true, a.1
+                                # prepare list
                                 a =
-                                    [a.0, b.0]
-                                    [a.1, b.1]
-                                # create effects
+                                    [a.0, b.0.0]
+                                    [a.1, b.1.0]
+                                # create effect
                                 data.slide = a.map (box, index) ->
                                     # create timeline
                                     a = new TimelineMax {
@@ -685,17 +663,17 @@ $ 'document' .ready ->
                                         data:
                                             complete: !->
                                                 # cleanup inline styles
-                                                data.box.prop 'style', ''
-                                                data.btn.prop 'style', ''
-                                                # add and remove
+                                                data.box.propRemove 'style'
+                                                data.btn.propRemove 'style'
+                                                # change DOM
                                                 if index
                                                     # +right -left
-                                                    data.node.append box.0
-                                                    data.box.eq 0 .remove!
+                                                    data.node.node.append box.0
+                                                    data.box.node.0.remove!
                                                 else
                                                     # -right +left
-                                                    data.node.prepend box.0
-                                                    data.box.eq 4 .remove!
+                                                    data.node.node.prepend box.0
+                                                    data.box.node.4.remove!
                                                 # invalidate current data
                                                 delete data.box
                                                 delete data.hover
@@ -771,31 +749,30 @@ $ 'document' .ready ->
         }
         # }}}
         ###
-        init: (id = '', parent = null, level = 0, namespace = '', templ) -> # {{{
+        init: (id = '', parent = null, level = 0, templ) -> # {{{
             # get node
             if not (a = @skel[id]) or not b = a.cfg
                 console.log 'getting of "'+id+'" failed'
                 return false
             # prepare data
             id = b.id if not id
-            namespace += id.charAt 0 .toUpperCase! + id.slice 1
             if not templ
-                templ = $ 'template'
-                templ = $ templ.0.content
+                # templates are in DocumentFragment object
+                templ = w3ui 'template', true
+                templ = templ.0.content
             # initialize
-            b.id        = id
-            b.parent    = parent
-            b.root      = parent.cfg.root if parent
-            b.level     = level
-            b.nav       = M.nav[level]
-            b.namespace = namespace
-            b.render    = w3ui.PARTIAL a, @render if b.render
-            b.attach    = w3ui.PARTIAL a, @attach, b.attach if b.attach
-            b.template  = templ
-            b.data      = {}
+            b.id       = id
+            b.parent   = parent
+            b.root     = parent.cfg.root if parent
+            b.level    = level
+            b.nav      = M.nav[level]
+            b.render   = @render.bind a if b.render
+            b.attach   = @attach.bind a, b.attach if b.attach
+            b.template = templ
+            b.data     = {}
             # recurse to children
             for own b,c of a when b != 'cfg' and c and c.cfg
-                return false if not @init b, a, level + 1, namespace, templ
+                return false if not @init b, a, level + 1, templ
             # complete
             true
         # }}}
@@ -829,7 +806,7 @@ $ 'document' .ready ->
             # walk
             # external function
             if typeof func != 'string'
-                return walk.every (node) -> func.apply node
+                return walk.every (node) -> func.call node
             # walk
             # internal functions
             if onComplete
@@ -838,7 +815,7 @@ $ 'document' .ready ->
                 for b in walk when b.cfg[func]
                     # create chain unit
                     a.push let node = b
-                        -> node.cfg[func].apply node
+                        -> node.cfg[func].call node
                     # waiter
                     a.push let node = b
                         -> !node.cfg[func].busy
@@ -850,7 +827,7 @@ $ 'document' .ready ->
                 return true
             # internal, no thread
             walk.every (node) -> if node.cfg[func]
-                then node.cfg[func].apply node
+                then node.cfg[func].call node
                 else true
         # }}}
         render: (id = @cfg.nav.id) -> # {{{
@@ -874,20 +851,17 @@ $ 'document' .ready ->
                 # save context
                 @cfg.context = a
                 # generate data
-                c = @[id].render.apply a
+                c = @[id].render.call a
             # determine template id
             a = @
             while a.cfg.parent and a.cfg.level
                 id = a.cfg.id + '-' + id
                 a  = a.cfg.parent
             # select template
-            a = @cfg.template.find '#t-'+id
-            if not a or not a.length
-                # no template
-                return true
-            a = a.0.innerHTML
-            # construct HTML
-            a = Mustache.render a, c
+            a = @cfg.template.querySelector '#t-'+id
+            return true if not a
+            # render content
+            a = Mustache.render a.innerHTML, c
             # inject
             @cfg.node.html a
             # initialize child
@@ -921,7 +895,7 @@ $ 'document' .ready ->
                     d.preventDefault = not x.test a
                     # create event handler
                     # combined with custom data
-                    d = w3ui.PARTIAL @, P.event, d
+                    d = P.event.bind @, d
                     # add
                     e.push [c, a, d]
             # check
@@ -943,6 +917,8 @@ $ 'document' .ready ->
             # done
             true
         # }}}
+        /*** TODO
+        # {{{
         color: w3ui.PROXY { # {{{
             ###
             source: null
@@ -1072,6 +1048,8 @@ $ 'document' .ready ->
             # }}}
         }
         # }}}
+        # }}}
+        /***/
     # }}}
     P = # {{{
         init: -> # {{{
@@ -1082,7 +1060,7 @@ $ 'document' .ready ->
             # construct
             P.construct!
             # attach global resize handler
-            $ window .on 'resize', !-> P.resize!
+            window.addEventListener 'resize', @resize.bind @
             # done
             true
         # }}}
@@ -1233,7 +1211,7 @@ $ 'document' .ready ->
                 # reset timer
                 window.clearTimeout me.timer
                 # set timer
-                f = w3ui.PARTIAL @, me
+                f = me.bind @
                 me.timer = window.setTimeout f, 250
             # resize
             else if not V.walk '', true, 'resize'
@@ -1256,7 +1234,7 @@ $ 'document' .ready ->
                 # check waiter started
                 a = !!me.delayed
                 # create delayed routine
-                me.delayed = w3ui.PARTIAL @, me, data, event
+                me.delayed = me.bind @, data, event
                 return false if a
                 # speed up animations
                 if typeof me.busy == 'object'
@@ -1438,9 +1416,12 @@ $ 'document' .ready ->
                     # prepare
                     event.stopPropagation!
                     # change model
-                    #M.2 = event.target.className
+                    a = cfg.level - 1
+                    b = event.target.dataset.id
+                    debugger
+                    M[a] = b
                     # construct
-                    #P.construct 'view'
+                    P.construct b
                     # }}}
                 # }}}
             | 'console' =>
@@ -1537,7 +1518,5 @@ $ 'document' .ready ->
             false
         # }}}
     # }}}
-    ###
     P.init! if M and V and P
-#######
 
