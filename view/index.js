@@ -334,7 +334,7 @@ w3ui && w3ui.ready(function(){
                     scale: 0
                   }
                 }, {
-                  duration: 0.6,
+                  duration: 0.8,
                   tween: {
                     scale: 1,
                     ease: Back.easeOut
@@ -342,7 +342,7 @@ w3ui && w3ui.ready(function(){
                 }
               ],
               hide: [{
-                duration: 0.6,
+                duration: 0.8,
                 tween: {
                   scale: 0,
                   ease: Back.easeIn
@@ -500,7 +500,7 @@ w3ui && w3ui.ready(function(){
                   visibility: 'visible'
                 }
               }, {
-                duration: 0.4,
+                duration: 0.6,
                 tween: {
                   className: '',
                   ease: Power3.easeOut
@@ -508,7 +508,7 @@ w3ui && w3ui.ready(function(){
               }
             ],
             hide: [{
-              duration: 0.4,
+              duration: 0.6,
               tween: {
                 className: '',
                 ease: Power3.easeIn
