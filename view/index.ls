@@ -6,7 +6,7 @@ w3ui and w3ui.ready ->
             # initialize navigation store
             a = @nav
             @sav.forEach (save, level) !->
-                save[''] = w3ui.COPY a.slice level + 1
+                save[''] = w3ui.CLONE a.slice level + 1
             # done
             true
         # }}}
@@ -53,7 +53,7 @@ w3ui and w3ui.ready ->
                 # remove higher levels
                 a.splice k + 1
                 # add higher levels from save
-                a = a ++ w3ui.COPY d[v]
+                a = a ++ w3ui.CLONE d[v]
             # change
             c.id = v
             true
@@ -78,7 +78,7 @@ w3ui and w3ui.ready ->
                 node: w3ui '#skel'  # DOM node object
                 root: w3ui 'html'   # DOM root
                 parent: null        # backlink
-                context: null       # primary context (for adjacent node)
+                context: null       # primary context (for adjacent nodes)
                 data: {}            # data storage
                 level: 0            # node level in skeleton tree
                 nav: null           # navigation for the level
@@ -124,7 +124,7 @@ w3ui and w3ui.ready ->
                             # determine index
                             b.index = b.list.reduce (a, text, index) ->
                                 # measure string
-                                c = b.node.textMeasure text
+                                c = b.node.box.textMetrics text
                                 # check if it fits and length of the string
                                 # is greater than previous
                                 if (c.width < b.node.box.innerWidth) and
@@ -152,20 +152,6 @@ w3ui and w3ui.ready ->
                                 else b.list[b.index]
                         # done
                         true
-                    # }}}
-                    show: # {{{
-                        {
-                            duration: 0
-                            tween:
-                                opacity: 0
-                                visibility: 'visible'
-                        }
-                        {
-                            duration: 0.4
-                            tween:
-                                opacity: 1
-                                ease: Power1.easeOut
-                        }
                     # }}}
                     attach: # {{{
                         click:
@@ -223,7 +209,7 @@ w3ui and w3ui.ready ->
                             init: -> # {{{
                                 # prepare
                                 if not @cfg.data.menu
-                                    @cfg.data.menu = @cfg.node.find '.box'
+                                    @cfg.data.menu = @cfg.node.query '.box'
                                     @cfg.data.time = @cfg.show.1.duration
                                 # initialize model
                                 while (a = @cfg.nav.current) == undefined
@@ -232,18 +218,17 @@ w3ui and w3ui.ready ->
                                     @cfg.nav.currentItem = @data.map -> 0
                                 # set pre-show style
                                 @cfg.data.menu.class[a].add 'active'
-                                # done
                                 true
                             # }}}
                             refresh: -> # {{{
                                 # prepare
                                 data = @cfg.data
-                                data.menu.addClass 'attached'
+                                #data.menu.addClass 'attached'
                                 if not data.box
                                     # nodes
                                     a = @cfg.nav.current
                                     data.box = data.menu.eq a
-                                    data.btn = data.box.find '.button'
+                                    data.btn = data.box.query '.button'
                                     # numbers & ids
                                     for b from 0 to data.btn.length - 1
                                         data.btn[b].dataset.num = b
@@ -361,13 +346,15 @@ w3ui and w3ui.ready ->
                                         scale: 1
                                         ease: Back.easeOut
                                 }
+                                !-> @cfg.data.menu.addClass 'attached'
                             # }}}
                             hide: # {{{
+                                !-> @cfg.data.menu.removeClass 'attached'
                                 {
                                     duration: 0.8
                                     tween:
                                         scale: 0
-                                        ease: Back.easeIn
+                                        ease: Power3.easeIn
                                 }
                                 ...
                             # }}}
@@ -437,11 +424,39 @@ w3ui and w3ui.ready ->
                     # }}}
                     address: # {{{
                         cfg:
-                            refresh: -> true
+                            refresh: -> # {{{
+                                # prepare
+                                # ..
+                                # done
+                                true
+                            # }}}
+                            show: # {{{
+                                {
+                                    duration: 0
+                                    tween:
+                                        visibility: 'visible'
+                                        scale: 0
+                                }
+                                {
+                                    duration: 0.8
+                                    tween:
+                                        scale: 1
+                                        ease: Back.easeOut
+                                }
+                            # }}}
+                            hide: # {{{
+                                {
+                                    duration: 0.8
+                                    tween:
+                                        scale: 0
+                                        ease: Back.easeIn
+                                }
+                                ...
+                            # }}}
                         title:
                             'Картотека адресов'
                             'Адрес'
-                        tabs: [
+                        tab: [
                             {
                                 id: 'a0'
                                 name: 'квартира'
@@ -472,9 +487,41 @@ w3ui and w3ui.ready ->
                 # }}}
                 header: # {{{
                     cfg:
+                        render: false
+                        init: ->
+                            @cfg.show.1.tween.className = '+=on '+@cfg.nav.id
+                            true
                         refresh: ->
                             @title.node.html @title.text
                             true
+                        show: # {{{
+                            {
+                                duration: 0
+                                tween:
+                                    visibility: 'visible'
+                            }
+                            {
+                                duration: 0.6
+                                tween:
+                                    className: ''
+                                    opacity: 1
+                                    ease: Power3.easeOut
+                            }
+                        # }}}
+                        hide: # {{{
+                            {
+                                duration: 0.2
+                                tween:
+                                    opacity: 0
+                                    ease: Power3.easeIn
+                            }
+                            {
+                                duration: 0.4
+                                tween:
+                                    className: ''
+                                    ease: Power3.easeIn
+                            }
+                        # }}}
                     title:
                         node: null
                         text: ''
@@ -497,7 +544,7 @@ w3ui and w3ui.ready ->
                         attach: true
                         init: ->
                             # modify show tween
-                            @cfg.show.1.tween.className = @cfg.nav.id
+                            @cfg.show.1.tween.className = '+=on '+@cfg.nav.id
                             true
                         resize: ->
                             # invalidate data
@@ -506,11 +553,12 @@ w3ui and w3ui.ready ->
                             # refresh
                             @cfg.refresh.call @
                         refresh: ->
-                            # delegate
+                            # prepare
                             a = @cfg.nav.id
-                            return @[a].refresh.call @, @cfg.data if @[a].refresh
-                            # done
-                            true
+                            b = @[a]
+                            return true if not b or not b.refresh
+                            # delegate
+                            b.refresh.call @, @cfg.data
                         show: # {{{
                             {
                                 duration: 0
@@ -521,17 +569,23 @@ w3ui and w3ui.ready ->
                                 duration: 0.6
                                 tween:
                                     className: ''
+                                    opacity: 1
                                     ease: Power3.easeOut
                             }
                         # }}}
                         hide: # {{{
                             {
-                                duration: 0.6
+                                duration: 0.2
+                                tween:
+                                    opacity: 0
+                                    ease: Power3.easeIn
+                            }
+                            {
+                                duration: 0.4
                                 tween:
                                     className: ''
                                     ease: Power3.easeIn
                             }
-                            ...
                         # }}}
                     # }}}
                     menu:
@@ -566,7 +620,7 @@ w3ui and w3ui.ready ->
                                     delayed: true
                                 }
                             keydown:
-                                keys: ['ArrowLeft' 'ArrowRight']
+                                keys: ['ArrowLeft' 'ArrowRight' 'Enter']
                                 delayed: true
                         # }}}
                         render: -> # {{{
@@ -593,11 +647,11 @@ w3ui and w3ui.ready ->
                         refresh: (data) -> # {{{
                             # initialize data
                             if not data.node
-                                data.node = @cfg.node.find '.carousel'
+                                data.node = @cfg.node.query '.carousel'
                                 data.time = @cfg.show.1.duration
                             if not data.box
-                                data.box = data.node.find '.item'
-                                data.btn = data.node.find '.button'
+                                data.box = data.node.query '.item'
+                                data.btn = data.node.query '.button'
                             # initialize hover effect
                             # {{{
                             if not data.hover
@@ -751,13 +805,13 @@ w3ui and w3ui.ready ->
         ###
         init: (id = '', parent = null, level = 0, templ) -> # {{{
             # get node
-            if not (a = @skel[id]) or not b = a.cfg
+            if not (a = @skel[id]) or not (b = a.cfg)
                 console.log 'getting of "'+id+'" failed'
                 return false
             # prepare data
             id = b.id if not id
             if not templ
-                # templates are in DocumentFragment object
+                # template is a DocumentFragment object
                 templ = w3ui 'template', true
                 templ = templ.0.content
             # initialize
@@ -766,10 +820,18 @@ w3ui and w3ui.ready ->
             b.root     = parent.cfg.root if parent
             b.level    = level
             b.nav      = M.nav[level]
-            b.render   = @render.bind a if b.render
+            b.render   = @render.bind a, b.render if b.render != undefined
             b.attach   = @attach.bind a, b.attach if b.attach
             b.template = templ
             b.data     = {}
+            # initialize show/hide animations
+            # bind functions to the node
+            b.show and b.show = b.show.map (c) ->
+                return c if typeof c == 'object'
+                return c.bind a
+            b.hide and b.hide = b.hide.map (c) ->
+                return c if typeof c == 'object'
+                return c.bind a
             # recurse to children
             for own b,c of a when b != 'cfg' and c and c.cfg
                 return false if not @init b, a, level + 1, templ
@@ -830,13 +892,14 @@ w3ui and w3ui.ready ->
                 then node.cfg[func].call node
                 else true
         # }}}
-        render: (id = @cfg.nav.id) -> # {{{
-            # initialize
+        render: (template, id = @cfg.nav.id) -> # {{{
+            # update node link
             if not @cfg.node
                 @cfg.node = w3ui '#'+@cfg.id
             # check
+            return true  if not template or not id
             return false if not @cfg.node
-            return true  if not id
+            # proceed
             # determine node type and select data
             a = @cfg.parent
             if not a or a.cfg.nav.id == @cfg.id
@@ -845,28 +908,27 @@ w3ui and w3ui.ready ->
                 c = @[b]
             else
                 # adjacent
-                b = ''
-                # get context of the primary node
+                # determine context of the primary
                 return true if not a = a[a.cfg.nav.id][id]
-                # save context
                 @cfg.context = a
-                # generate data
+                # get template data
+                b = ''
                 c = @[id].render.call a
-            # determine template id
+            # get template
+            # determine identifier
             a = @
             while a.cfg.parent and a.cfg.level
                 id = a.cfg.id + '-' + id
                 a  = a.cfg.parent
-            # select template
-            a = @cfg.template.querySelector '#t-'+id
-            return true if not a
-            # render content
-            a = Mustache.render a.innerHTML, c
-            # inject
-            @cfg.node.html a
-            # initialize child
+            # query
+            if not (a = @cfg.template.querySelector '#t-'+id)
+                return true
+            # extract template text
+            a = a.innerHTML
+            # render
+            @cfg.node.0.innerHTML = Mustache.render a, c
+            # update primary child link
             c.cfg.node = w3ui '#'+b if b
-            # done
             true
         # }}}
         attach: (event) -> # {{{
@@ -917,8 +979,8 @@ w3ui and w3ui.ready ->
             # done
             true
         # }}}
-        /*** TODO
-        # {{{
+        /***
+        # TODO {{{
         color: w3ui.PROXY { # {{{
             ###
             source: null
@@ -1019,35 +1081,6 @@ w3ui and w3ui.ready ->
             # }}}
         }
         # }}}
-        svg: w3ui.PROXY { # {{{
-            data: null
-            ###
-            init: -> # {{{
-                # prepare
-                @data = {}
-                # get template
-                if not (a = $ '#t-svg') or a.length == 0
-                    return false
-                # get nodes
-                a = $ a.0.content .find 'div'
-                # get contents
-                for b from 0 to a.length - 1
-                    # store
-                    @data[a[b].id] = a[b].innerHTML
-                # done
-                true
-            # }}}
-        }, {
-            get: (obj, p, prx) -> # {{{
-                # check
-                if typeof p == 'string'
-                    return obj[p] if obj[p]
-                    return obj.data[p] if obj.data[p]
-                # nothing
-                return ''
-            # }}}
-        }
-        # }}}
         # }}}
         /***/
     # }}}
@@ -1065,52 +1098,53 @@ w3ui and w3ui.ready ->
             true
         # }}}
         construct: (id = '') !-> # {{{
-            # get root of construction
-            return if not node = V.skel[id]
-            # local lock
-            busy = false
+            # prepare
+            me   = @construct
+            node = V.skel[id]
+            lock = false
             # start thread
             w3ui.THREAD [
                 ->
-                    # wait
-                    return false if P.construct.busy
-                    # lock global
-                    P.construct.busy = true
+                    # wait for global lock
+                    return false if me.busy
+                    me.busy = true
                     # detach events
                     if not V.walk id, false, 'detach'
                         console.log 'detach failed'
-                        delete P.construct.busy
+                        delete me.busy
                         return null
                     # hide
-                    # create main timeline
+                    # {{{
+                    # create timeline
                     a = new TimelineLite {
                         paused: true
-                        onComplete: -> busy := false
                     }
                     V.walk id, false, ->
-                        # check node
-                        return true if not node = @cfg.node
+                        # prepare
+                        if not (node = @cfg.node)
+                            return true
                         # create effect timeline
                         b = new TimelineLite {paused: true}
                         # add tweens
-                        @cfg.hide and @cfg.hide.forEach (c) ->
-                            b.to node, c.duration, c.tween
-                        # add final tween
-                        b.set node, {visibility: 'hidden'}
-                        # insert at the beginning of the main
-                        # play to remove paused state
+                        @cfg.hide and @cfg.hide.forEach (a) !->
+                            if a.tween
+                                c = w3ui.CLONE a.tween
+                                b.to node, a.duration, c
+                            else
+                                b.add a
+                        # add timeline
                         a.add b.play!, 0
-                        # done
                         true
-                    # lock
-                    busy := true
-                    # start animation
+                    # set unlock
+                    a.add !-> lock := false
+                    # lock and play
+                    lock := true
                     a.play!
-                    # continue
+                    # }}}
                     true
                 ->
                     # wait
-                    not busy
+                    not lock
                 ->
                     # cleanup
                     V.walk id, false, ->
@@ -1119,79 +1153,64 @@ w3ui and w3ui.ready ->
                             @cfg.node = null
                         # done
                         true
-                    # render new content
-                    a = ['render' 'init' 'resize'].every (f) ->
+                    # render
+                    a = ['render' 'init' 'resize' 'refresh'].every (f) ->
                         V.walk id, true, f
-                    # check the result
                     if not a
                         console.log 'render sequence failed'
-                        delete P.construct.busy
+                        delete me.busy
                         return null
-                    # before new elements are shown,
-                    # they should be at a hidden state
-                    V.walk id, true, ->
-                        # check node
-                        return true if not node = @cfg.node
-                        # hide
-                        node.style.visibility = 'hidden'
-                        true
                     # show
-                    # create main timeline
+                    # {{{
+                    # create timeline
                     a = new TimelineLite {
                         paused: true
-                        onComplete: -> busy := false
                     }
-                    # add first label
-                    b = 'lev'+node.cfg.level
+                    # add startup label
+                    b = 'L'+node.cfg.level
                     a.addLabel b, 0
-                    # nest effects
+                    # nest
                     V.walk id, true, ->
-                        # check node
-                        return true if not node = @cfg.node
+                        # check
+                        if not (node = @cfg.node)
+                            return true
                         # create effect timeline
-                        tl = new TimelineLite {
+                        c = new TimelineLite {
                             paused: true
                         }
                         # add tweens
-                        @cfg.show and @cfg.show.forEach (a) ->
-                            tl.to node, a.duration, a.tween
-                        # add final tween
-                        tl.set node, {visibility: 'visible'}
+                        @cfg.show and @cfg.show.forEach (a) !->
+                            if a.tween
+                                b = w3ui.CLONE a.tween
+                                c.to node, a.duration, b
+                            else
+                                c.add a
                         # check label
-                        if b != 'lev'+@cfg.level
-                            # we dont check if it's already exist because
-                            # the walk sequence is aligned properly
-                            # change
-                            b := 'lev'+@cfg.level
-                            # append new label to the end
+                        if b != 'L'+@cfg.level
+                            # update when level changes
+                            b := 'L'+@cfg.level
                             a.addLabel b
-                        # insert timeline
-                        # play it to remove paused state
-                        a.add tl.play!, b
-                        # done
+                        # add timeline
+                        a.add c.play!, b
                         true
-                    # lock
-                    busy := true
-                    # start animation
+                    # set unlock
+                    a.add !-> lock := false
+                    # lock and play
+                    lock := true
                     a.play!
-                    # continue
+                    # }}}
                     true
                 ->
                     # wait
-                    not busy
+                    not lock
                 ->
-                    # refresh
-                    if not V.walk id, true, 'refresh'
-                        console.log 'refresh failed'
-                        delete P.construct.busy
-                        return null
-                    # finish
+                    # finalize
                     V.walk id, false, 'finit'
-                    # attach event handlers
+                    # attach events
                     if not V.walk id, true, 'attach'
                         console.log 'attach failed'
                     # unlock
-                    delete P.construct.busy
+                    delete me.busy
                     true
             ]
         # }}}
@@ -1225,7 +1244,7 @@ w3ui and w3ui.ready ->
                 # always prevent default action!
                 event.preventDefault!
             # check
-            if not @cfg.detach or me.busy and not data.delayed
+            if P.construct.busy or not @cfg.detach or me.busy and not data.delayed
                 return true
             # delay event
             if me.busy
@@ -1418,10 +1437,9 @@ w3ui and w3ui.ready ->
                     # change model
                     a = cfg.level - 1
                     b = event.target.dataset.id
-                    debugger
                     M[a] = b
                     # construct
-                    P.construct b
+                    P.construct!
                     # }}}
                 # }}}
             | 'console' =>
@@ -1508,10 +1526,20 @@ w3ui and w3ui.ready ->
                         # check
                         a = event.data.keys.indexOf event.key
                         break if a < 0
-                        # change
+                        # change menu
                         event.preventDefault!
                         event.stopImmediatePropagation!
-                        return data.change a
+                        return data.change a if a < 2
+                        # navigate
+                        # determine selected item
+                        a = cfg.context.cfg.data.btn.find (node) ->
+                            node.classList.contains 'active'
+                        # get id
+                        break if not a
+                        a = a.dataset.id
+                        # change model
+                        M[cfg.level] = a
+                        P.construct!
                         # }}}
                     # }}}
             # done

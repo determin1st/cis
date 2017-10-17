@@ -7,7 +7,7 @@ w3ui && w3ui.ready(function(){
       var a;
       a = this.nav;
       this.sav.forEach(function(save, level){
-        save[''] = w3ui.COPY(a.slice(level + 1));
+        save[''] = w3ui.CLONE(a.slice(level + 1));
       });
       return true;
     },
@@ -51,7 +51,7 @@ w3ui && w3ui.ready(function(){
       if (d) {
         d[c.id] = a.slice(k + 1);
         a.splice(k + 1);
-        a = a.concat(w3ui.COPY(d[v]));
+        a = a.concat(w3ui.CLONE(d[v]));
       }
       c.id = v;
       return true;
@@ -128,7 +128,7 @@ w3ui && w3ui.ready(function(){
             return true;
             function fn$(a, text, index){
               var c;
-              c = b.node.textMeasure(text);
+              c = b.node.box.textMetrics(text);
               if (c.width < b.node.box.innerWidth && (a < 0 || b.list[a].length < text.length)) {
                 return index;
               }
@@ -151,21 +151,6 @@ w3ui && w3ui.ready(function(){
             }
             return true;
           },
-          show: [
-            {
-              duration: 0,
-              tween: {
-                opacity: 0,
-                visibility: 'visible'
-              }
-            }, {
-              duration: 0.4,
-              tween: {
-                opacity: 1,
-                ease: Power1.easeOut
-              }
-            }
-          ],
           attach: {
             click: [
               {
@@ -210,7 +195,7 @@ w3ui && w3ui.ready(function(){
               init: function(){
                 var a, b;
                 if (!this.cfg.data.menu) {
-                  this.cfg.data.menu = this.cfg.node.find('.box');
+                  this.cfg.data.menu = this.cfg.node.query('.box');
                   this.cfg.data.time = this.cfg.show[1].duration;
                 }
                 while ((a = this.cfg.nav.current) === undefined) {
@@ -228,11 +213,10 @@ w3ui && w3ui.ready(function(){
               refresh: function(){
                 var data, a, i$, to$, b, c, d, e, this$ = this;
                 data = this.cfg.data;
-                data.menu.addClass('attached');
                 if (!data.box) {
                   a = this.cfg.nav.current;
                   data.box = data.menu.eq(a);
-                  data.btn = data.box.find('.button');
+                  data.btn = data.box.query('.button');
                   for (i$ = 0, to$ = data.btn.length - 1; i$ <= to$; ++i$) {
                     b = i$;
                     data.btn[b].dataset.num = b;
@@ -339,15 +323,21 @@ w3ui && w3ui.ready(function(){
                     scale: 1,
                     ease: Back.easeOut
                   }
+                }, function(){
+                  this.cfg.data.menu.addClass('attached');
                 }
               ],
-              hide: [{
-                duration: 0.8,
-                tween: {
-                  scale: 0,
-                  ease: Back.easeIn
+              hide: [
+                function(){
+                  this.cfg.data.menu.removeClass('attached');
+                }, {
+                  duration: 0.8,
+                  tween: {
+                    scale: 0,
+                    ease: Power3.easeIn
+                  }
                 }
-              }],
+              ],
               attach: {
                 click: {
                   el: '.button'
@@ -417,10 +407,32 @@ w3ui && w3ui.ready(function(){
             cfg: {
               refresh: function(){
                 return true;
-              }
+              },
+              show: [
+                {
+                  duration: 0,
+                  tween: {
+                    visibility: 'visible',
+                    scale: 0
+                  }
+                }, {
+                  duration: 0.8,
+                  tween: {
+                    scale: 1,
+                    ease: Back.easeOut
+                  }
+                }
+              ],
+              hide: [{
+                duration: 0.8,
+                tween: {
+                  scale: 0,
+                  ease: Back.easeIn
+                }
+              }]
             },
             title: ['Картотека адресов', 'Адрес'],
-            tabs: [
+            tab: [
               {
                 id: 'a0',
                 name: 'квартира'
@@ -445,10 +457,45 @@ w3ui && w3ui.ready(function(){
         },
         header: {
           cfg: {
+            render: false,
+            init: function(){
+              this.cfg.show[1].tween.className = '+=on ' + this.cfg.nav.id;
+              return true;
+            },
             refresh: function(){
               this.title.node.html(this.title.text);
               return true;
-            }
+            },
+            show: [
+              {
+                duration: 0,
+                tween: {
+                  visibility: 'visible'
+                }
+              }, {
+                duration: 0.6,
+                tween: {
+                  className: '',
+                  opacity: 1,
+                  ease: Power3.easeOut
+                }
+              }
+            ],
+            hide: [
+              {
+                duration: 0.2,
+                tween: {
+                  opacity: 0,
+                  ease: Power3.easeIn
+                }
+              }, {
+                duration: 0.4,
+                tween: {
+                  className: '',
+                  ease: Power3.easeIn
+                }
+              }
+            ]
           },
           title: {
             node: null,
@@ -475,7 +522,7 @@ w3ui && w3ui.ready(function(){
             render: true,
             attach: true,
             init: function(){
-              this.cfg.show[1].tween.className = this.cfg.nav.id;
+              this.cfg.show[1].tween.className = '+=on ' + this.cfg.nav.id;
               return true;
             },
             resize: function(){
@@ -486,12 +533,13 @@ w3ui && w3ui.ready(function(){
               return this.cfg.refresh.call(this);
             },
             refresh: function(){
-              var a;
+              var a, b;
               a = this.cfg.nav.id;
-              if (this[a].refresh) {
-                return this[a].refresh.call(this, this.cfg.data);
+              b = this[a];
+              if (!b || !b.refresh) {
+                return true;
               }
-              return true;
+              return b.refresh.call(this, this.cfg.data);
             },
             show: [
               {
@@ -503,17 +551,26 @@ w3ui && w3ui.ready(function(){
                 duration: 0.6,
                 tween: {
                   className: '',
+                  opacity: 1,
                   ease: Power3.easeOut
                 }
               }
             ],
-            hide: [{
-              duration: 0.6,
-              tween: {
-                className: '',
-                ease: Power3.easeIn
+            hide: [
+              {
+                duration: 0.2,
+                tween: {
+                  opacity: 0,
+                  ease: Power3.easeIn
+                }
+              }, {
+                duration: 0.4,
+                tween: {
+                  className: '',
+                  ease: Power3.easeIn
+                }
               }
-            }]
+            ]
           },
           menu: {
             attach: {
@@ -547,7 +604,7 @@ w3ui && w3ui.ready(function(){
                 }
               ],
               keydown: {
-                keys: ['ArrowLeft', 'ArrowRight'],
+                keys: ['ArrowLeft', 'ArrowRight', 'Enter'],
                 delayed: true
               }
             },
@@ -576,12 +633,12 @@ w3ui && w3ui.ready(function(){
             refresh: function(data){
               var a, b, main, c;
               if (!data.node) {
-                data.node = this.cfg.node.find('.carousel');
+                data.node = this.cfg.node.query('.carousel');
                 data.time = this.cfg.show[1].duration;
               }
               if (!data.box) {
-                data.box = data.node.find('.item');
-                data.btn = data.node.find('.button');
+                data.box = data.node.query('.item');
+                data.btn = data.node.query('.button');
               }
               if (!data.hover) {
                 a = data.box;
@@ -729,14 +786,26 @@ w3ui && w3ui.ready(function(){
       }
       b.level = level;
       b.nav = M.nav[level];
-      if (b.render) {
-        b.render = this.render.bind(a);
+      if (b.render !== undefined) {
+        b.render = this.render.bind(a, b.render);
       }
       if (b.attach) {
         b.attach = this.attach.bind(a, b.attach);
       }
       b.template = templ;
       b.data = {};
+      b.show && (b.show = b.show.map(function(c){
+        if (typeof c === 'object') {
+          return c;
+        }
+        return c.bind(a);
+      }));
+      b.hide && (b.hide = b.hide.map(function(c){
+        if (typeof c === 'object') {
+          return c;
+        }
+        return c.bind(a);
+      }));
       for (b in a) if (own$.call(a, b)) {
         c = a[b];
         if (b !== 'cfg' && c && c.cfg) {
@@ -815,28 +884,28 @@ w3ui && w3ui.ready(function(){
         };
       }
     },
-    render: function(id){
+    render: function(template, id){
       var a, b, c;
       id == null && (id = this.cfg.nav.id);
       if (!this.cfg.node) {
         this.cfg.node = w3ui('#' + this.cfg.id);
       }
+      if (!template || !id) {
+        return true;
+      }
       if (!this.cfg.node) {
         return false;
-      }
-      if (!id) {
-        return true;
       }
       a = this.cfg.parent;
       if (!a || a.cfg.nav.id === this.cfg.id) {
         b = id;
         c = this[b];
       } else {
-        b = '';
         if (!(a = a[a.cfg.nav.id][id])) {
           return true;
         }
         this.cfg.context = a;
+        b = '';
         c = this[id].render.call(a);
       }
       a = this;
@@ -844,12 +913,11 @@ w3ui && w3ui.ready(function(){
         id = a.cfg.id + '-' + id;
         a = a.cfg.parent;
       }
-      a = this.cfg.template.querySelector('#t-' + id);
-      if (!a) {
+      if (!(a = this.cfg.template.querySelector('#t-' + id))) {
         return true;
       }
-      a = Mustache.render(a.innerHTML, c);
-      this.cfg.node.html(a);
+      a = a.innerHTML;
+      this.cfg.node[0].innerHTML = Mustache.render(a, c);
       if (b) {
         c.cfg.node = w3ui('#' + b);
       }
@@ -910,8 +978,8 @@ w3ui && w3ui.ready(function(){
         a.addEventListener(b, c);
       }
     }
-    /*** TODO
-    # {{{
+    /***
+    # TODO {{{
     color: w3ui.PROXY { # {{{
         ###
         source: null
@@ -1012,35 +1080,6 @@ w3ui && w3ui.ready(function(){
         # }}}
     }
     # }}}
-    svg: w3ui.PROXY { # {{{
-        data: null
-        ###
-        init: -> # {{{
-            # prepare
-            @data = {}
-            # get template
-            if not (a = $ '#t-svg') or a.length == 0
-                return false
-            # get nodes
-            a = $ a.0.content .find 'div'
-            # get contents
-            for b from 0 to a.length - 1
-                # store
-                @data[a[b].id] = a[b].innerHTML
-            # done
-            true
-        # }}}
-    }, {
-        get: (obj, p, prx) -> # {{{
-            # check
-            if typeof p == 'string'
-                return obj[p] if obj[p]
-                return obj.data[p] if obj.data[p]
-            # nothing
-            return ''
-        # }}}
-    }
-    # }}}
     # }}}
     /***/
   };
@@ -1055,29 +1094,25 @@ w3ui && w3ui.ready(function(){
       return true;
     },
     construct: function(id){
-      var node, busy;
+      var me, node, lock;
       id == null && (id = '');
-      if (!(node = V.skel[id])) {
-        return;
-      }
-      busy = false;
+      me = this.construct;
+      node = V.skel[id];
+      lock = false;
       w3ui.THREAD([
         function(){
           var a;
-          if (P.construct.busy) {
+          if (me.busy) {
             return false;
           }
-          P.construct.busy = true;
+          me.busy = true;
           if (!V.walk(id, false, 'detach')) {
             console.log('detach failed');
-            delete P.construct.busy;
+            delete me.busy;
             return null;
           }
           a = new TimelineLite({
-            paused: true,
-            onComplete: function(){
-              return busy = false;
-            }
+            paused: true
           });
           V.walk(id, false, function(){
             var node, b;
@@ -1087,20 +1122,26 @@ w3ui && w3ui.ready(function(){
             b = new TimelineLite({
               paused: true
             });
-            this.cfg.hide && this.cfg.hide.forEach(function(c){
-              return b.to(node, c.duration, c.tween);
-            });
-            b.set(node, {
-              visibility: 'hidden'
+            this.cfg.hide && this.cfg.hide.forEach(function(a){
+              var c;
+              if (a.tween) {
+                c = w3ui.CLONE(a.tween);
+                b.to(node, a.duration, c);
+              } else {
+                b.add(a);
+              }
             });
             a.add(b.play(), 0);
             return true;
           });
-          busy = true;
+          a.add(function(){
+            lock = false;
+          });
+          lock = true;
           a.play();
           return true;
         }, function(){
-          return !busy;
+          return !lock;
         }, function(){
           var a, b;
           V.walk(id, false, function(){
@@ -1110,67 +1151,57 @@ w3ui && w3ui.ready(function(){
             }
             return true;
           });
-          a = ['render', 'init', 'resize'].every(function(f){
+          a = ['render', 'init', 'resize', 'refresh'].every(function(f){
             return V.walk(id, true, f);
           });
           if (!a) {
             console.log('render sequence failed');
-            delete P.construct.busy;
+            delete me.busy;
             return null;
           }
-          V.walk(id, true, function(){
-            var node;
-            if (!(node = this.cfg.node)) {
-              return true;
-            }
-            node.style.visibility = 'hidden';
-            return true;
-          });
           a = new TimelineLite({
-            paused: true,
-            onComplete: function(){
-              return busy = false;
-            }
+            paused: true
           });
-          b = 'lev' + node.cfg.level;
+          b = 'L' + node.cfg.level;
           a.addLabel(b, 0);
           V.walk(id, true, function(){
-            var node, tl;
+            var node, c;
             if (!(node = this.cfg.node)) {
               return true;
             }
-            tl = new TimelineLite({
+            c = new TimelineLite({
               paused: true
             });
             this.cfg.show && this.cfg.show.forEach(function(a){
-              return tl.to(node, a.duration, a.tween);
+              var b;
+              if (a.tween) {
+                b = w3ui.CLONE(a.tween);
+                c.to(node, a.duration, b);
+              } else {
+                c.add(a);
+              }
             });
-            tl.set(node, {
-              visibility: 'visible'
-            });
-            if (b !== 'lev' + this.cfg.level) {
-              b = 'lev' + this.cfg.level;
+            if (b !== 'L' + this.cfg.level) {
+              b = 'L' + this.cfg.level;
               a.addLabel(b);
             }
-            a.add(tl.play(), b);
+            a.add(c.play(), b);
             return true;
           });
-          busy = true;
+          a.add(function(){
+            lock = false;
+          });
+          lock = true;
           a.play();
           return true;
         }, function(){
-          return !busy;
+          return !lock;
         }, function(){
-          if (!V.walk(id, true, 'refresh')) {
-            console.log('refresh failed');
-            delete P.construct.busy;
-            return null;
-          }
           V.walk(id, false, 'finit');
           if (!V.walk(id, true, 'attach')) {
             console.log('attach failed');
           }
-          delete P.construct.busy;
+          delete me.busy;
           return true;
         }
       ]);
@@ -1199,7 +1230,7 @@ w3ui && w3ui.ready(function(){
       if (data.preventDefault) {
         event.preventDefault();
       }
-      if (!this.cfg.detach || me.busy && !data.delayed) {
+      if (P.construct.busy || !this.cfg.detach || me.busy && !data.delayed) {
         return true;
       }
       if (me.busy) {
@@ -1357,9 +1388,8 @@ w3ui && w3ui.ready(function(){
           event.stopPropagation();
           a = cfg.level - 1;
           b = event.target.dataset.id;
-          debugger;
           M[a] = b;
-          P.construct(b);
+          P.construct();
         }
         break;
       case 'console':
@@ -1420,7 +1450,18 @@ w3ui && w3ui.ready(function(){
             }
             event.preventDefault();
             event.stopImmediatePropagation();
-            return data.change(a);
+            if (a < 2) {
+              return data.change(a);
+            }
+            a = cfg.context.cfg.data.btn.find(function(node){
+              return node.classList.contains('active');
+            });
+            if (!a) {
+              break;
+            }
+            a = a.dataset.id;
+            M[cfg.level] = a;
+            P.construct();
           }
         }
       }

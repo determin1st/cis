@@ -3,7 +3,7 @@
 /***/
 var w3ui, toString$ = {}.toString;
 w3ui = function(){
-  var DEP, COPY, PROXY, BOUNCE, THREAD, CORE, API;
+  var DEP, CLONE, PROXY, BOUNCE, THREAD, CORE, API;
   DEP = [[Object.entries, "ECMAScript® 2018"], [window.requestAnimationFrame, "WHATWG HTML Living Standard"], [document.body.offsetLeft !== undefined, "CSSOM View Module 2016"]];
   DEP = function(){
     var b, i$, ref$, len$, a;
@@ -20,43 +20,48 @@ w3ui = function(){
   if (!DEP) {
     return null;
   }
-  COPY = function(obj, trace){
-    var i$, len$, a, c, b, own$ = {}.hasOwnProperty;
+  CLONE = function(obj, trace){
+    var i$, len$, ref$, a, b, c, own$ = {}.hasOwnProperty;
     trace == null && (trace = []);
     switch (toString$.call(obj).slice(8, -1)) {
-    case "Date":
+    case 'Date':
       return new Date(obj.getTime());
-    case "RegExp":
+    case 'RegExp':
       return new RegExp(obj);
-    case "Object":
-      if ("jquery" in obj) {
+    case 'Object':
+      if (Object.prototype !== Object.getPrototypeOf(obj)) {
         return obj;
       }
       for (i$ = 0, len$ = trace.length; i$ < len$; ++i$) {
-        a = trace[i$];
+        ref$ = trace[i$], a = ref$[0], b = ref$[1];
         if (obj === a) {
-          return a;
+          return b;
         }
       }
-      trace.push(obj);
       c = {};
       for (a in obj) if (own$.call(obj, a)) {
         b = obj[a];
-        c[a] = COPY(b, trace);
+        c[a] = CLONE(b, trace);
       }
+      trace.push([obj, c]);
       obj = c;
       break;
-    case "Array":
+    case 'Array':
       for (i$ = 0, len$ = trace.length; i$ < len$; ++i$) {
-        a = trace[i$];
+        ref$ = trace[i$], a = ref$[0], b = ref$[1];
         if (obj === a) {
-          return a;
+          return b;
         }
       }
-      trace.push(obj);
-      obj = obj.map(function(val){
-        return COPY(val, trace);
+      c = obj.map(function(a){
+        return CLONE(a, trace);
       });
+      for (a in obj) if (own$.call(obj, a)) {
+        b = obj[a];
+        c[a] = CLONE(b, trace);
+      }
+      trace.push([obj, c]);
+      obj = c;
       break;
     default:
 
@@ -676,7 +681,7 @@ w3ui = function(){
     }
   };
   DEP = {
-    COPY: COPY,
+    CLONE: CLONE,
     PROXY: PROXY,
     BOUNCE: BOUNCE,
     THREAD: THREAD,
@@ -836,7 +841,7 @@ w3ui = function(){
           node.parentNode.removeChild(node);
         }
       },
-      find: function(selector, index, noWrap){
+      query: function(selector, index, noWrap){
         index == null && (index = 0);
         noWrap == null && (noWrap = false);
         if (typeof selector !== 'string' || index < 0 || index > this.length - 1) {
@@ -1094,7 +1099,7 @@ w3ui && (w3ui.slider = {
     var d, o, a, b, i$, c, e, to$;
     d = this.data;
     o = this.options;
-    a = this.element.find("*");
+    a = this.element.query("*");
     b = o.count;
     if (a.length > b) {
       a.slice(b).remove();
