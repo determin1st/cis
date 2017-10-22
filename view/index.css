@@ -60,15 +60,35 @@ body
   color: var(--col40);
 }
 /* }}} */
-/* specs {{{ */
+/* common specs {{{ */
+div
+{
+  box-sizing: border-box;
+}
+svg
+{
+  height: 100%;
+  width: 100%;
+  overflow: visible;
+}
 .button, .title
 {
   -webkit-user-select: none;
   user-select: none;
 }
+.button
+{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  white-space: nowrap;
+}
 /* }}} */
 
-/* workarea {{{ */
+/* workarea */
+/* wa {{{ */
 #wa
 {
   position: absolute;
@@ -82,10 +102,9 @@ body
   overflow: hidden;
   background-color: var(--col95);
   color: var(--col40);
-  /**/
-  /* font {{{ */
-  /* static */
+  /* font */
   --f-name: Segoe UI, Tahoma, Geneva, sans-serif;
+  --f-size-min: 18;
   --f-size-max: 36;
   /* dynamic */
   --f-size0: 0px;
@@ -99,12 +118,11 @@ body
   --f-size7: calc(var(--f-size0) - 14px);
   --f-size8: calc(var(--f-size0) - 16px);
   --f-size9: calc(var(--f-size0) - 18px);
-  /* }}} */
   /**/
   font-family: var(--f-name);
   font-weight: 700;
 }
-#header  {flex: 1 1 10%; min-height: 32px; max-height: 64px;}
+#header  {flex: 0 0 0%; min-height: 0; max-height: 64px;}
 #view    {flex: 9 9 90%;}
 #console {flex: 0 0 0%; min-height: 0;}
 #wa > div
@@ -114,19 +132,12 @@ body
 }
 #wa .separator
 {
-  flex: 0 0 3px;
+  flex: 0 0;
+  min-height: 4px;
   background-color: var(--col93);
   border: 1px solid var(--col85);
   border-radius: 2px;
 }
-/* icons */
-#wa svg
-{
-  fill: var(--col40);
-  height: 100%;
-  width: 100%;
-}
-/***/
 #view > div
 {
   width: 100%;
@@ -135,56 +146,68 @@ body
 }
 /* }}} */
 /* header  {{{ */
-#header.on {
+#header
+{
+  padding: 0 2px;
 }
-#header .b1    {flex: 1.5 1.5 15%; padding: 4px 2px;}
-#header .title {flex: 7 7 70%; padding: 4px 8px;}
-#header .b2    {flex: 1.5 1.5 15%; padding: 4px 2px;}
+#header.on {
+  flex: 1 1 10%;
+  min-height: 32px;
+}
+#header > div {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 100%;
+  padding: 4px 0;
+}
+#header .mode,
+#header .config
+{
+  flex: 1.5 1.5;
+  width: 15%;
+}
 #header .title
 {
-  min-width: 0;/* default is auto for flexbox */
+  flex: 7 7;
+  width: 70%;
+  padding: 4px 0;
+  /**/
   display: flex;
   justify-content: center;
   align-items: center;
   white-space: nowrap;
-  font-size: 0;
-  /* anim */
+  font-size: var(--f-size0);
+  /**/
   transition: all 0.6s ease;
 }
-#header.on .title {
-  font-size: var(--f-size0);
-}
+/* buttons */
 #header .button
 {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
-  height: 100%;
-  width: 100%;
-  min-width: 24px;
   border-radius: 6px;
-  font-size: var(--f-size6);
-  font-weight: 600;
-  /* anim */
-  transition: all 0.6s ease;
+  font-size: var(--f-size8);
+  padding: 0 8px;
 }
-/* enabled */
-#header  .button:not(.disabled) {
+#header .button.disabled
+{
+  visibility: hidden;
+}
+#header .button.text
+{
   background-color: var(--col93);
   border: 1px solid var(--col85);
   cursor: pointer;
 }
-#header  .button:not(.disabled):hover {
-  background-color: var(--col92);
-  color: var(--col30);
-  font-size: var(--f-size5);
-  font-weight: 700;
+#header .button.icon
+{
+  background-color: transparent;
+  border: 0;
+  cursor: pointer;
 }
-/* disabled */
-#header  .button.disabled {
-  background-color: var(--col95);
-  border: 1px solid var(--col85);
+#header .button svg
+{
+  stroke: var(--col40);
+  stroke-width: 6;
+  fill: var(--col90);
 }
 /* }}} */
 /* console {{{ */
@@ -192,7 +215,7 @@ body
 }
 #console.menu
 {
-  flex: 2 2 20%;
+  flex: 2 2 10%;
   min-height: 32px;
   max-height: 80px;
 }
@@ -211,7 +234,7 @@ body
   box-sizing: border-box;
   min-width: 0;
   min-height: 100%;
-  padding: 10px 0 10px 0;
+  padding: 8px 0 8px 0;
 }
 #console.menu .item.hidden
 {
@@ -226,18 +249,11 @@ body
 }
 #console.menu .item.hover
 {
-  padding: 8px 0 8px 0;
+  padding: 6px 0 6px 0;
 }
 /***/
 #console.menu .button
 {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
-  min-width: 100%;
-  box-sizing: border-box;
-  white-space: nowrap;
   font-size: var(--f-size8);
   background-color: var(--col93);
   border: 1px solid var(--col85);
@@ -327,6 +343,8 @@ body
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  min-height: 0;
   max-height: 56px;
   margin: 1px 0;
   background-color: var(--col90);

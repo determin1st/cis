@@ -72,110 +72,250 @@ w3ui && w3ui.ready(function(){
     }
   });
   V = {
-    skel: w3ui.PROXY({
+    init: function(id, parent, level, tid, templ){
+      var a, b, c, own$ = {}.hasOwnProperty;
+      id == null && (id = '');
+      parent == null && (parent = null);
+      level == null && (level = 0);
+      tid == null && (tid = '#t');
+      if (!(a = this.ui[id]) || !(b = a.cfg)) {
+        console.log('getting of "' + id + '" failed');
+        return false;
+      }
+      if (id) {
+        tid = tid + '-' + id;
+      }
+      if (!id) {
+        id = b.id;
+      }
+      if (!templ) {
+        templ = w3ui('template', true);
+        templ = templ[0].content;
+      }
+      b.id = id;
+      b.parent = parent;
+      b.level = level;
+      b.nav = M.nav[level];
+      if (b.render !== undefined) {
+        b.render = this.render.bind(a, b.render);
+      }
+      if (b.attach) {
+        b.attach = this.attach.bind(a, b.attach);
+      }
+      b.template = templ.querySelector(tid);
+      b.data = {};
+      b.show && (b.show = b.show.map(function(c){
+        if (typeof c === 'object') {
+          return c;
+        }
+        return c.bind(a);
+      }));
+      b.hide && (b.hide = b.hide.map(function(c){
+        if (typeof c === 'object') {
+          return c;
+        }
+        return c.bind(a);
+      }));
+      for (b in a) if (own$.call(a, b)) {
+        c = a[b];
+        if (b !== 'cfg' && c && c.cfg) {
+          if (!this.init(b, a, level + 1, tid, templ)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
+    render: function(template, id){
+      var a, b, c;
+      id == null && (id = this.cfg.nav.id);
+      if (!this.cfg.node) {
+        this.cfg.node = w3ui('#' + this.cfg.id);
+      }
+      a = this.cfg.parent;
+      b = !a || a.cfg.nav.id === this.cfg.id ? id : '';
+      if (!b && id && (c = a[a.cfg.nav.id][id])) {
+        this.cfg.context = c;
+      }
+      if (!template || !id) {
+        return true;
+      }
+      if (!this.cfg.node) {
+        return false;
+      }
+      if (b) {
+        a = this[id].cfg.template.innerHTML;
+        c = this[id];
+      } else {
+        a = this.cfg.template.querySelector('#' + id).innerHTML;
+        c = this[id].render.call(c);
+      }
+      this.cfg.node[0].innerHTML = Mustache.render(a, c);
+      if (b) {
+        c.cfg.node = w3ui('#' + b);
+      }
+      return true;
+    },
+    attach: function(event){
+      var a, b, x, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
+      if (!this.cfg.node) {
+        return true;
+      }
+      if (event === true) {
+        if (!(a = this.cfg.nav.id) || !(b = this[a])) {
+          return true;
+        }
+        event = b.attach;
+      }
+      x = /^key.+/;
+      e = [];
+      for (a in event) if (own$.call(event, a)) {
+        b = event[a];
+        if (!Array.isArray(b)) {
+          b = [b];
+        }
+        for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+          d = b[i$];
+          c = d.el
+            ? document.querySelectorAll('#' + this.cfg.id + ' ' + d.el)
+            : d.el === ''
+              ? [this.cfg.node[0]]
+              : [document];
+          d.preventDefault = !x.test(a);
+          d = P.event.bind(this, d);
+          e.push([c, a, d]);
+        }
+      }
+      if (!e.length) {
+        return true;
+      }
+      this.cfg.detach = function(){
+        var i$, ref$, len$, ref1$, a, b, c;
+        for (i$ = 0, len$ = (ref$ = e).length; i$ < len$; ++i$) {
+          ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1], c = ref1$[2];
+          a.forEach(fn$);
+        }
+        delete this.detach;
+        return true;
+        function fn$(a){
+          a.removeEventListener(b, c);
+        }
+      };
+      this.cfg.detach.data = {};
+      for (i$ = 0, len$ = e.length; i$ < len$; ++i$) {
+        ref$ = e[i$], a = ref$[0], b = ref$[1], c = ref$[2];
+        a.forEach(fn$);
+      }
+      return true;
+      function fn$(a){
+        a.addEventListener(b, c);
+      }
+    },
+    walk: function(id, direction, func, onComplete){
+      var a, walk, b, i$, len$;
+      if (!(a = this.ui[id])) {
+        return false;
+      }
+      walk = [];
+      b = [a];
+      while (b.length) {
+        walk.push(b);
+        b = b.map(fn$);
+        b = b.reduce(fn1$, []);
+      }
+      walk = walk.reduce(function(a, b){
+        return a.concat(b);
+      }, []);
+      if (!direction) {
+        walk.reverse();
+      }
+      if (typeof func !== 'string') {
+        return walk.every(function(node){
+          return func.call(node);
+        });
+      }
+      if (onComplete) {
+        a = [];
+        for (i$ = 0, len$ = walk.length; i$ < len$; ++i$) {
+          b = walk[i$];
+          if (b.cfg[func]) {
+            a.push((fn2$.call(this, b)));
+            a.push((fn3$.call(this, b)));
+          }
+        }
+        a.push(onComplete);
+        w3ui.THREAD(a);
+        return true;
+      }
+      return walk.every(function(node){
+        if (node.cfg[func]) {
+          return node.cfg[func].call(node);
+        } else {
+          return true;
+        }
+      });
+      function fn$(node){
+        var c, a, b;
+        c = [];
+        for (a in node) {
+          b = node[a];
+          if (a !== 'cfg' && b && b.cfg) {
+            c.push(b);
+          }
+        }
+        return c;
+      }
+      function fn1$(a, b){
+        return a.concat(b);
+      }
+      function fn2$(node){
+        return function(){
+          return node.cfg[func].call(node);
+        };
+      }
+      function fn3$(node){
+        return function(){
+          return !node.cfg[func].busy;
+        };
+      }
+    },
+    ui: w3ui.PROXY({
       cfg: {
-        id: 'skel',
-        node: w3ui('#skel'),
-        root: w3ui('html'),
+        id: 'ui',
+        node: w3ui('#ui'),
+        root: null,
         parent: null,
         context: null,
         data: {},
         level: 0,
         nav: null,
         render: true,
-        refresh: function(){
+        init: function(){
           var a, b;
-          a = this.cfg.root.box.innerWidth;
-          b = this.cfg.root.box.innerHeight;
-          this.cfg.root.style.vWidth = a;
-          this.cfg.root.style.vHeight = b;
+          a = this.cfg.nav.id;
+          b = a ? V.ui[a] : null;
+          V.walk(a, true, function(){
+            this.cfg.root = b;
+            return true;
+          });
+          this.cfg.root = b;
           return true;
         }
       },
       wa: {
         cfg: {
+          fontSizeMin: 0,
           fontSizeMax: 0,
           init: function(){
-            var a, ref$, b, own$ = {}.hasOwnProperty;
-            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
-              b = ref$[a];
-              b.node = w3ui('#header .' + a + ' .button');
-            }
-            this.header.title.node = w3ui('#header .title');
-            a = parseInt(this.cfg.node.style.fSizeMax);
-            if (!isNaN(a)) {
-              this.cfg.fontSizeMax = a;
-            }
+            this.cfg.fontSizeMin = parseInt(this.cfg.node.style.fSizeMin);
+            this.cfg.fontSizeMax = parseInt(this.cfg.node.style.fSizeMax);
             return true;
-          },
-          resize: function(){
-            var a, b, ref$, own$ = {}.hasOwnProperty;
-            a = this.cfg.fontSizeMax;
-            b = this.header.title;
-            b = b.node.box.fontSize(b.text);
-            if (b > a) {
-              b = a;
-            }
-            this.cfg.node.style.fSize0 = b + 'px';
-            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
-              b = ref$[a];
-              if (!b.list) {
-                b.index = -1;
-                continue;
-              }
-              b.index = b.list.reduce(fn$, -1);
-            }
-            return true;
-            function fn$(a, text, index){
-              var c;
-              c = b.node.box.textMetrics(text);
-              if (c.width < b.node.box.innerWidth && (a < 0 || b.list[a].length < text.length)) {
-                return index;
-              }
-              return a;
-            }
-          },
-          refresh: function(){
-            var a, ref$, b, own$ = {}.hasOwnProperty;
-            for (a in ref$ = this.header.buttons) if (own$.call(ref$, a)) {
-              b = ref$[a];
-              if (!b.list) {
-                b.node.addClass('disabled');
-                b.node.html('');
-                continue;
-              }
-              b.node.removeClass('disabled');
-              b.node.html(b.index < 0
-                ? b.icon
-                : b.list[b.index]);
-            }
-            return true;
-          },
-          attach: {
-            click: [
-              {
-                el: '#header .b1 .button',
-                id: 'mode'
-              }, {
-                el: '#header .b2 .button',
-                id: 'config'
-              }
-            ]
           }
         },
         view: {
           cfg: {
             render: true,
             init: function(){
-              var p, a, b, c;
-              p = this.cfg.parent;
-              a = this.cfg.nav.id;
-              b = p.header.buttons;
-              c = a ? this[a] : null;
-              b.b1.list = a !== 'menu' ? this.menu.title : null;
-              b.b2.list = c && c.config ? this.config.title : null;
-              b = p.header;
-              b.title.text = c && c.title ? c.title[0] : '';
               return true;
             },
             finit: function(){
@@ -272,7 +412,7 @@ w3ui && w3ui.ready(function(){
                   });
                 }
                 if (!data.drag) {
-                  a = V.skel.console.cfg.data.slide;
+                  a = V.ui.console.cfg.data.slide;
                   b = data.slide;
                   c = [
                     new TimelineLite({
@@ -359,7 +499,6 @@ w3ui && w3ui.ready(function(){
                 }
               }
             },
-            title: ['Главное меню', 'Меню'],
             data: [
               {
                 id: 'card',
@@ -431,7 +570,6 @@ w3ui && w3ui.ready(function(){
                 }
               }]
             },
-            title: ['Картотека адресов', 'Адрес'],
             tab: [
               {
                 id: 'a0',
@@ -452,18 +590,130 @@ w3ui && w3ui.ready(function(){
             ]
           },
           config: {
-            title: ['Настройки', 'Настр']
+            empty: true
           }
         },
         header: {
           cfg: {
             render: false,
             init: function(){
-              this.cfg.show[1].tween.className = '+=on ' + this.cfg.nav.id;
+              var c, d, a, b;
+              c = this.cfg;
+              d = c.data;
+              if (!d.title) {
+                d.title = c.node.query('.title');
+                d.mode = c.node.query('.mode .button');
+                d.config = c.node.query('.config .button');
+              }
+              c.show[1].tween.className = '+=on ' + c.nav.id;
+              a = c.context ? c.context.cfg.id : '';
+              d.title.$text = a ? this.title[a] : '';
+              d.title.html(d.title.$text);
+              if (a) {
+                c = c.template;
+                b = a === 'menu' ? 'close' : 'menu';
+                d.mode.$text = this.mode[b];
+                d.mode.$icon = c.querySelector('#' + b).innerHTML;
+                b = a === 'config' ? 'close' : 'config';
+                d.config.$text = this.config[b];
+                d.config.$icon = c.querySelector('#' + b).innerHTML;
+              }
+              d.mode.toggleClass('disabled', !a);
+              d.config.toggleClass('disabled', !a);
+              d.buttonSwitch = function(){
+                var a;
+                a = [
+                  new TimelineLite({
+                    paused: true,
+                    ease: Power2.easeIn
+                  }), new TimelineLite({
+                    paused: true,
+                    ease: Power2.easeIn
+                  })
+                ];
+                a = [[a[0], 'text', 'icon'], [a[1], 'icon', 'text']];
+                a = a.map(function(a, index){
+                  a[0].to(d.mode, 0.4, {
+                    className: '-=' + a[1],
+                    scale: 0
+                  }, 0);
+                  a[0].to(d.config, 0.4, {
+                    className: '-=' + a[1],
+                    scale: 0
+                  }, 0);
+                  a[0].add((function(a){
+                    return function(){
+                      d.mode[0].innerHTML = d.mode[a];
+                      d.config[0].innerHTML = d.config[a];
+                    };
+                  }.call(this, '$' + a[2])));
+                  a[0].addLabel('L1');
+                  a[0].to(d.mode, 0.4, {
+                    className: '+=' + a[2],
+                    scale: 1
+                  }, 'L1');
+                  a[0].to(d.config, 0.4, {
+                    className: '+=' + a[2],
+                    scale: 1
+                  }, 'L1');
+                  a[0].add(function(){
+                    d.mode.propRemove('style');
+                    d.config.propRemove('style');
+                  });
+                  return a[0];
+                });
+                return a;
+              }();
+              d.buttonResize = function(){
+                var a, b, useIcon;
+                a = d.buttonResize;
+                b = d.buttonSwitch.some(function(a){
+                  return a.isActive();
+                });
+                if (b || d.mode.style.fontSize < 0.0001) {
+                  if (a.timer) {
+                    window.clearTimeout(a.timer);
+                  }
+                  a.timer = window.setTimeout(d.buttonResize, 500);
+                  return;
+                }
+                useIcon = [d.mode, d.config].some(function(el){
+                  var a;
+                  if (el.$text) {
+                    a = el.box.textMetrics(el.$text).width;
+                    if (el.box.innerWidth < a) {
+                      return true;
+                    }
+                  }
+                  return false;
+                });
+                a = d.mode['class'][0];
+                if (useIcon && !a.contains('icon')) {
+                  a = 0;
+                } else if (!useIcon && !a.contains('text')) {
+                  a = 1;
+                } else {
+                  return;
+                }
+                a = d.buttonSwitch[a];
+                a.play(0);
+              };
               return true;
             },
-            refresh: function(){
-              this.title.node.html(this.title.text);
+            resize: function(){
+              var c, d, a, b;
+              c = this.cfg;
+              d = c.data;
+              a = d.title.box.fontSize(d.title.$text);
+              b = [c.root.cfg.fontSizeMin, c.root.cfg.fontSizeMax];
+              if (a < b[0]) {
+                a = 0;
+              }
+              if (a > b[1]) {
+                a = b[1];
+              }
+              c.root.cfg.node.style.fSize0 = a + 'px';
+              d.buttonResize();
               return true;
             },
             show: [
@@ -473,12 +723,14 @@ w3ui && w3ui.ready(function(){
                   visibility: 'visible'
                 }
               }, {
-                duration: 0.6,
+                duration: 0.8,
                 tween: {
                   className: '',
                   opacity: 1,
                   ease: Power3.easeOut
                 }
+              }, function(){
+                this.cfg.resize.call(this);
               }
             ],
             hide: [
@@ -497,28 +749,33 @@ w3ui && w3ui.ready(function(){
               }
             ]
           },
-          title: {
-            node: null,
-            text: ''
+          attach: {
+            click: [
+              {
+                el: '.back .button',
+                id: 'back'
+              }, {
+                el: '.config .button',
+                id: 'config'
+              }
+            ]
           },
-          buttons: {
-            b1: {
-              node: null,
-              icon: '',
-              index: -1,
-              list: null
-            },
-            b2: {
-              node: null,
-              icon: '',
-              index: -1,
-              list: null
-            }
+          title: {
+            menu: 'Главное меню',
+            address: 'Картотека адресов',
+            config: 'Конфигурация'
+          },
+          mode: {
+            menu: 'меню',
+            close: 'выход'
+          },
+          config: {
+            config: 'настройки',
+            close: 'закрыть'
           }
         },
         console: {
           cfg: {
-            data: {},
             render: true,
             attach: true,
             init: function(){
@@ -548,7 +805,7 @@ w3ui && w3ui.ready(function(){
                   visibility: 'visible'
                 }
               }, {
-                duration: 0.6,
+                duration: 0.8,
                 tween: {
                   className: '',
                   opacity: 1,
@@ -762,326 +1019,7 @@ w3ui && w3ui.ready(function(){
         }
         return null;
       }
-    }),
-    init: function(id, parent, level, templ){
-      var a, b, c, own$ = {}.hasOwnProperty;
-      id == null && (id = '');
-      parent == null && (parent = null);
-      level == null && (level = 0);
-      if (!(a = this.skel[id]) || !(b = a.cfg)) {
-        console.log('getting of "' + id + '" failed');
-        return false;
-      }
-      if (!id) {
-        id = b.id;
-      }
-      if (!templ) {
-        templ = w3ui('template', true);
-        templ = templ[0].content;
-      }
-      b.id = id;
-      b.parent = parent;
-      if (parent) {
-        b.root = parent.cfg.root;
-      }
-      b.level = level;
-      b.nav = M.nav[level];
-      if (b.render !== undefined) {
-        b.render = this.render.bind(a, b.render);
-      }
-      if (b.attach) {
-        b.attach = this.attach.bind(a, b.attach);
-      }
-      b.template = templ;
-      b.data = {};
-      b.show && (b.show = b.show.map(function(c){
-        if (typeof c === 'object') {
-          return c;
-        }
-        return c.bind(a);
-      }));
-      b.hide && (b.hide = b.hide.map(function(c){
-        if (typeof c === 'object') {
-          return c;
-        }
-        return c.bind(a);
-      }));
-      for (b in a) if (own$.call(a, b)) {
-        c = a[b];
-        if (b !== 'cfg' && c && c.cfg) {
-          if (!this.init(b, a, level + 1, templ)) {
-            return false;
-          }
-        }
-      }
-      return true;
-    },
-    walk: function(id, direction, func, onComplete){
-      var a, walk, b, i$, len$;
-      if (!(a = this.skel[id])) {
-        return false;
-      }
-      walk = [];
-      b = [a];
-      while (b.length) {
-        walk.push(b);
-        b = b.map(fn$);
-        b = b.reduce(fn1$, []);
-      }
-      walk = walk.reduce(function(a, b){
-        return a.concat(b);
-      }, []);
-      if (!direction) {
-        walk.reverse();
-      }
-      if (typeof func !== 'string') {
-        return walk.every(function(node){
-          return func.call(node);
-        });
-      }
-      if (onComplete) {
-        a = [];
-        for (i$ = 0, len$ = walk.length; i$ < len$; ++i$) {
-          b = walk[i$];
-          if (b.cfg[func]) {
-            a.push((fn2$.call(this, b)));
-            a.push((fn3$.call(this, b)));
-          }
-        }
-        a.push(onComplete);
-        w3ui.THREAD(a);
-        return true;
-      }
-      return walk.every(function(node){
-        if (node.cfg[func]) {
-          return node.cfg[func].call(node);
-        } else {
-          return true;
-        }
-      });
-      function fn$(node){
-        var c, a, b;
-        c = [];
-        for (a in node) {
-          b = node[a];
-          if (a !== 'cfg' && b && b.cfg) {
-            c.push(b);
-          }
-        }
-        return c;
-      }
-      function fn1$(a, b){
-        return a.concat(b);
-      }
-      function fn2$(node){
-        return function(){
-          return node.cfg[func].call(node);
-        };
-      }
-      function fn3$(node){
-        return function(){
-          return !node.cfg[func].busy;
-        };
-      }
-    },
-    render: function(template, id){
-      var a, b, c;
-      id == null && (id = this.cfg.nav.id);
-      if (!this.cfg.node) {
-        this.cfg.node = w3ui('#' + this.cfg.id);
-      }
-      if (!template || !id) {
-        return true;
-      }
-      if (!this.cfg.node) {
-        return false;
-      }
-      a = this.cfg.parent;
-      if (!a || a.cfg.nav.id === this.cfg.id) {
-        b = id;
-        c = this[b];
-      } else {
-        if (!(a = a[a.cfg.nav.id][id])) {
-          return true;
-        }
-        this.cfg.context = a;
-        b = '';
-        c = this[id].render.call(a);
-      }
-      a = this;
-      while (a.cfg.parent && a.cfg.level) {
-        id = a.cfg.id + '-' + id;
-        a = a.cfg.parent;
-      }
-      if (!(a = this.cfg.template.querySelector('#t-' + id))) {
-        return true;
-      }
-      a = a.innerHTML;
-      this.cfg.node[0].innerHTML = Mustache.render(a, c);
-      if (b) {
-        c.cfg.node = w3ui('#' + b);
-      }
-      return true;
-    },
-    attach: function(event){
-      var a, b, x, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
-      if (!this.cfg.node) {
-        return true;
-      }
-      if (event === true) {
-        if (!(a = this.cfg.nav.id) || !(b = this[a])) {
-          return true;
-        }
-        event = b.attach;
-      }
-      x = /^key.+/;
-      e = [];
-      for (a in event) if (own$.call(event, a)) {
-        b = event[a];
-        if (!Array.isArray(b)) {
-          b = [b];
-        }
-        for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-          d = b[i$];
-          c = d.el
-            ? document.querySelectorAll('#' + this.cfg.id + ' ' + d.el)
-            : d.el === ''
-              ? [this.cfg.node[0]]
-              : [document];
-          d.preventDefault = !x.test(a);
-          d = P.event.bind(this, d);
-          e.push([c, a, d]);
-        }
-      }
-      if (!e.length) {
-        return true;
-      }
-      this.cfg.detach = function(){
-        var i$, ref$, len$, ref1$, a, b, c;
-        for (i$ = 0, len$ = (ref$ = e).length; i$ < len$; ++i$) {
-          ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1], c = ref1$[2];
-          a.forEach(fn$);
-        }
-        delete this.detach;
-        return true;
-        function fn$(a){
-          a.removeEventListener(b, c);
-        }
-      };
-      this.cfg.detach.data = {};
-      for (i$ = 0, len$ = e.length; i$ < len$; ++i$) {
-        ref$ = e[i$], a = ref$[0], b = ref$[1], c = ref$[2];
-        a.forEach(fn$);
-      }
-      return true;
-      function fn$(a){
-        a.addEventListener(b, c);
-      }
-    }
-    /***
-    # TODO {{{
-    color: w3ui.PROXY { # {{{
-        ###
-        source: null
-        Hue: ''
-        Saturation: ''
-        colors: null
-        gradient: {}
-        ###
-        init: -> # {{{
-            # get source
-            a = if @source
-                then @source
-                else $ "html"
-            # check
-            return false if not a or a.length == 0
-            # save
-            @source = a
-            # get styles
-            a = window.getComputedStyle a.0
-            # get color parameters
-            @Hue = a.getPropertyValue '--col-h' .trim!
-            @Saturation = a.getPropertyValue '--col-s' .trim!
-            # determine colors
-            @colors = {}
-            for b from 0 to 99
-                # opaque
-                c = '--col'+b
-                @colors[c] = b if a.getPropertyValue c
-                # transparent
-                c = c+'a'
-                @colors[c] = -b if a.getPropertyValue c
-            # determine gradients
-            for b from 0 to 99
-                # continual numeration
-                break if not c = a.getPropertyValue '--gr'+b
-                @gradient['gr'+b] = c.trim!
-            # select color
-            @select @Hue
-        # }}}
-        select: (Hue, Saturation = @Saturation) -> # {{{
-            # check
-            if not Hue or not Saturation or not @source
-                return false
-            # change
-            @Hue = Hue
-            @Saturation = Saturation
-            # get style
-            a = window.getComputedStyle @source.0
-            # set style
-            # install colors
-            for b,c of @colors when d = a.getPropertyValue b
-                if c >= 0
-                    # opaque
-                    e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 1)'
-                    @source.0.style.setProperty b, e if e != d.trim!
-                else
-                    # transparent
-                    c = -c
-                    e = 'hsla('+Hue+', '+Saturation+'%, '+c+'%, 0)'
-                    @source.0.style.setProperty b, e if e != d.trim!
-            # install gradients
-            for b of @gradient
-                @source.0.style.setProperty '--'+b, @[b]
-            # ok
-            true
-        # }}}
-    }, {
-        get: (obj, p, prx) -> # color by Hue {{{
-            if typeof p != 'string'
-                # incorrect selector
-                a = null
-            else if obj[p]
-                # determined, return as is
-                a = obj[p]
-            else if parseInt p
-                # opaque
-                a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,1)'
-            else if 'a' == p.charAt 0
-                # transparent
-                p = p.slice 1
-                a = 'hsla('+obj.Hue+','+obj.Saturation+'%,'+p+'%,0)'
-            else if obj.gradient[p]
-                # gradient
-                a = obj.gradient[p]
-                # determine its color
-                a = a.replace /(--col(\d{2})([a]?))/g, (all, p1, p2, p3, pos, str) ->
-                    # prepare
-                    a = if p3 then p3+p2 else p2
-                    # recurse
-                    a = 'transparent' if not a = prx[a]
-                    # done
-                    return a
-            else
-                # unknown
-                a = ''
-            # finish
-            return a
-        # }}}
-    }
-    # }}}
-    # }}}
-    /***/
+    })
   };
   P = {
     init: function(){
@@ -1097,7 +1035,7 @@ w3ui && w3ui.ready(function(){
       var me, node, lock;
       id == null && (id = '');
       me = this.construct;
-      node = V.skel[id];
+      node = V.ui[id];
       lock = false;
       w3ui.THREAD([
         function(){
@@ -1286,7 +1224,7 @@ w3ui && w3ui.ready(function(){
           data.size = 0.5 * cfg.node.box.innerWidth;
           data.x = event.pageX;
           data.active = false;
-          data.drag = V.skel.menu.cfg.data.drag;
+          data.drag = V.ui.menu.cfg.data.drag;
           break;
         case 'pointermove':
           if (!data.drag) {
@@ -1361,7 +1299,7 @@ w3ui && w3ui.ready(function(){
           nav.currentItem[nav.current] = +a;
           b = cfg.data.btn;
           b.removeClass('active');
-          b.eq(a).addClass('active');
+          b['class'][a].add('active');
           true;
           break;
         case 'keydown':
@@ -1406,8 +1344,8 @@ w3ui && w3ui.ready(function(){
               b = a > 0 ? a - 1 : b;
             }
             M.nav[c].current = b;
-            a = V.skel.console.cfg.data.hover;
-            b = V.skel.menu.cfg.data.drag[id];
+            a = V.ui.console.cfg.data.hover;
+            b = V.ui.menu.cfg.data.drag[id];
             c = [a[0].progress() > 0.0001, a[1].progress() > 0.0001];
             if (c[0] || c[1]) {
               d = b;
@@ -1429,13 +1367,13 @@ w3ui && w3ui.ready(function(){
           switch (event.type) {
           case 'pointerover':
             event.stopPropagation();
-            a = V.skel.console.cfg.data.hover;
+            a = V.ui.console.cfg.data.hover;
             b = event.data.id === 'left' ? 0 : 1;
             a[b].play();
             break;
           case 'pointerout':
             event.stopPropagation();
-            a = V.skel.console.cfg.data.hover;
+            a = V.ui.console.cfg.data.hover;
             b = event.data.id === 'left' ? 0 : 1;
             a[b].reverse();
             break;
