@@ -592,7 +592,7 @@ w3ui and w3ui.ready ->
                             if a
                                 c = c.template
                                 b = if a == 'menu'
-                                    then 'close'
+                                    then 'return'
                                     else 'menu'
                                 d.mode.$text = @mode[b]
                                 d.mode.$icon = c.querySelector '#'+b .innerHTML
@@ -758,7 +758,7 @@ w3ui and w3ui.ready ->
                         config: 'Конфигурация'
                     mode:
                         menu: 'меню'
-                        close: 'возврат'
+                        return: 'возврат'
                     config:
                         config: 'настройки'
                         close: 'закрыть'

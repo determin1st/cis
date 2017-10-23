@@ -611,7 +611,7 @@ w3ui && w3ui.ready(function(){
               d.title.html(d.title.$text);
               if (a) {
                 c = c.template;
-                b = a === 'menu' ? 'close' : 'menu';
+                b = a === 'menu' ? 'return' : 'menu';
                 d.mode.$text = this.mode[b];
                 d.mode.$icon = c.querySelector('#' + b).innerHTML;
                 b = a === 'config' ? 'close' : 'config';
@@ -767,7 +767,7 @@ w3ui && w3ui.ready(function(){
           },
           mode: {
             menu: 'меню',
-            close: 'возврат'
+            'return': 'возврат'
           },
           config: {
             config: 'настройки',
