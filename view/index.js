@@ -767,7 +767,7 @@ w3ui && w3ui.ready(function(){
           },
           mode: {
             menu: 'меню',
-            close: 'выход'
+            close: 'возврат'
           },
           config: {
             config: 'настройки',

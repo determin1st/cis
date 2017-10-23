@@ -12,31 +12,31 @@ html
   --col-h: 211;/* hue */
   --col-s:  92;/* saturation */
   /* opaque */
-  --col99: hsla(211, 92%, 99%, 1);
-  --col95: hsla(211, 92%, 95%, 1);
-  --col94: hsla(211, 92%, 94%, 1);
-  --col93: hsla(211, 92%, 93%, 1);
-  --col92: hsla(211, 92%, 92%, 1);
-  --col90: hsla(211, 92%, 90%, 1);
-  --col88: hsla(211, 92%, 88%, 1);
-  --col87: hsla(211, 92%, 87%, 1);
-  --col85: hsla(211, 92%, 85%, 1);
-  --col84: hsla(211, 92%, 84%, 1);
-  --col83: hsla(211, 92%, 83%, 1);
-  --col82: hsla(211, 92%, 82%, 1);
-  --col80: hsla(211, 92%, 80%, 1);
-  --col77: hsla(211, 92%, 77%, 1);
-  --col75: hsla(211, 92%, 75%, 1);
-  --col73: hsla(211, 92%, 73%, 1);
-  --col70: hsla(211, 92%, 70%, 1);
-  --col65: hsla(211, 92%, 65%, 1);
-  --col60: hsla(211, 92%, 60%, 1);
-  --col55: hsla(211, 92%, 55%, 1);
-  --col50: hsla(211, 92%, 50%, 1);
-  --col40: hsla(211, 92%, 40%, 1);
-  --col35: hsla(211, 92%, 35%, 1);
-  --col30: hsla(211, 92%, 30%, 1);
-  --col20: hsla(211, 92%, 20%, 1);
+  --col99: hsl(211, 92%, 99%);
+  --col95: hsl(211, 92%, 95%);
+  --col94: hsl(211, 92%, 94%);
+  --col93: hsl(211, 92%, 93%);
+  --col92: hsl(211, 92%, 92%);
+  --col90: hsl(211, 92%, 90%);
+  --col88: hsl(211, 92%, 88%);
+  --col87: hsl(211, 92%, 87%);
+  --col85: hsl(211, 92%, 85%);
+  --col84: hsl(211, 92%, 84%);
+  --col83: hsl(211, 92%, 83%);
+  --col82: hsl(211, 92%, 82%);
+  --col80: hsl(211, 92%, 80%);
+  --col77: hsl(211, 92%, 77%);
+  --col75: hsl(211, 92%, 75%);
+  --col73: hsl(211, 92%, 73%);
+  --col70: hsl(211, 92%, 70%);
+  --col65: hsl(211, 92%, 65%);
+  --col60: hsl(211, 92%, 60%);
+  --col55: hsl(211, 92%, 55%);
+  --col50: hsl(211, 92%, 50%);
+  --col40: hsl(211, 92%, 40%);
+  --col35: hsl(211, 92%, 35%);
+  --col30: hsl(211, 92%, 30%);
+  --col20: hsl(211, 92%, 20%);
   /* transparent */
   --col95a: hsla(211, 92%, 95%, 0);
   --col90a: hsla(211, 92%, 90%, 0);
@@ -193,7 +193,7 @@ svg
 }
 #header .button.text
 {
-  background-color: var(--col93);
+  background-color: var(--col90);
   border: 1px solid var(--col85);
   cursor: pointer;
 }
@@ -208,6 +208,22 @@ svg
   stroke: var(--col40);
   stroke-width: 6;
   fill: var(--col90);
+}
+/**/
+#header .button.icon path,
+#header .button.text
+{
+  transition: all 0.4s ease-out;
+}
+#header .button.icon:hover path
+{
+  filter: drop-shadow(0 0 50px hsl(var(--col-h), var(--col-s)%, 40%));
+}
+#header .button.text:hover
+{
+  font-size: var(--f-size7);
+  background-color: var(--col93);
+  color: var(--col30);
 }
 /* }}} */
 /* console {{{ */

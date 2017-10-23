@@ -758,7 +758,7 @@ w3ui and w3ui.ready ->
                         config: 'Конфигурация'
                     mode:
                         menu: 'меню'
-                        close: 'выход'
+                        close: 'возврат'
                     config:
                         config: 'настройки'
                         close: 'закрыть'
