@@ -3,14 +3,6 @@
 w3ui && w3ui.ready(function(){
   var M, V, P;
   M = w3ui.PROXY({
-    init: function(){
-      var a;
-      a = this.nav;
-      this.sav.forEach(function(save, level){
-        save[''] = w3ui.CLONE(a.slice(level + 1));
-      });
-      return true;
-    },
     nav: [
       {
         id: 'wa'
@@ -27,6 +19,14 @@ w3ui && w3ui.ready(function(){
     sav: [{}, {}, {}, {}],
     authorized: true
   }, {
+    init: function(obj){
+      var a;
+      a = obj.nav;
+      obj.sav.forEach(function(save, level){
+        save[''] = w3ui.CLONE(a.slice(level + 1));
+      });
+      return obj;
+    },
     set: function(obj, k, v, prx){
       var a, b, c, d;
       if (typeof k !== 'string') {
@@ -58,9 +58,6 @@ w3ui && w3ui.ready(function(){
     },
     get: function(obj, p, prx){
       var k;
-      if (typeof p !== 'string') {
-        return null;
-      }
       k = parseInt(p);
       if (!isNaN(k)) {
         return obj.nav[k].id;
@@ -72,188 +69,316 @@ w3ui && w3ui.ready(function(){
     }
   });
   V = {
-    init: function(id, parent, level, tid, templ){
-      var a, b, c, own$ = {}.hasOwnProperty;
-      id == null && (id = '');
-      parent == null && (parent = null);
-      level == null && (level = 0);
-      tid == null && (tid = '#t');
-      if (!(a = this.ui[id]) || !(b = a.cfg)) {
-        console.log('getting of "' + id + '" failed');
-        return false;
-      }
-      if (id) {
-        tid = tid + '-' + id;
-      }
-      if (!id) {
-        id = b.id;
-      }
-      if (!templ) {
-        templ = w3ui('template', true);
-        templ = templ[0].content;
-      }
-      b.id = id;
-      b.parent = parent;
-      b.level = level;
-      b.nav = M.nav[level];
-      if (b.render !== undefined) {
-        b.render = this.render.bind(a, b.render);
-      }
-      if (b.attach) {
-        b.attach = this.attach.bind(a, b.attach);
-      }
-      b.template = templ.querySelector(tid);
-      b.data = {};
-      b.show && (b.show = b.show.map(function(c){
-        if (typeof c === 'object') {
-          return c;
+    init: function(model){
+      var templ, init, render, attach, this$ = this;
+      templ = w3ui('template', true);
+      templ = templ[0].content;
+      init = function(id, node, parent, level, tid){
+        var cfg, a, b, own$ = {}.hasOwnProperty;
+        cfg = node.cfg;
+        if (level > 0) {
+          tid = tid + '-' + id;
         }
-        return c.bind(a);
-      }));
-      b.hide && (b.hide = b.hide.map(function(c){
-        if (typeof c === 'object') {
-          return c;
+        cfg.id = id;
+        cfg.parent = parent;
+        cfg.level = level;
+        cfg.nav = model.nav[level];
+        if (cfg.render !== undefined) {
+          cfg.render = render.bind(node, cfg.render);
         }
-        return c.bind(a);
-      }));
-      for (b in a) if (own$.call(a, b)) {
-        c = a[b];
-        if (b !== 'cfg' && c && c.cfg) {
-          if (!this.init(b, a, level + 1, tid, templ)) {
-            return false;
+        if (cfg.attach) {
+          cfg.attach = attach.bind(node, cfg.attach);
+        }
+        cfg.template = templ.querySelector(tid);
+        cfg.data = {};
+        cfg.show && (cfg.show = cfg.show.map(function(a){
+          if (typeof a === 'object') {
+            return a;
+          }
+          return a.bind(node);
+        }));
+        cfg.hide && (cfg.hide = cfg.hide.map(function(a){
+          if (typeof a === 'object') {
+            return a;
+          }
+          return a.bind(node);
+        }));
+        for (a in node) if (own$.call(node, a)) {
+          b = node[a];
+          if (a !== 'cfg' && b && b.cfg) {
+            init(a, b, node, level + 1, tid);
           }
         }
-      }
-      return true;
-    },
-    render: function(template, id){
-      var a, b, c;
-      id == null && (id = this.cfg.nav.id);
-      if (!this.cfg.node) {
-        this.cfg.node = w3ui('#' + this.cfg.id);
-      }
-      a = this.cfg.parent;
-      b = !a || a.cfg.nav.id === this.cfg.id ? id : '';
-      if (!b && id && (c = a[a.cfg.nav.id][id])) {
-        this.cfg.context = c;
-      }
-      if (!template || !id) {
         return true;
-      }
-      if (!this.cfg.node) {
-        return false;
-      }
-      if (b) {
-        a = this[id].cfg.template.innerHTML;
-        c = this[id];
-      } else {
-        a = this.cfg.template.querySelector('#' + id).innerHTML;
-        c = this[id].render.call(c);
-      }
-      this.cfg.node[0].innerHTML = Mustache.render(a, c);
-      if (b) {
-        c.cfg.node = w3ui('#' + b);
-      }
-      return true;
-    },
-    attach: function(event){
-      var a, b, x, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
-      if (!this.cfg.node) {
-        return true;
-      }
-      if (event === true) {
-        if (!(a = this.cfg.nav.id) || !(b = this[a])) {
+      };
+      render = function(template, old){
+        var id, a, b, c, d;
+        old == null && (old = '');
+        id = this.cfg.nav.id;
+        if (!this.cfg.node) {
+          this.cfg.node = w3ui('#' + this.cfg.id);
+        }
+        a = this.cfg.parent;
+        b = !a || a.cfg.nav.id === this.cfg.id ? id : '';
+        if (!b && id && (c = a[a.cfg.nav.id][id])) {
+          this.cfg.context = c;
+        }
+        if (!template || !id) {
           return true;
         }
-        event = b.attach;
-      }
-      x = /^key.+/;
-      e = [];
-      for (a in event) if (own$.call(event, a)) {
-        b = event[a];
-        if (!Array.isArray(b)) {
-          b = [b];
+        if (!this.cfg.node) {
+          return false;
         }
-        for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-          d = b[i$];
-          c = d.el
-            ? document.querySelectorAll('#' + this.cfg.id + ' ' + d.el)
-            : d.el === ''
-              ? [this.cfg.node[0]]
-              : [document];
-          d.preventDefault = !x.test(a);
-          d = P.event.bind(this, d);
-          e.push([c, a, d]);
+        if (b) {
+          a = this[id].cfg.template.innerHTML;
+          c = this[id];
+        } else {
+          a = this.cfg.template.querySelector('#' + id).innerHTML;
+          c = this[id].render.call(c);
         }
-      }
-      if (!e.length) {
+        a = Mustache.render(a, c);
+        if (a && b) {
+          if (old) {
+            d = document.createElement('template');
+            d.innerHTML = a;
+            d = w3ui('#' + b, false, d.content);
+            this.cfg.node.node.prepend(d[0]);
+            c.cfg.node = d;
+          } else {
+            this.cfg.node[0].innerHTML = a;
+            c.cfg.node = w3ui('#' + b);
+          }
+        } else {
+          this.cfg.node[0].innerHTML = a;
+        }
         return true;
-      }
-      this.cfg.detach = function(){
-        var i$, ref$, len$, ref1$, a, b, c;
-        for (i$ = 0, len$ = (ref$ = e).length; i$ < len$; ++i$) {
-          ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1], c = ref1$[2];
+      };
+      attach = function(event){
+        var a, b, x, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
+        if (!this.cfg.node) {
+          return true;
+        }
+        if (event === true) {
+          if (!(a = this.cfg.nav.id) || !(b = this[a])) {
+            return true;
+          }
+          event = b.attach;
+        }
+        x = /^key.+/;
+        e = [];
+        for (a in event) if (own$.call(event, a)) {
+          b = event[a];
+          if (!Array.isArray(b)) {
+            b = [b];
+          }
+          for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+            d = b[i$];
+            c = d.el
+              ? document.querySelectorAll('#' + this.cfg.id + ' ' + d.el)
+              : d.el === ''
+                ? [this.cfg.node[0]]
+                : [document];
+            d.preventDefault = !x.test(a);
+            d = P.event.bind(this, d);
+            e.push([c, a, d]);
+          }
+        }
+        if (!e.length) {
+          return true;
+        }
+        this.cfg.detach = function(){
+          var i$, ref$, len$, ref1$, a, b, c;
+          for (i$ = 0, len$ = (ref$ = e).length; i$ < len$; ++i$) {
+            ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1], c = ref1$[2];
+            a.forEach(fn$);
+          }
+          delete this.detach;
+          return true;
+          function fn$(a){
+            a.removeEventListener(b, c);
+          }
+        };
+        this.cfg.detach.data = {};
+        for (i$ = 0, len$ = e.length; i$ < len$; ++i$) {
+          ref$ = e[i$], a = ref$[0], b = ref$[1], c = ref$[2];
           a.forEach(fn$);
         }
-        delete this.detach;
         return true;
         function fn$(a){
-          a.removeEventListener(b, c);
+          a.addEventListener(b, c);
         }
       };
-      this.cfg.detach.data = {};
-      for (i$ = 0, len$ = e.length; i$ < len$; ++i$) {
-        ref$ = e[i$], a = ref$[0], b = ref$[1], c = ref$[2];
-        a.forEach(fn$);
-      }
-      return true;
-      function fn$(a){
-        a.addEventListener(b, c);
-      }
+      this.animation = this.animation();
+      this.el.$data = this.ui;
+      this.el.$model = model;
+      return init('ui', this.ui, null, 0, '#t');
     },
-    walk: function(id, direction, func, onComplete){
-      var a, walk, b, i$, len$;
-      if (!(a = this.ui[id])) {
-        return false;
+    animation: function(){
+      var addTweens, this$ = this;
+      addTweens = function(node, timeline, source){
+        source && source.forEach(function(a){
+          var b;
+          switch (typeof a) {
+          case 'object':
+            if (a.tween) {
+              b = w3ui.CLONE(a.tween);
+              if (a.duration < 0.0001) {
+                timeline.set(node, b);
+              } else {
+                timeline.to(node, a.duration, b);
+              }
+            } else {
+              timeline.addPause(a.duration);
+            }
+            break;
+          case 'function':
+            timeline.add(a);
+          }
+        });
+      };
+      return {
+        hide: function(id, onComplete){
+          var list, a, b;
+          if (!id || !(list = this$.list(id)) || !list.length) {
+            onComplete();
+            return;
+          }
+          list = list.slice(1);
+          list.reverse();
+          a = new TimelineLite({
+            paused: true
+          });
+          b = '';
+          list.forEach(function(node){
+            var c;
+            if (!(node = this.cfg.node)) {
+              return;
+            }
+            c = new TimelineLite({
+              paused: true
+            });
+            addTweens(node, c, this.cfg.hide);
+            if (!b || b !== 'L' + this.cfg.level) {
+              b = 'L' + this.cfg.level;
+              a.addLabel(b);
+            }
+            a.add(c.play(), b);
+          });
+          a.add(onComplete);
+          a.play();
+        },
+        show: function(id1, id0, onComplete){
+          var node1, node0, list, parent, turn, old, a, b;
+          node1 = this$.el[id1];
+          node0 = this$.el[id0];
+          list = this$.list(id1);
+          parent = node1.cfg.parent;
+          turn = null;
+          old = null;
+          if (id0) {
+            turn = parent.cfg.turn;
+            old = parent.cfg.node.query('#' + id0, 0, true);
+          }
+          a = new TimelineLite({
+            paused: true
+          });
+          if (turn) {
+            list = list.slice(1);
+            if (node0.cfg.turn || node1.cfg.turn) {
+              turn = node1.cfg.turn
+                ? node1.cfg.turn
+                : node0.cfg.turn;
+            }
+            b = new TimelineLite({
+              paused: true
+            });
+            addTweens(old, b, turn.off);
+            a.add(b.play(), 0);
+            b = new TimelineLite({
+              paused: true
+            });
+            addTweens(node1.cfg.node, b, turn.on);
+            a.add(b.play(), 0);
+          }
+          old && a.add(function(){
+            parent.cfg.node[0].removeChild(old);
+          });
+          list = list.reduce(function(a, b){
+            if (b.cfg.node && b.cfg.show) {
+              a.push(b);
+            }
+            return a;
+          }, []);
+          b = '';
+          list.forEach(function(el){
+            var c;
+            el = el.cfg;
+            c = new TimelineLite({
+              paused: true
+            });
+            addTweens(el.node, c, el.show);
+            if (!b || b !== 'L' + el.level) {
+              b = 'L' + el.level;
+              a.addLabel(b);
+            }
+            a.add(c.play(), b);
+            true;
+          });
+          a.add(onComplete);
+          a.play();
+        }
+      };
+    },
+    el: w3ui.PROXY(null, {
+      get: function(obj, id, prx){
+        var root, a, b, k, v, own$ = {}.hasOwnProperty;
+        if (obj.cfg.id === id) {
+          return obj;
+        }
+        if (!(root = prx.$model[0])) {
+          return null;
+        }
+        if (!(obj = obj[root])) {
+          return null;
+        }
+        if (!id || obj.cfg.id === id) {
+          return obj;
+        }
+        if (obj[id] && obj[id].cfg) {
+          return obj[id];
+        }
+        a = [obj];
+        while (a.length) {
+          b = a.pop();
+          for (k in b) if (own$.call(b, k)) {
+            v = b[k];
+            if (k !== 'cfg' && v && v.cfg) {
+              if (v[id] && v[id].cfg) {
+                return v[id];
+              }
+              a.push(v);
+            }
+          }
+        }
+        return null;
       }
-      walk = [];
+    }),
+    list: function(id){
+      var x, a, b;
+      x = [];
+      if (!(a = this.el[id])) {
+        return x;
+      }
       b = [a];
       while (b.length) {
-        walk.push(b);
+        x.push(b);
         b = b.map(fn$);
         b = b.reduce(fn1$, []);
       }
-      walk = walk.reduce(function(a, b){
+      x = x.reduce(function(a, b){
         return a.concat(b);
       }, []);
-      if (!direction) {
-        walk.reverse();
-      }
-      if (typeof func !== 'string') {
-        return walk.every(function(node){
-          return func.call(node);
-        });
-      }
-      if (onComplete) {
-        a = [];
-        for (i$ = 0, len$ = walk.length; i$ < len$; ++i$) {
-          b = walk[i$];
-          if (b.cfg[func]) {
-            a.push((fn2$.call(this, b)));
-            a.push((fn3$.call(this, b)));
-          }
-        }
-        a.push(onComplete);
-        w3ui.THREAD(a);
-        return true;
-      }
-      return walk.every(function(node){
-        if (node.cfg[func]) {
-          return node.cfg[func].call(node);
-        } else {
-          return true;
-        }
-      });
+      return x;
       function fn$(node){
         var c, a, b;
         c = [];
@@ -268,39 +393,101 @@ w3ui && w3ui.ready(function(){
       function fn1$(a, b){
         return a.concat(b);
       }
-      function fn2$(node){
-        return function(){
-          return node.cfg[func].call(node);
-        };
-      }
-      function fn3$(node){
-        return function(){
-          return !node.cfg[func].busy;
-        };
-      }
     },
-    ui: w3ui.PROXY({
+    call: function(method, id){
+      var param, res$, i$, to$, me, opts, list;
+      id == null && (id = '');
+      res$ = [];
+      for (i$ = 2, to$ = arguments.length; i$ < to$; ++i$) {
+        res$.push(arguments[i$]);
+      }
+      param = res$;
+      me = this.call;
+      !me.opts && (me.opts = {
+        render: {
+          active: false
+        },
+        init: {
+          active: true,
+          cleanup: true
+        },
+        resize: {
+          active: true
+        },
+        refresh: {
+          active: true
+        },
+        attach: {
+          active: true
+        },
+        detach: {
+          active: true,
+          reverse: true
+        },
+        finit: {
+          active: true,
+          reverse: true
+        }
+      });
+      if (!(opts = me.opts[method])) {
+        return false;
+      }
+      if (!(list = this.list(id))) {
+        return false;
+      }
+      if (opts.reverse) {
+        list.reverse();
+      }
+      list = list.reduce(function(a, node){
+        if (node.cfg[method]) {
+          a.push(node);
+        }
+        return a;
+      }, []);
+      if (opts.cleanup) {
+        list.forEach(function(node){
+          var a, b;
+          a = node.cfg;
+          if (!a.node) {
+            return;
+          }
+          b = a.context ? a.context.cfg : a;
+          if (b.parent.cfg.nav.id === b.id) {
+            return;
+          }
+          a.node = null;
+        });
+      }
+      if (opts.active) {
+        list = list.reduce(function(a, node){
+          if (node.cfg.node) {
+            a.push(node);
+          }
+          return a;
+        }, []);
+        true;
+      }
+      if (!param.length) {
+        param = false;
+      }
+      return list.every(function(node){
+        if (param) {
+          return node.cfg[method].apply(node, param);
+        } else {
+          return node.cfg[method].call(node);
+        }
+      });
+    },
+    ui: {
       cfg: {
         id: 'ui',
         node: w3ui('#ui'),
-        root: null,
         parent: null,
         context: null,
         data: {},
         level: 0,
         nav: null,
-        render: true,
-        init: function(){
-          var a, b;
-          a = this.cfg.nav.id;
-          b = a ? V.ui[a] : null;
-          V.walk(a, true, function(){
-            this.cfg.root = b;
-            return true;
-          });
-          this.cfg.root = b;
-          return true;
-        }
+        render: true
       },
       wa: {
         cfg: {
@@ -315,9 +502,6 @@ w3ui && w3ui.ready(function(){
         view: {
           cfg: {
             render: true,
-            init: function(){
-              return true;
-            },
             finit: function(){
               var a, b;
               a = this.cfg.nav.id;
@@ -327,6 +511,42 @@ w3ui && w3ui.ready(function(){
                 b.addClass(a);
               }
               return true;
+            },
+            turn: {
+              on: [
+                {
+                  duration: 2
+                }, {
+                  duration: 0,
+                  tween: {
+                    className: '+=color',
+                    visibility: true,
+                    opacity: 0,
+                    scale: 0.5
+                  }
+                }, {
+                  duration: 8,
+                  tween: {
+                    className: '-=color',
+                    opacity: 1,
+                    scale: 1
+                  }
+                }
+              ],
+              off: [
+                {
+                  duration: 2,
+                  tween: {
+                    className: '+=color'
+                  }
+                }, {
+                  duration: 8,
+                  tween: {
+                    scale: 1.5,
+                    opacity: 0
+                  }
+                }
+              ]
             }
           },
           menu: {
@@ -412,7 +632,7 @@ w3ui && w3ui.ready(function(){
                   });
                 }
                 if (!data.drag) {
-                  a = V.ui.console.cfg.data.slide;
+                  a = V.el.console.cfg.data.slide;
                   b = data.slide;
                   c = [
                     new TimelineLite({
@@ -702,17 +922,17 @@ w3ui && w3ui.ready(function(){
             },
             resize: function(){
               var c, d, a, b;
-              c = this.cfg;
-              d = c.data;
+              c = V.el.wa.cfg;
+              d = this.cfg.data;
               a = d.title.box.fontSize(d.title.$text);
-              b = [c.root.cfg.fontSizeMin, c.root.cfg.fontSizeMax];
+              b = [c.fontSizeMin, c.fontSizeMax];
               if (a < b[0]) {
                 a = 0;
               }
               if (a > b[1]) {
                 a = b[1];
               }
-              c.root.cfg.node.style.fSize0 = a + 'px';
+              c.node.style.fSize0 = a + 'px';
               d.buttonResize();
               return true;
             },
@@ -992,174 +1212,116 @@ w3ui && w3ui.ready(function(){
           }
         }
       }
-    }, {
-      get: function(obj, id, prx){
-        var a, b, k, v, own$ = {}.hasOwnProperty;
-        if (!id) {
-          return obj;
-        }
-        if (obj[id] && obj[id].cfg) {
-          return obj[id];
-        }
-        if (!obj.cfg) {
-          return null;
-        }
-        a = [obj];
-        while (a.length) {
-          b = a.pop();
-          for (k in b) if (own$.call(b, k)) {
-            v = b[k];
-            if (k !== 'cfg' && v && v.cfg) {
-              if (v[id] && v[id].cfg) {
-                return v[id];
-              }
-              a.push(v);
-            }
-          }
-        }
-        return null;
-      }
-    })
+    }
   };
   P = {
     init: function(){
-      if (!M.init() || !V.init()) {
-        console.log('init() failed');
+      if (!V.init(M)) {
+        console.log('P.init() failed');
         return false;
       }
       P.construct();
       window.addEventListener('resize', this.resize.bind(this));
       return true;
     },
-    construct: function(id){
-      var me, node, lock;
-      id == null && (id = '');
-      me = this.construct;
-      node = V.ui[id];
+    construct: function(){
+      var busy, lock, nav, id0, id1, pid, cancelThread, thread;
+      busy = false;
       lock = false;
-      w3ui.THREAD([
+      nav = null;
+      id0 = '';
+      id1 = '';
+      pid = '';
+      cancelThread = function(msg){
+        if (msg) {
+          console.log(msg);
+        }
+        lock = false;
+        busy = false;
+        return null;
+      };
+      thread = [
         function(){
-          var a;
-          if (me.busy) {
-            return false;
-          }
-          me.busy = true;
-          if (!V.walk(id, false, 'detach')) {
-            console.log('detach failed');
-            delete me.busy;
-            return null;
-          }
-          a = new TimelineLite({
-            paused: true
-          });
-          V.walk(id, false, function(){
-            var node, b;
-            if (!(node = this.cfg.node)) {
-              return true;
-            }
-            b = new TimelineLite({
-              paused: true
-            });
-            this.cfg.hide && this.cfg.hide.forEach(function(a){
-              var c;
-              if (a.tween) {
-                c = w3ui.CLONE(a.tween);
-                b.to(node, a.duration, c);
-              } else {
-                b.add(a);
+          return !busy;
+        }, function(){
+          var i$, ref$, len$, b, a;
+          busy = true;
+          if (nav) {
+            for (i$ = 0, len$ = (ref$ = nav).length; i$ < len$; ++i$) {
+              b = i$;
+              a = ref$[i$];
+              if (a !== M[b]) {
+                id0 = a;
+                id1 = M[b];
+                break;
               }
+            }
+          } else {
+            id1 = M[0];
+          }
+          if (id0 === id1) {
+            return cancelThread();
+          }
+          pid = V.el[id1].cfg.parent.cfg.id;
+          if (!V.call('detach')) {
+            return cancelThread('detach failed');
+          }
+          if (id0) {
+            lock = true;
+            V.animation.hide(id0, function(){
+              lock = false;
             });
-            a.add(b.play(), 0);
-            return true;
-          });
-          a.add(function(){
-            lock = false;
-          });
-          lock = true;
-          a.play();
+          }
           return true;
         }, function(){
           return !lock;
         }, function(){
-          var a, b;
-          V.walk(id, false, function(){
-            var a;
-            if (this.cfg.node && (a = this.cfg.level) && this.cfg.id !== M[a - 1]) {
-              this.cfg.node = null;
-            }
-            return true;
-          });
-          a = ['render', 'init', 'resize', 'refresh'].every(function(f){
-            return V.walk(id, true, f);
-          });
-          if (!a) {
-            console.log('render sequence failed');
-            delete me.busy;
-            return null;
+          if (!V.call('render', pid, id0)) {
+            return cancelThread('render failed');
           }
-          a = new TimelineLite({
-            paused: true
-          });
-          b = 'L' + node.cfg.level;
-          a.addLabel(b, 0);
-          V.walk(id, true, function(){
-            var node, c;
-            if (!(node = this.cfg.node)) {
-              return true;
-            }
-            c = new TimelineLite({
-              paused: true
-            });
-            this.cfg.show && this.cfg.show.forEach(function(a){
-              var b;
-              if (a.tween) {
-                b = w3ui.CLONE(a.tween);
-                c.to(node, a.duration, b);
-              } else {
-                c.add(a);
-              }
-            });
-            if (b !== 'L' + this.cfg.level) {
-              b = 'L' + this.cfg.level;
-              a.addLabel(b);
-            }
-            a.add(c.play(), b);
-            return true;
-          });
-          a.add(function(){
+          if (!V.call('init')) {
+            return cancelThread('init failed');
+          }
+          lock = true;
+          V.animation.show(id1, id0, function(){
             lock = false;
           });
-          lock = true;
-          a.play();
           return true;
         }, function(){
           return !lock;
         }, function(){
-          V.walk(id, false, 'finit');
-          if (!V.walk(id, true, 'attach')) {
-            console.log('attach failed');
-          }
-          delete me.busy;
+          ['resize', 'refresh', 'finit', 'attach'].every(function(a){
+            return V.call(a);
+          });
+          nav = M.nav.map(function(a){
+            return a.id;
+          });
+          busy = false;
           return true;
         }
-      ]);
-    },
+      ];
+      return function(){
+        w3ui.THREAD(thread);
+      };
+    }(),
     update: function(id){
       id == null && (id = M[0]);
-      ['refresh', 'detach', 'attach'].every(function(f){
-        return V.walk(id, true, f);
+      ['refresh', 'detach', 'attach'].every(function(a){
+        return V.call(a, id);
       });
       delete P.event.busy;
     },
-    resize: function(){
+    resize: function(force){
       var me, f;
       me = this.resize;
-      if (me.timer) {
+      if (force || !me.timer) {
+        if (!V.call('resize')) {
+          console.log('resize failed');
+        }
+      } else {
         window.clearTimeout(me.timer);
         f = me.bind(this);
         me.timer = window.setTimeout(f, 250);
-      } else if (!V.walk('', true, 'resize')) {
-        console.log('resize failed');
       }
     },
     event: function(data, event){
@@ -1224,7 +1386,7 @@ w3ui && w3ui.ready(function(){
           data.size = 0.5 * cfg.node.box.innerWidth;
           data.x = event.pageX;
           data.active = false;
-          data.drag = V.ui.menu.cfg.data.drag;
+          data.drag = V.el.menu.cfg.data.drag;
           break;
         case 'pointermove':
           if (!data.drag) {
@@ -1320,7 +1482,7 @@ w3ui && w3ui.ready(function(){
           }
           nav.currentItem[nav.current] = a;
           c.removeClass('active');
-          c.eq(a).addClass('active');
+          c['class'][a].add('active');
           break;
         case 'click':
           event.stopPropagation();
@@ -1344,8 +1506,8 @@ w3ui && w3ui.ready(function(){
               b = a > 0 ? a - 1 : b;
             }
             M.nav[c].current = b;
-            a = V.ui.console.cfg.data.hover;
-            b = V.ui.menu.cfg.data.drag[id];
+            a = V.el.console.cfg.data.hover;
+            b = V.el.menu.cfg.data.drag[id];
             c = [a[0].progress() > 0.0001, a[1].progress() > 0.0001];
             if (c[0] || c[1]) {
               d = b;
@@ -1367,13 +1529,13 @@ w3ui && w3ui.ready(function(){
           switch (event.type) {
           case 'pointerover':
             event.stopPropagation();
-            a = V.ui.console.cfg.data.hover;
+            a = V.el.console.cfg.data.hover;
             b = event.data.id === 'left' ? 0 : 1;
             a[b].play();
             break;
           case 'pointerout':
             event.stopPropagation();
-            a = V.ui.console.cfg.data.hover;
+            a = V.el.console.cfg.data.hover;
             b = event.data.id === 'left' ? 0 : 1;
             a[b].reverse();
             break;

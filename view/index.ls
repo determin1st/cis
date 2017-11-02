@@ -2,15 +2,6 @@
 
 w3ui and w3ui.ready ->
     M = w3ui.PROXY { # model {{{
-        init: -> # {{{
-            # initialize navigation store
-            a = @nav
-            @sav.forEach (save, level) !->
-                save[''] = w3ui.CLONE a.slice level + 1
-            # done
-            true
-        # }}}
-        ###
         # interface navigation {{{
         nav: [
             {id: 'wa'}
@@ -25,6 +16,14 @@ w3ui and w3ui.ready ->
         authorized: true
         # }}}
     }, {
+        init: (obj) -> # {{{
+            # initialize navigation store
+            a = obj.nav
+            obj.sav.forEach (save, level) !->
+                save[''] = w3ui.CLONE a.slice level + 1
+            # done
+            obj
+        # }}}
         set: (obj, k, v, prx) -> # {{{
             # check
             return true if typeof k != 'string'
@@ -59,8 +58,6 @@ w3ui and w3ui.ready ->
             true
         # }}}
         get: (obj, p, prx) -> # {{{
-            # check
-            return null if typeof p != 'string'
             # get navigation object
             k = parseInt p
             return obj.nav[k].id if not isNaN k
@@ -71,129 +68,311 @@ w3ui and w3ui.ready ->
     }
     # }}}
     V = # {{{
-        init: (id = '', parent = null, level = 0, tid = '#t', templ) -> # {{{
-            # get node
-            if not (a = @ui[id]) or not (b = a.cfg)
-                console.log 'getting of "'+id+'" failed'
-                return false
+        init: (model) -> # {{{
             # prepare
-            tid = tid + '-' + id if id
-            id = b.id if not id
-            if not templ
-                # template is a DocumentFragment object
-                templ = w3ui 'template', true
-                templ = templ.0.content
-            # initialize
-            b.id       = id
-            b.parent   = parent
-            b.level    = level
-            b.nav      = M.nav[level]
-            b.render   = @render.bind a, b.render if b.render != undefined
-            b.attach   = @attach.bind a, b.attach if b.attach
-            b.template = templ.querySelector tid
-            b.data     = {}
-            # initialize show/hide animations
-            # bind functions to the node
-            b.show and b.show = b.show.map (c) ->
-                return c if typeof c == 'object'
-                return c.bind a
-            b.hide and b.hide = b.hide.map (c) ->
-                return c if typeof c == 'object'
-                return c.bind a
-            # recurse to children
-            for own b,c of a when b != 'cfg' and c and c.cfg
-                return false if not @init b, a, level + 1, tid, templ
-            # complete
-            true
-        # }}}
-        render: (template, id = @cfg.nav.id) -> # {{{
-            # update node link
-            if not @cfg.node
-                @cfg.node = w3ui '#'+@cfg.id
-            # determine node type
-            a = @cfg.parent
-            b = if not a or a.cfg.nav.id == @cfg.id
-                then id
-                else ''
-            # update node context
-            if not b and id and (c = a[a.cfg.nav.id][id])
-                @cfg.context = c
-            # check
-            return true  if not template or not id
-            return false if not @cfg.node
-            # get template data
-            if b
-                # primary
-                a = @[id].cfg.template.innerHTML
-                c = @[id]
-            else
-                # adjacent
-                a = @cfg.template.querySelector '#'+id .innerHTML
-                c = @[id].render.call c
-            # render
-            @cfg.node.0.innerHTML = Mustache.render a, c
-            # update child node link
-            c.cfg.node = w3ui '#'+b if b
-            true
-        # }}}
-        attach: (event) -> # {{{
-            # check
-            return true if not @cfg.node
-            if event == true
-                # adjacent event source
-                # extract
-                if not (a = @cfg.nav.id) or not (b = @[a])
-                    return true
-                # get event data
-                event = b.attach
-            # assemble event listeners
-            x = /^key.+/
-            e = []
-            for own a,b of event
-                b = [b] if not Array.isArray b
-                for d in b
-                    # get node
-                    c = if d.el
-                        then document.querySelectorAll '#'+@cfg.id+' '+d.el
-                        else if d.el == ''
-                            then [@cfg.node.0]
-                            else [document]
-                    # determine if default action prevented
-                    d.preventDefault = not x.test a
-                    # create event handler
-                    # combined with custom data
-                    d = P.event.bind @, d
-                    # add
-                    e.push [c, a, d]
-            # check
-            return true if not e.length
-            # prepare detach procedure
-            @cfg.detach = ->
+            # get templates (DocumentFragment object)
+            templ = w3ui 'template', true
+            templ = templ.0.content
+            # define functions
+            init = (id, node, parent, level, tid) ~> # {{{
+                # prepare
+                cfg = node.cfg
+                tid = tid + '-' + id if level > 0
+                # initialize
+                cfg.id       = id
+                cfg.parent   = parent
+                cfg.level    = level
+                cfg.nav      = model.nav[level]
+                cfg.render   = render.bind node, cfg.render if cfg.render != undefined
+                cfg.attach   = attach.bind node, cfg.attach if cfg.attach
+                cfg.template = templ.querySelector tid
+                cfg.data     = {}
+                # initialize show/hide animations
+                # bind functions to the node
+                cfg.show and cfg.show = cfg.show.map (a) ->
+                    return a if typeof a == 'object'
+                    return a.bind node
+                cfg.hide and cfg.hide = cfg.hide.map (a) ->
+                    return a if typeof a == 'object'
+                    return a.bind node
+                # recurse to children
+                for own a,b of node when a != 'cfg' and b and b.cfg
+                    init a, b, node, level + 1, tid
+                # complete
+                true
+                # }}}
+            render = (template, old = '') -> # {{{
+                # prepare
+                # get identifier from model
+                id = @cfg.nav.id
+                # update DOM node link
+                if not @cfg.node
+                    @cfg.node = w3ui '#'+@cfg.id
+                # determine node type
+                a = @cfg.parent
+                b = if not a or a.cfg.nav.id == @cfg.id
+                    then id
+                    else ''
+                # update adjacent node context
+                if not b and id and (c = a[a.cfg.nav.id][id])
+                    @cfg.context = c
+                # check
+                return true  if not template or not id
+                return false if not @cfg.node
+                # get template data
+                if b
+                    # for primary
+                    a = @[id].cfg.template.innerHTML
+                    c = @[id]
+                else
+                    # for adjacent
+                    a = @cfg.template.querySelector '#'+id .innerHTML
+                    c = @[id].render.call c
+                # render
+                a = Mustache.render a, c
+                if a and b
+                    # primary
+                    # check old present
+                    if old
+                        # create element
+                        d = document.createElement 'template'
+                        d.innerHTML = a
+                        d = w3ui '#'+b, false, d.content
+                        # insert
+                        @cfg.node.node.prepend d.0
+                        # update link
+                        c.cfg.node = d
+                    else
+                        # replace content
+                        @cfg.node.0.innerHTML = a
+                        # update link
+                        c.cfg.node = w3ui '#'+b
+                else
+                    # adjacent
+                    # replace content
+                    @cfg.node.0.innerHTML = a
+                true
+            # }}}
+            attach = (event) -> # {{{
+                # check
+                return true if not @cfg.node
+                if event == true
+                    # adjacent event source
+                    # extract
+                    if not (a = @cfg.nav.id) or not (b = @[a])
+                        return true
+                    # get event data
+                    event = b.attach
+                # assemble event listeners
+                x = /^key.+/
+                e = []
+                for own a,b of event
+                    b = [b] if not Array.isArray b
+                    for d in b
+                        # get node
+                        c = if d.el
+                            then document.querySelectorAll '#'+@cfg.id+' '+d.el
+                            else if d.el == ''
+                                then [@cfg.node.0]
+                                else [document]
+                        # determine if default action prevented
+                        d.preventDefault = not x.test a
+                        # create event handler
+                        # combined with custom data
+                        d = P.event.bind @, d
+                        # add
+                        e.push [c, a, d]
+                # check
+                return true if not e.length
+                # prepare detach procedure
+                @cfg.detach = ->
+                    for [a, b, c] in e
+                        a.forEach (a) !->
+                            a.removeEventListener b, c
+                    # done
+                    delete @detach
+                    true
+                # prepare data storage
+                @cfg.detach.data = {}
+                # attach
                 for [a, b, c] in e
                     a.forEach (a) !->
-                        a.removeEventListener b, c
+                        a.addEventListener b, c
                 # done
-                delete @detach
                 true
-            # prepare data storage
-            @cfg.detach.data = {}
-            # attach
-            for [a, b, c] in e
-                a.forEach (a) !->
-                    a.addEventListener b, c
-            # done
-            true
+            # }}}
+            # initialize
+            @animation = @animation!
+            @el.$data  = @ui
+            @el.$model = model
+            return init 'ui', @ui, null, 0, '#t'
         # }}}
-        walk: (id, direction, func, onComplete) -> # {{{
+        animation: -> # {{{
+            # define helpers
+            addTweens = (node, timeline, source) !-> # {{{
+                source and source.forEach (a) !->
+                    switch typeof a
+                    # tween
+                    | 'object' =>
+                        if a.tween
+                            b = w3ui.CLONE a.tween
+                            if a.duration < 0.0001
+                                timeline.set node, b
+                            else
+                                timeline.to node, a.duration, b
+                        else
+                            timeline.addPause a.duration
+                    # callback
+                    | 'function' =>
+                        timeline.add a
+            # }}}
+            # define animations
+            return {
+                hide: (id, onComplete) !~> # {{{
+                    # prepare
+                    if not id or not (list = @list id) or not list.length
+                        onComplete!
+                        return
+                    # dont include first (parent) node and
+                    # set iteration in reverse order
+                    list = list.slice 1
+                    list.reverse!
+                    # create main timeline
+                    a = new TimelineLite {
+                        paused: true
+                    }
+                    b = ''
+                    # iterate
+                    list.forEach (node) !->
+                        # get DOM node
+                        return if not (node = @cfg.node)
+                        # create timeline
+                        c = new TimelineLite {
+                            paused: true
+                        }
+                        # add tweens
+                        addTweens node, c, @cfg.hide
+                        # add marker
+                        if not b or b != 'L'+@cfg.level
+                            b := 'L'+@cfg.level
+                            a.addLabel b
+                        # nest
+                        a.add c.play!, b
+                        # ..
+                    # add complete routine
+                    a.add onComplete
+                    # done
+                    a.play!
+                # }}}
+                show: (id1, id0, onComplete) !~> # {{{
+                    # prepare
+                    node1  = @el[id1]
+                    node0  = @el[id0]
+                    list   = @list id1
+                    parent = node1.cfg.parent
+                    turn   = null
+                    old    = null
+                    if id0
+                        turn = parent.cfg.turn
+                        old  = parent.cfg.node.query '#'+id0, 0, true
+                    # create main timeline
+                    a = new TimelineLite {
+                        paused: true
+                    }
+                    # add node turn transition (old ~> new)
+                    if turn
+                        # exclude new node from show-list
+                        list = list.slice 1
+                        # prioritize
+                        # check children nodes
+                        if node0.cfg.turn or node1.cfg.turn
+                            turn = if node1.cfg.turn
+                                then node1.cfg.turn
+                                else node0.cfg.turn
+                        # turn off
+                        b = new TimelineLite {paused: true}
+                        addTweens old, b, turn.off
+                        a.add b.play!, 0
+                        # turn on
+                        b = new TimelineLite {paused: true}
+                        addTweens node1.cfg.node, b, turn.on
+                        a.add b.play!, 0
+                    # add old node remover
+                    old and a.add !->
+                        parent.cfg.node.0.removeChild old
+                    # filter show-list
+                    list = list.reduce (a, b) ->
+                        # active only
+                        if b.cfg.node and b.cfg.show
+                            a.push b
+                        # done
+                        return a
+                    , []
+                    # show transition
+                    b = ''
+                    list.forEach (el) !->
+                        # prepare
+                        el = el.cfg
+                        # create timeline
+                        c = new TimelineLite {paused: true}
+                        # add tweens
+                        addTweens el.node, c, el.show
+                        # add marker
+                        if not b or b != 'L'+el.level
+                            # update it when level changes,
+                            # so nodes at the same level show together
+                            b := 'L'+el.level
+                            a.addLabel b
+                        # nest
+                        a.add c.play!, b
+                        true
+                    # add complete routine
+                    a.add onComplete
+                    # done
+                    a.play!
+                # }}}
+            }
+        # }}}
+        el: w3ui.PROXY null, { # {{{
+            get: (obj, id, prx) ->
+                # check if all roots requested
+                return obj if obj.cfg.id == id
+                # get root id
+                if not (root = prx.$model.0)
+                    return null
+                # get root element
+                if not (obj = obj[root])
+                    return null
+                # check
+                return obj if not id or obj.cfg.id == id
+                return obj[id] if obj[id] and obj[id].cfg
+                # search
+                a = [obj]
+                while a.length
+                    # extract node
+                    b = a.pop!
+                    # iterate
+                    for own k,v of b when k != 'cfg' and v and v.cfg
+                        # check
+                        if v[id] and v[id].cfg
+                            return v[id]
+                        # not found
+                        a.push v
+                # not found
+                return null
+        }
+        # }}}
+        list: (id) -> # {{{
             # prepare
-            # get start node
-            return false if not a = @ui[id]
-            # create walk array
-            walk = []
+            # get node
+            x = []
+            if not (a = @el[id])
+                return x
+            # iterate
             b = [a]
             while b.length
                 # add step
-                walk.push b
+                x.push b
                 # collect children from last step
                 b = b.map (node) ->
                     # collect
@@ -205,63 +384,93 @@ w3ui and w3ui.ready ->
                 # merge
                 b = b.reduce (a, b) -> return a ++ b
                 , []
-            # now we have two-dimensional walk array,
+            # now we have two-dimensional array,
             # lets flatten it
-            walk = walk.reduce (a, b) -> a ++ b
+            x = x.reduce (a, b) -> a ++ b
             , []
-            # check direction
-            walk.reverse! if not direction
-            # walk
-            # external function
-            if typeof func != 'string'
-                return walk.every (node) -> func.call node
-            # walk
-            # internal functions
-            if onComplete
-                # create thread
-                a = []
-                for b in walk when b.cfg[func]
-                    # create chain unit
-                    a.push let node = b
-                        -> node.cfg[func].call node
-                    # waiter
-                    a.push let node = b
-                        -> !node.cfg[func].busy
-                # append final procedure
-                a.push onComplete
-                # execute
-                w3ui.THREAD a
-                # done
-                return true
-            # internal, no thread
-            walk.every (node) -> if node.cfg[func]
-                then node.cfg[func].call node
-                else true
-        # }}}
-        ###
-        ui: w3ui.PROXY { # {{{
+            # done
+            return x
+            # }}}
+        call: (method, id = '', ...param) -> # {{{
+            # prepare
+            me = @call
+            # define method options
+            # {{{
+            not me.opts and me.opts =
+                render:
+                    active: false
+                init:
+                    active: true
+                    cleanup: true
+                resize:
+                    active: true
+                refresh:
+                    active: true
+                attach:
+                    active: true
+                detach:
+                    active: true
+                    reverse: true
+                finit:
+                    active: true
+                    reverse: true
+            # }}}
+            # get options
+            if not (opts = me.opts[method])
+                return false
+            # get node list
+            if not (list = @list id)
+                return false
+            # reverse list
+            if opts.reverse
+                list.reverse!
+            # apply filters
+            # {{{
+            # remove nodes without specified method
+            list = list.reduce (a, node) ->
+                a.push node if node.cfg[method]
+                return a
+            , []
+            # remove inactive node links
+            if opts.cleanup
+                list.forEach (node) !->
+                    # prepare
+                    a = node.cfg
+                    return if not a.node
+                    # get primary node
+                    b = if a.context
+                        then a.context.cfg
+                        else a
+                    # check current navigation
+                    return if b.parent.cfg.nav.id == b.id
+                    # cleanup
+                    a.node = null
+            # remove inactive nodes
+            if opts.active
+                list = list.reduce (a, node) ->
+                    a.push node if node.cfg.node
+                    return a
+                , []
+                true
+            # }}}
+            # check parameter
+            param = false if not param.length
+            # call
+            return list.every (node) ->
+                if param
+                    then node.cfg[method].apply node, param
+                    else node.cfg[method].call node
+            # }}}
+        ui: # {{{
             cfg: # {{{
-                # common props
-                id: 'ui'            # current node identifier
-                node: w3ui '#ui'    # current DOM node
-                root: null          # selected root
+                id: 'ui'            # node identifier
+                node: w3ui '#ui'    # DOM node
                 parent: null        # backlink
                 context: null       # primary context (for adjacent nodes)
                 data: {}            # data storage
                 level: 0            # node level in interface tree
-                nav: null           # navigation for the level
-                render: true        # render flag-function
-                init: ->
-                    # update root node link
-                    a = @cfg.nav.id
-                    b = if a
-                        then V.ui[a]
-                        else null
-                    V.walk a, true, ->
-                        @cfg.root = b
-                        true
-                    @cfg.root = b
-                    true
+                nav: null           # navigation (next level)
+                render: true        # flag-function
             # }}}
             wa:
                 cfg: # {{{
@@ -275,10 +484,6 @@ w3ui and w3ui.ready ->
                 view: # {{{
                     cfg: # {{{
                         render: true
-                        init: -> # {{{
-                            # done
-                            true
-                        # }}}
                         finit: -> # {{{
                             # set style
                             a = @cfg.nav.id
@@ -289,6 +494,38 @@ w3ui and w3ui.ready ->
                             # done
                             true
                         # }}}
+                        turn:
+                            on:
+                                {
+                                    duration: 2
+                                }
+                                {
+                                    duration: 0
+                                    tween:
+                                        className: '+=color'
+                                        visibility: true
+                                        opacity: 0
+                                        scale: 0.5
+                                }
+                                {
+                                    duration: 8
+                                    tween:
+                                        className: '-=color'
+                                        opacity: 1
+                                        scale: 1
+                                }
+                            off:
+                                {
+                                    duration: 2
+                                    tween:
+                                        className: '+=color'
+                                }
+                                {
+                                    duration: 8
+                                    tween:
+                                        scale: 1.5
+                                        opacity: 0
+                                }
                     # }}}
                     menu: # {{{
                         cfg:
@@ -387,7 +624,7 @@ w3ui and w3ui.ready ->
                                 # {{{
                                 if not data.drag
                                     # get both slide effects
-                                    a = V.ui.console.cfg.data.slide
+                                    a = V.el.console.cfg.data.slide
                                     b = data.slide
                                     # create timelines
                                     c =
@@ -695,17 +932,17 @@ w3ui and w3ui.ready ->
                         # }}}
                         resize: -> # {{{
                             # prepare
-                            c = @cfg
-                            d = c.data
+                            c = V.el.wa.cfg
+                            d = @cfg.data
                             # calculate font size (title as base)
                             a = d.title.box.fontSize d.title.$text
                             b =
-                                c.root.cfg.fontSizeMin
-                                c.root.cfg.fontSizeMax
+                                c.fontSizeMin
+                                c.fontSizeMax
                             a = 0 if a < b.0
                             a = b.1 if a > b.1
-                            # update root css variable
-                            c.root.cfg.node.style.fSize0 = a+'px'
+                            # update css variable
+                            c.node.style.fSize0 = a+'px'
                             # resize buttons
                             d.buttonResize!
                             # done
@@ -1001,37 +1238,13 @@ w3ui and w3ui.ready ->
                             true
                         # }}}
                 # }}}
-        }, {
-            get: (obj, id, prx) -> # {{{
-                # check node
-                # root
-                return obj if not id
-                return obj[id] if obj[id] and obj[id].cfg
-                # leaf
-                return null if not obj.cfg
-                # branch
-                # initiate searching
-                a = [obj]
-                while a.length
-                    # extract node
-                    b = a.pop!
-                    # check sub-branches
-                    for own k,v of b when k != 'cfg' and v and v.cfg
-                        # found
-                        return v[id] if v[id] and v[id].cfg
-                        # add to stack
-                        a.push v
-                # not found
-                return null
-            # }}}
-        }
         # }}}
     # }}}
     P = # {{{
         init: -> # {{{
             # initialize
-            if not M.init! or not V.init!
-                console.log 'init() failed'
+            if not V.init M
+                console.log 'P.init() failed'
                 return false
             # construct
             P.construct!
@@ -1040,144 +1253,107 @@ w3ui and w3ui.ready ->
             # done
             true
         # }}}
-        construct: (id = '') !-> # {{{
-            # prepare
-            me   = @construct
-            node = V.ui[id]
-            lock = false
-            # start thread
-            w3ui.THREAD [
+        ###
+        construct: do !-> # {{{
+            # define vars
+            busy   = false      # main lock
+            lock   = false      # thread lock
+            nav    = null       # previous navigation
+            id0    = ''         # previous (old)
+            id1    = ''         # new
+            pid    = ''         # parent
+            # define helper functions
+            cancelThread = (msg) ->
+                # display message
+                console.log msg if msg
+                # unlock
+                lock := false
+                busy := false
+                # break
+                null
+            # define thread
+            thread = [
                 ->
-                    # wait for global lock
-                    return false if me.busy
-                    me.busy = true
+                    # wait
+                    not busy
+                ->
+                    # initialize thread
+                    # lock
+                    busy := true
+                    # check navigation to
+                    # determine first changed id
+                    if nav
+                        for a,b in nav when a != M[b]
+                            id0 := a
+                            id1 := M[b]
+                            break
+                    else
+                        id1 := M.0
+                    # cancel if there is no change
+                    return cancelThread! if id0 == id1
+                    # get parent id
+                    pid := V.el[id1].cfg.parent.cfg.id
                     # detach events
-                    if not V.walk id, false, 'detach'
-                        console.log 'detach failed'
-                        delete me.busy
-                        return null
+                    if not V.call 'detach'
+                        return cancelThread 'detach failed'
                     # hide
-                    # {{{
-                    # create timeline
-                    a = new TimelineLite {
-                        paused: true
-                    }
-                    V.walk id, false, ->
-                        # prepare
-                        if not (node = @cfg.node)
-                            return true
-                        # create effect timeline
-                        b = new TimelineLite {paused: true}
-                        # add tweens
-                        @cfg.hide and @cfg.hide.forEach (a) !->
-                            if a.tween
-                                c = w3ui.CLONE a.tween
-                                b.to node, a.duration, c
-                            else
-                                b.add a
-                        # add timeline
-                        a.add b.play!, 0
-                        true
-                    # set unlock
-                    a.add !-> lock := false
-                    # lock and play
-                    lock := true
-                    a.play!
-                    # }}}
+                    if id0
+                        lock := true
+                        V.animation.hide id0, !-> lock := false
+                    # continue
                     true
                 ->
                     # wait
                     not lock
                 ->
-                    # cleanup
-                    V.walk id, false, ->
-                        # remove link
-                        if @cfg.node and (a = @cfg.level) and @cfg.id != M[a - 1]
-                            @cfg.node = null
-                        # done
-                        true
                     # render
-                    a = ['render' 'init' 'resize' 'refresh'].every (f) ->
-                        V.walk id, true, f
-                    if not a
-                        console.log 'render sequence failed'
-                        delete me.busy
-                        return null
+                    if not V.call 'render', pid, id0
+                        return cancelThread 'render failed'
+                    # initialize
+                    if not V.call 'init'
+                        return cancelThread 'init failed'
                     # show
-                    # {{{
-                    # create timeline
-                    a = new TimelineLite {
-                        paused: true
-                    }
-                    # add startup label
-                    b = 'L'+node.cfg.level
-                    a.addLabel b, 0
-                    # nest
-                    V.walk id, true, ->
-                        # check
-                        if not (node = @cfg.node)
-                            return true
-                        # create effect timeline
-                        c = new TimelineLite {
-                            paused: true
-                        }
-                        # add tweens
-                        @cfg.show and @cfg.show.forEach (a) !->
-                            if a.tween
-                                b = w3ui.CLONE a.tween
-                                c.to node, a.duration, b
-                            else
-                                c.add a
-                        # check label
-                        if b != 'L'+@cfg.level
-                            # update when level changes
-                            b := 'L'+@cfg.level
-                            a.addLabel b
-                        # add timeline
-                        a.add c.play!, b
-                        true
-                    # set unlock
-                    a.add !-> lock := false
-                    # lock and play
                     lock := true
-                    a.play!
-                    # }}}
+                    V.animation.show id1, id0, !-> lock := false
+                    # continue
                     true
                 ->
                     # wait
                     not lock
                 ->
                     # finalize
-                    V.walk id, false, 'finit'
-                    # attach events
-                    if not V.walk id, true, 'attach'
-                        console.log 'attach failed'
-                    # unlock
-                    delete me.busy
+                    ['resize' 'refresh' 'finit' 'attach'].every (a) -> V.call a
+                    # save navigation and unlock
+                    nav  := M.nav.map (a) -> a.id
+                    busy := false
+                    # done
                     true
             ]
+            # construct routine
+            return !->
+                w3ui.THREAD thread
         # }}}
         update: (id = M.0) !-> # {{{
             # update view
-            ['refresh' 'detach' 'attach'].every (f) ->
-                V.walk id, true, f
+            ['refresh' 'detach' 'attach'].every (a) -> V.call a, id
             # unlock events
             delete P.event.busy
         # }}}
         ###
-        resize: !-> # {{{
+        resize: (force) !-> # {{{
             # prepare
             me = @resize
-            # activate debounce protection (delay)
-            if me.timer
+            if force or not me.timer
+                # resize
+                if not V.call 'resize'
+                    console.log 'resize failed'
+            else
+                # activate debounce protection (delay)
                 # reset timer
                 window.clearTimeout me.timer
                 # set timer
                 f = me.bind @
                 me.timer = window.setTimeout f, 250
-            # resize
-            else if not V.walk '', true, 'resize'
-                console.log 'resize failed'
         # }}}
         event: (data, event) -> # {{{
             # prepare
@@ -1254,7 +1430,7 @@ w3ui and w3ui.ready ->
                     data.size = 0.5 * cfg.node.box.innerWidth
                     data.x = event.pageX
                     data.active = false
-                    data.drag = V.ui.menu.cfg.data.drag
+                    data.drag = V.el.menu.cfg.data.drag
                     # }}}
                 | 'pointermove' =>
                     # drag
@@ -1370,14 +1546,14 @@ w3ui and w3ui.ready ->
                     nav.currentItem[nav.current] = a
                     # set focus
                     c.removeClass 'active'
-                    c.eq a .addClass 'active'
+                    c.class[a].add 'active'
                     # }}}
                 | 'click' =>
                     # navigate
                     # {{{
                     # prepare
                     event.stopPropagation!
-                    # change model
+                    # change navigation
                     a = cfg.level - 1
                     b = event.target.dataset.id
                     M[a] = b
@@ -1409,8 +1585,8 @@ w3ui and w3ui.ready ->
                         # change
                         M.nav[c].current = b
                         # construct effect
-                        a = V.ui.console.cfg.data.hover
-                        b = V.ui.menu.cfg.data.drag[id]
+                        a = V.el.console.cfg.data.hover
+                        b = V.el.menu.cfg.data.drag[id]
                         c =
                             a.0.progress! > 0.0001
                             a.1.progress! > 0.0001
@@ -1435,7 +1611,7 @@ w3ui and w3ui.ready ->
                         # {{{
                         # prepare
                         event.stopPropagation!
-                        a = V.ui.console.cfg.data.hover
+                        a = V.el.console.cfg.data.hover
                         b = if event.data.id == 'left'
                             then 0
                             else 1
@@ -1447,7 +1623,7 @@ w3ui and w3ui.ready ->
                         # {{{
                         # prepare
                         event.stopPropagation!
-                        a = V.ui.console.cfg.data.hover
+                        a = V.el.console.cfg.data.hover
                         b = if event.data.id == 'left'
                             then 0
                             else 1

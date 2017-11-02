@@ -70,50 +70,52 @@ w3ui = function(){
   };
   PROXY = function(){
     var get, set;
-    get = function(base, proto){
-      return function(obj, key){
+    get = function(hand){
+      return function(obj, key, prx){
         if (typeof key !== 'string') {
           return false;
         }
         if (key[0] === '$') {
-          if (key === '$scope') {
-            return proto.$scope;
-          }
-          if (key === '$clone') {
-            return function(obj){
-              return PROXY(obj, base);
-            };
-          }
-        }
-        if (!base.get) {
           return obj[key];
         }
-        return base.get.apply(proto.$scope, arguments);
+        if (!hand.get) {
+          return obj.$data ? obj.$data[key] : null;
+        }
+        return hand.get.call(obj.$scope, obj.$data, key, prx);
       };
     };
-    set = function(base, proto){
-      return function(obj, key, val){
+    set = function(hand){
+      return function(obj, key, val, prx){
         if (typeof key !== 'string') {
           return true;
         }
-        if (key === '$scope') {
-          proto.$scope = val;
-          return true;
-        }
-        if (!base.set) {
+        if (key[0] === '$') {
           obj[key] = val;
           return true;
         }
-        return base.set.apply(proto.$scope, arguments);
+        if (!hand.set) {
+          if (obj.$data) {
+            obj.$data[key] = val;
+          }
+          return true;
+        }
+        return hand.set.call(obj.$scope, obj.$data, key, val, prx);
       };
     };
     return function(obj, handler){
-      var a;
-      a = clone$(handler);
-      a.$scope = obj;
-      a.get = get(handler, a);
-      a.set = set(handler, a);
-      return new Proxy(obj, a);
+      var a, b;
+      a = handler.init ? handler.init(obj) : obj;
+      a = {
+        $scope: a,
+        $data: a,
+        $clone: function(obj){
+          return PROXY(obj, handler);
+        }
+      };
+      b = clone$(handler);
+      b.get = get(handler);
+      b.set = set(handler);
+      return new Proxy(a, b);
     };
   }();
   BOUNCE = function(opts, func){
@@ -690,7 +692,7 @@ w3ui = function(){
     }
   };
   API = function(){
-    var api, get, set;
+    var api, hand;
     api = {
       style: {
         _get: function(key){
@@ -896,40 +898,42 @@ w3ui = function(){
         });
       }
     };
-    get = function(obj, key, prx){
-      var index;
-      index = parseInt(key);
-      if (isNaN(index)) {
-        if (obj._get) {
-          return obj._get(key);
+    hand = {
+      get: function(obj, key, prx){
+        var index;
+        index = parseInt(key);
+        if (isNaN(index)) {
+          if (obj._get) {
+            return obj._get(key);
+          }
+          if (!obj[key]) {
+            return null;
+          }
+          if (obj[key].length) {
+            return obj[key].bind(obj);
+          }
+          return obj[key].call(obj);
         }
-        if (!obj[key]) {
+        if (index < 0 || index > obj._node.length - 1) {
           return null;
         }
-        if (obj[key].length) {
-          return obj[key].bind(this);
+        if (index === obj._index) {
+          return prx;
         }
-        return obj[key].call(this);
-      }
-      if (index < 0 || index > obj._node.length - 1) {
-        return null;
-      }
-      if (index === obj._index) {
-        return prx;
-      }
-      obj = clone$(obj);
-      obj._index = index;
-      return prx.$clone(obj);
-    };
-    set = function(obj, key, val, prx){
-      if (key[0] === '_') {
-        obj[key] = val;
+        obj = clone$(obj);
+        obj._index = index;
+        return new Proxy(obj, hand);
+      },
+      set: function(obj, key, val, prx){
+        if (key[0] === '_') {
+          obj[key] = val;
+          return true;
+        }
+        if (obj._set) {
+          obj._set(key, val);
+        }
         return true;
       }
-      if (obj._set) {
-        obj._set(key, val);
-      }
-      return true;
     };
     return function(selector, noWrap, parent){
       var node, a, i$, to$, b, style, ref$, own$ = {}.hasOwnProperty;
@@ -970,10 +974,7 @@ w3ui = function(){
           b._node = node;
           b._style = style;
           b._index = 0;
-          b = PROXY(b, {
-            get: get,
-            set: set
-          });
+          b = new Proxy(b, hand);
         }
         node[a] = b;
       }
@@ -983,7 +984,7 @@ w3ui = function(){
   API[0] = {};
   API[1] = [];
   API[2] = [];
-  return PROXY(API, {
+  return new Proxy(API, {
     /***
     set: (ui, name, module) -> # load module {{{
         # prepare
