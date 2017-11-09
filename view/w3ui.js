@@ -689,84 +689,108 @@ w3ui = function(){
     THREAD: THREAD,
     ready: function(f){
       document.addEventListener('DOMContentLoaded', f);
-    }
+    },
+    context2d: function(){
+      return document.createElement('canvas').getContext('2d');
+    }()
   };
   API = function(){
-    var api, hand;
-    api = {
+    var apiNode, handlerNode, handlerGroup;
+    apiNode = {
+      node: {
+        _immediate: true,
+        _group: true,
+        get: function(){
+          return this.node;
+        }
+      },
+      clone: {
+        _immediate: true,
+        get: function(){
+          return function(deep){
+            deep == null && (deep = true);
+            return this.node.cloneNode(deep);
+          };
+        }
+      },
+      html: {
+        _immediate: true,
+        _group: true,
+        get: function(){
+          return this.node.innerHTML;
+        },
+        set: function(val){
+          this.node.innerHTML = val;
+        }
+      },
       style: {
-        _get: function(key){
-          var a, b;
-          a = this._style[this._index];
-          b = a[key];
-          if (b === undefined) {
-            b = key.replace(/([A-Z])/g, function(b){
-              return '-' + b[0].toLowerCase();
+        _proxy: true,
+        get: function(data, key){
+          var a;
+          a = data.style[key];
+          if (a === undefined) {
+            a = key.replace(/([A-Z])/g, function(a){
+              return '-' + a[0].toLowerCase();
             });
-            b = a.getPropertyValue('--' + b);
+            a = data.style.getPropertyValue('--' + a);
           }
-          if (b && b.includes('px')) {
-            b = parseFloat(b);
-            if (isNaN(b)) {
-              b = 0;
+          if (a && a.includes('px')) {
+            a = parseFloat(a);
+            if (isNaN(a)) {
+              a = 0;
             }
           }
-          return b;
+          return a;
         },
-        _set: function(key, val){
-          var a, b;
-          a = this._style[this._index];
-          b = a[key];
-          if (b === undefined) {
-            b = key.replace(/([A-Z])/g, function(b){
-              return '-' + b[0].toLowerCase();
+        set: function(data, key, val){
+          var a;
+          if (data.style[key] === undefined) {
+            a = key.replace(/([A-Z])/g, function(a){
+              return '-' + a[0].toLowerCase();
             });
-            this._node[this._index].style.setProperty('--' + b, val);
+            data.node.style.setProperty('--' + a, val);
           } else {
-            this._node[this._index].style[key] = val;
+            data.node.style[key] = val;
           }
           return true;
         }
       },
       box: {
-        ctx: function(){
-          return document.createElement('canvas').getContext('2d');
-        }(),
         innerWidth: function(){
           var a, b;
-          a = this._node.style[this._index];
-          b = this._node[this._index];
+          a = this.api.style;
+          b = this.node;
           return b.clientWidth - (a.paddingLeft + a.paddingRight);
         },
         innerHeight: function(){
           var a, b;
-          a = this._node.style[this._index];
-          b = this._node[this._index];
+          a = this.api.style;
+          b = this.node;
           return b.clientHeight - (a.paddingTop + a.paddingBottom);
         },
         textMetrics: function(text, fontSize){
-          var a;
+          var a, b, c;
           fontSize == null && (fontSize = 0);
-          a = this._style[this._index];
-          if (!fontSize) {
-            fontSize = a.fontSize;
-          } else {
-            fontSize = fontSize + 'px';
-          }
-          a = [a.fontStyle, a.fontWeight, fontSize, a.fontFamily];
-          this.ctx.font = a.join(' ');
-          return this.ctx.measureText(text);
+          a = this.api.style;
+          b = DEP.context2d;
+          c = fontSize
+            ? fontSize
+            : a.fontSize;
+          c = [a.fontStyle, a.fontWeight, c + 'px', a.fontFamily];
+          b.font = c.join(' ');
+          return b.measureText(text);
         },
         fontSize: function(text){
-          var a, b, c, d;
+          var api, a, b, c, d;
           if (!text || !typeof text === 'string') {
             return 0;
           }
-          a = this.innerHeight();
-          b = this.innerWidth();
+          api = this.api.box;
+          a = api.innerHeight;
+          b = api.innerWidth;
           c = [0, a];
           while (c[1] - c[0] > 0.5) {
-            if (!(d = this.textMetrics(text, a))) {
+            if (!(d = api.textMetrics(text, a))) {
               return 0;
             }
             if (d.width <= b) {
@@ -780,165 +804,192 @@ w3ui = function(){
         }
       },
       'class': {
-        add: function(a){
-          this._node[this._index].classList.add(a);
+        add: function(name){
+          this.node.classList.add(name);
         },
-        remove: function(a){
-          this._node[this._index].classList.remove(a);
+        remove: function(name){
+          this.node.classList.remove(name);
         },
-        toggle: function(a, b){
-          return this._node[this._index].classList.toggle(a, b);
+        has: function(name){
+          return this.node.classList.contains(name);
         },
-        contains: function(a){
-          return this._node[this._index].classList.contains(a);
+        replace: function(name0, name1){
+          return this.node.classList.replace(name0, name1);
         },
-        replace: function(a, b){
-          return this._node[this._index].classList.replace(a, b);
+        toggle: function(name, flag){
+          if (typeof flag === 'function') {
+            flag = flag(this.self, this.index);
+          }
+          return this.node.classList.toggle(name, !!flag);
         }
       },
-      attribute: {
-        set: function(name, value){
-          this._node[this._index].setAttribute(name, value);
+      prop: {
+        _proxy: true,
+        get: function(data, key){
+          return data.node.getAttribute(key);
         },
-        get: function(name){
-          return this._node[this._index].getAttribute(name);
+        set: function(data, key, val){
+          if (val === null) {
+            data.node.removeAttribute(key);
+            return true;
+          }
+          data.node.setAttribute(key, val);
+          return true;
         },
-        del: function(name){
-          this._node[this._index].removeAttribute(name);
-        },
-        exist: function(name){
-          return this._node[this._index].hasAttribute(name);
+        has: function(data, key){
+          return data.node.hasAttribute(name);
         }
       },
-      node: {
-        clone: function(deep){
-          deep == null && (deep = true);
-          return this._node[this._index].cloneNode(deep);
-        },
-        append: function(node){
-          this._node[this._index].appendChild(node);
-        },
-        prepend: function(node){
-          var a, b;
-          a = this._node[this._index];
-          b = a.firstChild || null;
-          a.insertBefore(node, b);
+      child: {
+        add: function(node){
+          var parent;
+          parent = this.node;
+          if ('w3ui' in node) {
+            node.w3ui.group.forEach(function(node){
+              parent.appendChild(node);
+            });
+          } else {
+            parent.appendChild(node);
+          }
         },
         insert: function(node, index){
-          var a, b;
-          a = this._node[this._index];
-          if (arguments.length < 2 || a.children.length === 0) {
-            a.appendChild(node);
-          } else {
-            if (index < 0) {
-              index = 0;
-            } else if (index > (b = a.children.length - 1)) {
-              index = b;
+          var parent, a;
+          index == null && (index = 0);
+          parent = this.node;
+          if (parent.children.length === 0) {
+            if ('w3ui' in node) {
+              node.w3ui.group.forEach(function(node){
+                parent.appendChild(node);
+              });
+              return;
             }
-            a.insertBefore(node, a.children[index]);
+            parent.appendChild(node);
+            return;
+          }
+          if (index < 0) {
+            index = 0;
+          } else if (index > (a = parent.children.length - 1)) {
+            index = a;
+          }
+          a = parent.children[index];
+          if ('w3ui' in node) {
+            node.w3ui.group.forEach(function(node){
+              parent.insertBefore(node, a);
+            });
+          } else {
+            parent.insertBefore(node, a);
           }
         },
         remove: function(node){
-          node == null && (node = this._node[this._index]);
-          node.parentNode.removeChild(node);
+          var a, parent;
+          node == null && (node = null);
+          if (!node) {
+            a = document.createRange();
+            a.selectNodeContents(this.node);
+            a.deleteContents();
+            return;
+          }
+          parent = this.node;
+          if ('w3ui' in node) {
+            node.w3ui.group.forEach(function(node){
+              parent.removeChild(node);
+            });
+          } else {
+            parent.removeChild(node);
+          }
         }
       },
-      query: function(selector, index, noWrap){
-        index == null && (index = 0);
+      query: function(selector, noWrap){
         noWrap == null && (noWrap = false);
-        if (typeof selector !== 'string' || index < 0 || index > this.length - 1) {
-          return null;
+        if (this.selector) {
+          selector = this.selector + ' ' + selector;
         }
-        selector = this._selector ? this._selector + ' ' + selector : selector;
-        return API(selector, noWrap, this[index]);
+        return API(selector, this.node, noWrap);
       },
-      eq: function(index){
-        if (index < 0 || index > this.length - 1) {
-          return null;
+      addEventListener: {
+        _immediate: true,
+        _group: true,
+        get: function(){
+          return this.node.addEventListener.bind(this.node);
         }
-        return API(this[index]);
       },
-      prop: function(name, value){
-        if (arguments.length > 1) {
-          this.forEach(function(a){
-            a.setAttribute(name, value);
-          });
-          return true;
+      removeEventListener: {
+        _immediate: true,
+        _group: true,
+        get: function(){
+          return this.node.removeEventListener.bind(this.node);
         }
-        return this[0].getAttribute(name);
-      },
-      propRemove: function(name){
-        this.forEach(function(a){
-          a.removeAttribute(name);
-        });
-      },
-      html: function(a){
-        this.forEach(function(node){
-          node.innerHTML = a;
-        });
-      },
-      addClass: function(a){
-        this.forEach(function(b){
-          b.classList.add(a);
-        });
-      },
-      removeClass: function(a){
-        this.forEach(function(c){
-          c.classList.remove(a);
-        });
-      },
-      toggleClass: function(a, b){
-        this.forEach(function(c){
-          c.classList.toggle(a, b);
-        });
-      },
-      hasClass: function(a){
-        return this.some(function(b){
-          return b.classList.contains(a);
-        });
       }
     };
-    hand = {
-      get: function(obj, key, prx){
-        var index;
-        index = parseInt(key);
-        if (isNaN(index)) {
-          if (obj._get) {
-            return obj._get(key);
-          }
-          if (!obj[key]) {
-            return null;
-          }
-          if (obj[key].length) {
-            return obj[key].bind(obj);
-          }
-          return obj[key].call(obj);
-        }
-        if (index < 0 || index > obj._node.length - 1) {
+    handlerNode = {
+      get: function(arg$, key){
+        var data, api;
+        data = arg$[0], api = arg$[1];
+        if (!isNaN(parseInt(key)) || !(api = api[key])) {
           return null;
         }
-        if (index === obj._index) {
-          return prx;
+        if (api.length > 0) {
+          return api.bind(data);
         }
-        obj = clone$(obj);
-        obj._index = index;
-        return new Proxy(obj, hand);
+        return api.call(data);
       },
-      set: function(obj, key, val, prx){
-        if (key[0] === '_') {
-          obj[key] = val;
+      set: function(arg$, key, val){
+        var data, api;
+        data = arg$[0], api = arg$[1];
+        if (!api._set) {
           return true;
         }
-        if (obj._set) {
-          obj._set(key, val);
-        }
+        api._set.call(data, key, val);
         return true;
       }
     };
-    return function(selector, noWrap, parent){
-      var node, a, i$, to$, b, style, ref$, own$ = {}.hasOwnProperty;
-      noWrap == null && (noWrap = false);
+    handlerGroup = {
+      get: function(arg$, key){
+        var group, method, a;
+        group = arg$[0], method = arg$[1];
+        a = apiNode[method];
+        if (!isNaN(parseInt(key)) || !(key in a) && !a._proxy) {
+          return null;
+        }
+        if (!group.length) {
+          return null;
+        }
+        if (group.length === 1) {
+          return group[0][method][key];
+        }
+        if (a.proxy || !a[key].length) {
+          return group.map(function(el){
+            return el[method][key];
+          });
+        }
+        return function(){
+          var a;
+          a = arguments;
+          return group.map(function(el){
+            return el[method][key].apply(el, a);
+          });
+        };
+      },
+      set: function(arg$, key, val){
+        var group, method;
+        group = arg$[0], method = arg$[1];
+        if (!apiNode[method] || !group.length) {
+          return true;
+        }
+        if (group.length === 1) {
+          group[0][method][key] = val;
+          return true;
+        }
+        group.forEach(function(el){
+          el[method][key] = val;
+        });
+        return true;
+      }
+    };
+    return function(selector, parent, noWrap){
+      var node, a, i$, to$, b, style, data, wrap, ref$;
       parent == null && (parent = document);
+      noWrap == null && (noWrap = false);
       if (!selector) {
         return null;
       }
@@ -965,20 +1016,95 @@ w3ui = function(){
       style = node.map(function(node){
         return window.getComputedStyle(node);
       });
-      node._selector = selector;
-      node._parent = parent;
-      for (a in ref$ = api) if (own$.call(ref$, a)) {
-        b = ref$[a];
-        if (typeof b === 'object') {
-          b = clone$(b);
-          b._node = node;
-          b._style = style;
-          b._index = 0;
-          b = new Proxy(b, hand);
+      data = {
+        group: node,
+        selector: selector,
+        node: node[0],
+        index: 0,
+        parent: parent,
+        style: style
+      };
+      wrap = node.map(function(node, index){
+        var api, dat, b, ref$, a;
+        api = {};
+        dat = Object.create(data);
+        dat.group = [node];
+        dat.api = api;
+        dat.node = node;
+        dat.index = index;
+        dat.style = data.style[index];
+        for (b in ref$ = apiNode) {
+          a = ref$[b];
+          for (;;) {
+            if (typeof a === 'function') {
+              a = {
+                value: a.bind(dat)
+              };
+              break;
+            }
+            if (a._immediate) {
+              a = {
+                get: a.get ? a.get.bind(dat) : undefined,
+                set: a.set ? a.set.bind(dat) : undefined
+              };
+              break;
+            }
+            a = {
+              value: a._proxy
+                ? new Proxy(dat, a)
+                : new Proxy([dat, a], handlerNode)
+            };
+            break;
+          }
+          Object.defineProperty(api, b, a);
         }
-        node[a] = b;
+        api.w3ui = dat;
+        dat.self = new Proxy(node, {
+          get: function(node, key){
+            if (key in api) {
+              return api[key];
+            }
+            return Reflect.get(node, key);
+          },
+          set: function(node, key, val){
+            if (key in api) {
+              api[key] = val;
+              return true;
+            }
+            return Reflect.set(node, key, val);
+          },
+          has: function(node, key){
+            if (key in api) {
+              return true;
+            }
+            return Reflect.has(node, key);
+          }
+        });
+        return dat.self;
+      });
+      for (b in ref$ = apiNode) {
+        a = ref$[b];
+        if (a._immediate) {
+          if (!a._group) {
+            continue;
+          }
+          a = {
+            get: a.get ? a.get.bind(data) : undefined,
+            set: a.set ? a.set.bind(data) : undefined
+          };
+        } else {
+          a = {
+            value: typeof a === 'function'
+              ? a.bind(data)
+              : new Proxy([wrap, b], handlerGroup)
+          };
+        }
+        Object.defineProperty(wrap, b, a);
       }
-      return node;
+      Object.defineProperty(wrap, 'w3ui', {
+        value: data
+      });
+      return wrap;
     };
   }();
   API[0] = {};

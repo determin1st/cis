@@ -28,10 +28,7 @@ w3ui && w3ui.ready(function(){
       return obj;
     },
     set: function(obj, k, v, prx){
-      var a, b, c, d;
-      if (typeof k !== 'string') {
-        return true;
-      }
+      var a, b, c, d, i$, len$;
       a = parseInt(k);
       if (isNaN(a)) {
         obj[k] = v;
@@ -51,7 +48,13 @@ w3ui && w3ui.ready(function(){
       if (d) {
         d[c.id] = a.slice(k + 1);
         a.splice(k + 1);
-        a = a.concat(w3ui.CLONE(d[v]));
+        b = d[v]
+          ? d[v]
+          : w3ui.CLONE(d['']);
+        for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+          d = b[i$];
+          a.push(d);
+        }
       }
       c.id = v;
       return true;
@@ -70,9 +73,8 @@ w3ui && w3ui.ready(function(){
   });
   V = {
     init: function(model){
-      var templ, init, render, attach, this$ = this;
-      templ = w3ui('template', true);
-      templ = templ[0].content;
+      var template, init, render, attach, this$ = this;
+      template = document.querySelector('template').content;
       init = function(id, node, parent, level, tid){
         var cfg, a, b, own$ = {}.hasOwnProperty;
         cfg = node.cfg;
@@ -89,7 +91,7 @@ w3ui && w3ui.ready(function(){
         if (cfg.attach) {
           cfg.attach = attach.bind(node, cfg.attach);
         }
-        cfg.template = templ.querySelector(tid);
+        cfg.template = template.querySelector(tid);
         cfg.data = {};
         cfg.show && (cfg.show = cfg.show.map(function(a){
           if (typeof a === 'object') {
@@ -138,18 +140,19 @@ w3ui && w3ui.ready(function(){
         }
         a = Mustache.render(a, c);
         if (a && b) {
+          d = document.createElement('template');
+          d.innerHTML = a;
+          b = w3ui('#' + b, d.content);
+          b.style.display = 'none';
           if (old) {
-            d = document.createElement('template');
-            d.innerHTML = a;
-            d = w3ui('#' + b, false, d.content);
-            this.cfg.node.node.prepend(d[0]);
-            c.cfg.node = d;
+            this.cfg.node.child.insert(b);
           } else {
-            this.cfg.node[0].innerHTML = a;
-            c.cfg.node = w3ui('#' + b);
+            this.cfg.node.child.remove();
+            this.cfg.node.child.add(b);
           }
+          c.cfg.node = b;
         } else {
-          this.cfg.node[0].innerHTML = a;
+          this.cfg.node.html = a;
         }
         return true;
       };
@@ -176,7 +179,7 @@ w3ui && w3ui.ready(function(){
             c = d.el
               ? document.querySelectorAll('#' + this.cfg.id + ' ' + d.el)
               : d.el === ''
-                ? [this.cfg.node[0]]
+                ? [this.cfg.node]
                 : [document];
             d.preventDefault = !x.test(a);
             d = P.event.bind(this, d);
@@ -216,23 +219,35 @@ w3ui && w3ui.ready(function(){
     animation: function(){
       var addTweens, this$ = this;
       addTweens = function(node, timeline, source){
+        node = node.w3ui.group;
         source && source.forEach(function(a){
-          var b;
+          var b, c;
           switch (typeof a) {
           case 'object':
-            if (a.tween) {
-              b = w3ui.CLONE(a.tween);
-              if (a.duration < 0.0001) {
-                timeline.set(node, b);
-              } else {
-                timeline.to(node, a.duration, b);
-              }
-            } else {
-              timeline.addPause(a.duration);
+            if (!a.to && !a.from) {
+              break;
             }
+            b = [a.to ? w3ui.CLONE(a.to) : null, a.from ? w3ui.CLONE(a.from) : null];
+            c = a.position ? a.position : '+=0';
+            if (!a.duration || a.duration < 0.0001) {
+              timeline.set(node, b[0] || b[1], c);
+              break;
+            }
+            if (b[0] && !b[1]) {
+              timeline.to(node, a.duration, b[0], c);
+              break;
+            }
+            if (!b[0] && b[1]) {
+              timeline.from(node, a.duration, b[1], c);
+              break;
+            }
+            timeline.fromTo(node, a.duration, b[0], b[1], c);
             break;
           case 'function':
             timeline.add(a);
+            break;
+          case 'string':
+            timeline.addLabel(a);
           }
         });
       };
@@ -269,42 +284,46 @@ w3ui && w3ui.ready(function(){
         },
         show: function(id1, id0, onComplete){
           var node1, node0, list, parent, turn, old, a, b;
-          node1 = this$.el[id1];
-          node0 = this$.el[id0];
+          node1 = this$.el[id1].cfg;
+          node0 = this$.el[id0].cfg;
           list = this$.list(id1);
-          parent = node1.cfg.parent;
+          parent = node1.parent.cfg;
           turn = null;
           old = null;
           if (id0) {
-            turn = parent.cfg.turn;
-            old = parent.cfg.node.query('#' + id0, 0, true);
+            turn = parent.turn;
+            old = parent.node.query('#' + id0, 0, true)[0];
           }
           a = new TimelineLite({
             paused: true
           });
           if (turn) {
             list = list.slice(1);
-            if (node0.cfg.turn || node1.cfg.turn) {
-              turn = node1.cfg.turn
-                ? node1.cfg.turn
-                : node0.cfg.turn;
+            if (node0.turn || node1.turn) {
+              turn = node1.turn
+                ? node1.turn
+                : node0.turn;
             }
+            a.add(function(){
+              node1.node.style.display = null;
+            });
+            a.addLabel('start');
             b = new TimelineLite({
               paused: true
             });
             addTweens(old, b, turn.off);
-            a.add(b.play(), 0);
+            a.add(b.play(), 'start');
             b = new TimelineLite({
               paused: true
             });
-            addTweens(node1.cfg.node, b, turn.on);
-            a.add(b.play(), 0);
+            addTweens(node1.node, b, turn.on);
+            a.add(b.play(), 'start');
           }
           old && a.add(function(){
-            parent.cfg.node[0].removeChild(old);
+            parent.node.child.remove(old);
           });
           list = list.reduce(function(a, b){
-            if (b.cfg.node && b.cfg.show) {
+            if (b.cfg.node) {
               a.push(b);
             }
             return a;
@@ -315,6 +334,9 @@ w3ui && w3ui.ready(function(){
             el = el.cfg;
             c = new TimelineLite({
               paused: true
+            });
+            c.add(function(){
+              el.node.style.display = null;
             });
             addTweens(el.node, c, el.show);
             if (!b || b !== 'L' + el.level) {
@@ -502,47 +524,44 @@ w3ui && w3ui.ready(function(){
         view: {
           cfg: {
             render: true,
-            finit: function(){
-              var a, b;
-              a = this.cfg.nav.id;
-              b = this.cfg.node;
-              if (!b.hasClass(a)) {
-                b.removeClass();
-                b.addClass(a);
-              }
-              return true;
-            },
             turn: {
               on: [
                 {
-                  duration: 2
-                }, {
-                  duration: 0,
-                  tween: {
+                  to: {
                     className: '+=color',
-                    visibility: true,
                     opacity: 0,
-                    scale: 0.5
+                    scale: 0.6
                   }
                 }, {
-                  duration: 8,
-                  tween: {
-                    className: '-=color',
+                  duration: 0.2,
+                  to: {
+                    opacity: 0.5
+                  }
+                }, {
+                  duration: 0.6,
+                  to: {
                     opacity: 1,
                     scale: 1
+                  }
+                }, {
+                  position: '-=0.1',
+                  duration: 0.3,
+                  to: {
+                    className: '-=color'
                   }
                 }
               ],
               off: [
                 {
-                  duration: 2,
-                  tween: {
-                    className: '+=color'
+                  duration: 0.2,
+                  to: {
+                    className: '+=color',
+                    scale: 0.9
                   }
                 }, {
-                  duration: 8,
-                  tween: {
-                    scale: 1.5,
+                  duration: 0.8,
+                  to: {
+                    scale: 1,
                     opacity: 0
                   }
                 }
@@ -553,18 +572,20 @@ w3ui && w3ui.ready(function(){
             cfg: {
               render: true,
               init: function(){
-                var a, b;
-                if (!this.cfg.data.menu) {
-                  this.cfg.data.menu = this.cfg.node.query('.box');
-                  this.cfg.data.time = this.cfg.show[1].duration;
+                var c, d, a, b;
+                c = this.cfg;
+                d = this.cfg.data;
+                if (!d.menu) {
+                  d.menu = c.node.query('.box');
+                  d.time = c.show[1].duration;
                 }
-                while ((a = this.cfg.nav.current) === undefined) {
-                  this.cfg.nav.current = 0;
+                while ((a = c.nav.current) === undefined) {
+                  c.nav.current = 0;
                 }
-                while (!(b = this.cfg.nav.currentItem)) {
-                  this.cfg.nav.currentItem = this.data.map(fn$);
+                while (!(b = c.nav.currentItem)) {
+                  c.nav.currentItem = this.data.map(fn$);
                 }
-                this.cfg.data.menu['class'][a].add('active');
+                d.menu[a].style.visibility = 'visible';
                 return true;
                 function fn$(){
                   return 0;
@@ -575,21 +596,21 @@ w3ui && w3ui.ready(function(){
                 data = this.cfg.data;
                 if (!data.box) {
                   a = this.cfg.nav.current;
-                  data.box = data.menu.eq(a);
+                  data.box = data.menu[a];
                   data.btn = data.box.query('.button');
                   for (i$ = 0, to$ = data.btn.length - 1; i$ <= to$; ++i$) {
                     b = i$;
                     data.btn[b].dataset.num = b;
                     data.btn[b].dataset.id = this.data[a].list[b].id;
                   }
-                  a = this.cfg.nav.currentItem[this.cfg.nav.current];
-                  data.btn['class'][a].add('active');
+                  a = this.cfg.nav.currentItem[a];
+                  data.btn[a]['class'].add('active');
                 }
                 if (!data.slide) {
                   a = this.cfg.nav.current || 0;
                   b = data.menu.length - 1;
                   c = [a > 0 ? a - 1 : b, a < b ? a + 1 : 0];
-                  a = [[data.menu[a], data.menu[c[0]]], [data.menu[a], data.menu[c[1]]]];
+                  a = [[data.menu[a].node, data.menu[c[0]].node], [data.menu[a].node, data.menu[c[1]].node]];
                   c = [['0%', '100%', '-100%', '0%'], ['0%', '-100%', '100%', '0%']];
                   data.slide = a.map(function(a, index){
                     var b;
@@ -597,36 +618,30 @@ w3ui && w3ui.ready(function(){
                       paused: true,
                       data: {
                         complete: function(){
-                          data.menu.propRemove('style');
                           delete data.slide;
                         }
                       }
                     });
-                    b.set(a[0], {
-                      transformOrigin: '0% 50%',
-                      x: c[index][0],
-                      zIndex: 1
-                    });
-                    b.set(a[1], {
-                      transformOrigin: '0% 50%',
-                      x: c[index][2],
-                      zIndex: 2
-                    });
                     b.set(a, {
+                      transformOrigin: '0% 50%',
                       visibility: 'visible'
                     });
                     b.addLabel('s1');
-                    b.to(a[0], data.time, {
+                    b.fromTo(a[0], data.time, {
+                      x: c[index][0]
+                    }, {
                       x: c[index][1]
                     }, 's1');
-                    b.to(a[1], data.time, {
+                    b.fromTo(a[1], data.time, {
+                      x: c[index][2]
+                    }, {
                       x: c[index][3]
                     }, 's1');
                     b.set(a[0], {
-                      className: '-=active'
+                      visibility: 'hidden'
                     });
                     b.set(a[1], {
-                      className: '+=active'
+                      visibility: 'visible'
                     });
                     return b;
                   });
@@ -646,12 +661,12 @@ w3ui && w3ui.ready(function(){
                   d = function(){
                     var a, b;
                     a = 'drag';
-                    b = !this$.cfg.node.hasClass(a);
-                    this$.cfg.node.toggleClass(a, b);
+                    b = !this$.cfg.node['class'].has(a);
+                    this$.cfg.node['class'].toggle(a, b);
                   };
                   e = function(index){
                     return function(){
-                      this$.cfg.node.removeClass('drag');
+                      this$.cfg.node['class'].remove('drag');
                       a[index].data.complete();
                       b[index].data.complete();
                       delete data.box;
@@ -672,32 +687,26 @@ w3ui && w3ui.ready(function(){
               },
               show: [
                 {
-                  duration: 0,
-                  tween: {
-                    visibility: 'visible',
+                  to: {
+                    backgroundColor: 'transparent',
                     scale: 0
                   }
                 }, {
                   duration: 0.8,
-                  tween: {
+                  to: {
                     scale: 1,
+                    clearProps: 'backgroundColor',
                     ease: Back.easeOut
                   }
-                }, function(){
-                  this.cfg.data.menu.addClass('attached');
                 }
               ],
-              hide: [
-                function(){
-                  this.cfg.data.menu.removeClass('attached');
-                }, {
-                  duration: 0.8,
-                  tween: {
-                    scale: 0,
-                    ease: Power3.easeIn
-                  }
+              hide: [{
+                duration: 0.8,
+                to: {
+                  scale: 0,
+                  ease: Power3.easeIn
                 }
-              ],
+              }],
               attach: {
                 click: {
                   el: '.button'
@@ -770,13 +779,13 @@ w3ui && w3ui.ready(function(){
               show: [
                 {
                   duration: 0,
-                  tween: {
+                  to: {
                     visibility: 'visible',
                     scale: 0
                   }
                 }, {
                   duration: 0.8,
-                  tween: {
+                  to: {
                     scale: 1,
                     ease: Back.easeOut
                   }
@@ -784,7 +793,7 @@ w3ui && w3ui.ready(function(){
               ],
               hide: [{
                 duration: 0.8,
-                tween: {
+                to: {
                   scale: 0,
                   ease: Back.easeIn
                 }
@@ -825,10 +834,10 @@ w3ui && w3ui.ready(function(){
                 d.mode = c.node.query('.mode .button');
                 d.config = c.node.query('.config .button');
               }
-              c.show[1].tween.className = '+=on ' + c.nav.id;
+              c.show[1].to.className = '+=on ' + c.nav.id;
               a = c.context ? c.context.cfg.id : '';
               d.title.$text = a ? this.title[a] : '';
-              d.title.html(d.title.$text);
+              d.title.html = d.title.$text;
               if (a) {
                 c = c.template;
                 b = a === 'menu' ? 'return' : 'menu';
@@ -838,8 +847,8 @@ w3ui && w3ui.ready(function(){
                 d.config.$text = this.config[b];
                 d.config.$icon = c.querySelector('#' + b).innerHTML;
               }
-              d.mode.toggleClass('disabled', !a);
-              d.config.toggleClass('disabled', !a);
+              d.mode['class'].toggle('disabled', !a);
+              d.config['class'].toggle('disabled', !a);
               d.buttonSwitch = function(){
                 var a;
                 a = [
@@ -853,32 +862,32 @@ w3ui && w3ui.ready(function(){
                 ];
                 a = [[a[0], 'text', 'icon'], [a[1], 'icon', 'text']];
                 a = a.map(function(a, index){
-                  a[0].to(d.mode, 0.4, {
+                  a[0].to(d.mode.node, 0.4, {
                     className: '-=' + a[1],
                     scale: 0
                   }, 0);
-                  a[0].to(d.config, 0.4, {
+                  a[0].to(d.config.node, 0.4, {
                     className: '-=' + a[1],
                     scale: 0
                   }, 0);
                   a[0].add((function(a){
                     return function(){
-                      d.mode[0].innerHTML = d.mode[a];
-                      d.config[0].innerHTML = d.config[a];
+                      d.mode.html = d.mode[a];
+                      d.config.html = d.config[a];
                     };
                   }.call(this, '$' + a[2])));
                   a[0].addLabel('L1');
-                  a[0].to(d.mode, 0.4, {
+                  a[0].to(d.mode.node, 0.4, {
                     className: '+=' + a[2],
                     scale: 1
                   }, 'L1');
-                  a[0].to(d.config, 0.4, {
+                  a[0].to(d.config.node, 0.4, {
                     className: '+=' + a[2],
                     scale: 1
                   }, 'L1');
                   a[0].add(function(){
-                    d.mode.propRemove('style');
-                    d.config.propRemove('style');
+                    d.mode.prop.style = null;
+                    d.config.prop.style = null;
                   });
                   return a[0];
                 });
@@ -907,10 +916,10 @@ w3ui && w3ui.ready(function(){
                   }
                   return false;
                 });
-                a = d.mode['class'][0];
-                if (useIcon && !a.contains('icon')) {
+                a = d.mode['class'];
+                if (useIcon && !a.has('icon')) {
                   a = 0;
-                } else if (!useIcon && !a.contains('text')) {
+                } else if (!useIcon && !a.has('text')) {
                   a = 1;
                 } else {
                   return;
@@ -939,12 +948,12 @@ w3ui && w3ui.ready(function(){
             show: [
               {
                 duration: 0,
-                tween: {
+                to: {
                   visibility: 'visible'
                 }
               }, {
                 duration: 0.8,
-                tween: {
+                to: {
                   className: '',
                   opacity: 1,
                   ease: Power3.easeOut
@@ -956,13 +965,13 @@ w3ui && w3ui.ready(function(){
             hide: [
               {
                 duration: 0.2,
-                tween: {
+                to: {
                   opacity: 0,
                   ease: Power3.easeIn
                 }
               }, {
                 duration: 0.4,
-                tween: {
+                to: {
                   className: '',
                   ease: Power3.easeIn
                 }
@@ -999,7 +1008,7 @@ w3ui && w3ui.ready(function(){
             render: true,
             attach: true,
             init: function(){
-              this.cfg.show[1].tween.className = '+=on ' + this.cfg.nav.id;
+              this.cfg.show[1].to.className = '+=on ' + this.cfg.nav.id;
               return true;
             },
             resize: function(){
@@ -1021,12 +1030,12 @@ w3ui && w3ui.ready(function(){
             show: [
               {
                 duration: 0,
-                tween: {
+                to: {
                   visibility: 'visible'
                 }
               }, {
                 duration: 0.8,
-                tween: {
+                to: {
                   className: '',
                   opacity: 1,
                   ease: Power3.easeOut
@@ -1036,13 +1045,13 @@ w3ui && w3ui.ready(function(){
             hide: [
               {
                 duration: 0.2,
-                tween: {
+                to: {
                   opacity: 0,
                   ease: Power3.easeIn
                 }
               }, {
                 duration: 0.4,
-                tween: {
+                to: {
                   className: '',
                   ease: Power3.easeIn
                 }
@@ -1108,7 +1117,7 @@ w3ui && w3ui.ready(function(){
               };
             },
             refresh: function(data){
-              var a, b, main, c;
+              var a, b, c, main;
               if (!data.node) {
                 data.node = this.cfg.node.query('.carousel');
                 data.time = this.cfg.show[1].duration;
@@ -1120,22 +1129,23 @@ w3ui && w3ui.ready(function(){
               if (!data.hover) {
                 a = data.box;
                 b = data.btn;
-                data.hover = [1, 3].map(function(index){
-                  var c;
-                  c = new TimelineLite({
+                c = [[a[1].node, b[1].node, a[2].node, b[2].node], [a[3].node, b[3].node, a[2].node, b[2].node]];
+                data.hover = c.map(function(c){
+                  var d;
+                  d = new TimelineLite({
                     paused: true,
                     ease: Power2.easeOut
                   });
-                  c.add((function(a, b){
+                  d.add((function(a, b){
                     return function(){
-                      a.removeClass('hover');
-                      b.removeClass('hover');
+                      a['class'].remove('hover');
+                      b['class'].remove('hover');
                     };
                   }.call(this, a, b)));
-                  c.to([a[index], b[index], a[2], b[2]], data.time, {
+                  d.to(c, data.time, {
                     className: '+=hover'
                   });
-                  return c;
+                  return d;
                 });
               }
               if (!data.slide) {
@@ -1149,25 +1159,25 @@ w3ui && w3ui.ready(function(){
                     ? a + 2
                     : a + 1 - b
                 ];
-                data.btn[0].innerHTML = main.data[c[0]].name;
-                data.btn[4].innerHTML = main.data[c[1]].name;
-                a = [data.box.node[0].clone(), data.box.node[4].clone()];
-                b = [w3ui('.button', true, a[0]), w3ui('.button', true, a[1])];
-                a = [[a[0], b[0][0]], [a[1], b[1][0]]];
-                data.slide = a.map(function(box, index){
+                data.btn[0].html = main.data[c[0]].name;
+                data.btn[4].html = main.data[c[1]].name;
+                a = [data.box[0].clone(), data.box[4].clone()];
+                data.slide = a.map(function(newBox, index){
                   var a, b;
                   a = new TimelineMax({
                     paused: true,
                     data: {
                       complete: function(){
-                        data.box.propRemove('style');
-                        data.btn.propRemove('style');
+                        var a;
+                        data.box.prop.style = null;
+                        data.btn.prop.style = null;
+                        a = data.node.child;
                         if (index) {
-                          data.node.node.append(box[0]);
-                          data.box.node[0].remove();
+                          a.add(newBox);
+                          a.remove(data.box[0]);
                         } else {
-                          data.node.node.prepend(box[0]);
-                          data.box.node[4].remove();
+                          a.insert(newBox);
+                          a.remove(data.box[4]);
                         }
                         delete data.box;
                         delete data.hover;
@@ -1180,28 +1190,28 @@ w3ui && w3ui.ready(function(){
                   } else {
                     b = [['-=hidden', '+=active', '-=active', '+=hidden'], ['-=hidden', 'button center', 'button right', '+=hidden']];
                   }
-                  a.to(data.box[index + 0], data.time, {
+                  a.to(data.box[index + 0].node, data.time, {
                     className: b[0][0]
                   }, 0);
-                  a.to(data.box[index + 1], data.time, {
+                  a.to(data.box[index + 1].node, data.time, {
                     className: b[0][1]
                   }, 0);
-                  a.to(data.box[index + 2], data.time, {
+                  a.to(data.box[index + 2].node, data.time, {
                     className: b[0][2]
                   }, 0);
-                  a.to(data.box[index + 3], data.time, {
+                  a.to(data.box[index + 3].node, data.time, {
                     className: b[0][3]
                   }, 0);
-                  a.to(data.btn[index + 0], data.time, {
+                  a.to(data.btn[index + 0].node, data.time, {
                     className: b[1][0]
                   }, 0);
-                  a.to(data.btn[index + 1], data.time, {
+                  a.to(data.btn[index + 1].node, data.time, {
                     className: b[1][1]
                   }, 0);
-                  a.to(data.btn[index + 2], data.time, {
+                  a.to(data.btn[index + 2].node, data.time, {
                     className: b[1][2]
                   }, 0);
-                  a.to(data.btn[index + 3], data.time, {
+                  a.to(data.btn[index + 3].node, data.time, {
                     className: b[1][3]
                   }, 0);
                   return a;
@@ -1225,12 +1235,13 @@ w3ui && w3ui.ready(function(){
       return true;
     },
     construct: function(){
-      var busy, lock, nav, id0, id1, pid, cancelThread, thread;
+      var busy, lock, nav, id0, id1, level, pid, cancelThread, thread;
       busy = false;
       lock = false;
       nav = null;
       id0 = '';
       id1 = '';
+      level = 0;
       pid = '';
       cancelThread = function(msg){
         if (msg) {
@@ -1253,6 +1264,7 @@ w3ui && w3ui.ready(function(){
               if (a !== M[b]) {
                 id0 = a;
                 id1 = M[b];
+                level = b;
                 break;
               }
             }
@@ -1262,7 +1274,11 @@ w3ui && w3ui.ready(function(){
           if (id0 === id1) {
             return cancelThread();
           }
-          pid = V.el[id1].cfg.parent.cfg.id;
+          if (!(a = V.el[id1])) {
+            M[level] = id0;
+            return cancelThread('"' + id1 + '" not found');
+          }
+          pid = a.cfg.parent.cfg.id;
           if (!V.call('detach')) {
             return cancelThread('detach failed');
           }
@@ -1361,7 +1377,7 @@ w3ui && w3ui.ready(function(){
       return true;
     },
     react: function(event, data, cfg, nav){
-      var a, b, c, d, e, this$ = this;
+      var a, b, c, d, e, i$, ref$, len$, this$ = this;
       switch (cfg.id) {
       case 'menu':
         !data.change && (data.change = function(active){
@@ -1458,10 +1474,11 @@ w3ui && w3ui.ready(function(){
             break;
           }
           event.stopPropagation();
-          nav.currentItem[nav.current] = +a;
-          b = cfg.data.btn;
-          b.removeClass('active');
-          b['class'][a].add('active');
+          a = +a;
+          nav.currentItem[nav.current] = a;
+          cfg.data.btn['class'].toggle('active', function(el, index){
+            return index === a;
+          });
           true;
           break;
         case 'keydown':
@@ -1481,8 +1498,9 @@ w3ui && w3ui.ready(function(){
               : c.length - 1;
           }
           nav.currentItem[nav.current] = a;
-          c.removeClass('active');
-          c['class'][a].add('active');
+          c['class'].toggle('active', function(el, index){
+            return index === a;
+          });
           break;
         case 'click':
           event.stopPropagation();
@@ -1553,11 +1571,11 @@ w3ui && w3ui.ready(function(){
             if (a < 2) {
               return data.change(a);
             }
-            a = cfg.context.cfg.data.btn.find(function(node){
-              return node.classList.contains('active');
-            });
-            if (!a) {
-              break;
+            for (i$ = 0, len$ = (ref$ = cfg.context.cfg.data.btn).length; i$ < len$; ++i$) {
+              a = ref$[i$];
+              if (a['class'].has('active')) {
+                break;
+              }
             }
             a = a.dataset.id;
             M[cfg.level] = a;

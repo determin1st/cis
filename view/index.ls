@@ -2,7 +2,7 @@
 
 w3ui and w3ui.ready ->
     M = w3ui.PROXY { # model {{{
-        # interface navigation {{{
+        # navigation {{{
         nav: [
             {id: 'wa'}
             {id: 'view'}
@@ -25,9 +25,7 @@ w3ui and w3ui.ready ->
             obj
         # }}}
         set: (obj, k, v, prx) -> # {{{
-            # check
-            return true if typeof k != 'string'
-            # set model data
+            # set data
             a = parseInt k
             if isNaN a
                 obj[k] = v
@@ -51,8 +49,13 @@ w3ui and w3ui.ready ->
                 d[c.id] = a.slice k + 1
                 # remove higher levels
                 a.splice k + 1
-                # add higher levels from save
-                a = a ++ w3ui.CLONE d[v]
+                # get higher levels
+                b = if d[v]
+                    then d[v]
+                    else w3ui.CLONE d['']
+                # add them
+                for d in b
+                    a.push d
             # change
             c.id = v
             true
@@ -71,8 +74,7 @@ w3ui and w3ui.ready ->
         init: (model) -> # {{{
             # prepare
             # get templates (DocumentFragment object)
-            templ = w3ui 'template', true
-            templ = templ.0.content
+            template = document.querySelector 'template' .content
             # define functions
             init = (id, node, parent, level, tid) ~> # {{{
                 # prepare
@@ -85,7 +87,7 @@ w3ui and w3ui.ready ->
                 cfg.nav      = model.nav[level]
                 cfg.render   = render.bind node, cfg.render if cfg.render != undefined
                 cfg.attach   = attach.bind node, cfg.attach if cfg.attach
-                cfg.template = templ.querySelector tid
+                cfg.template = template.querySelector tid
                 cfg.data     = {}
                 # initialize show/hide animations
                 # bind functions to the node
@@ -131,26 +133,28 @@ w3ui and w3ui.ready ->
                 # render
                 a = Mustache.render a, c
                 if a and b
-                    # primary
+                    # primary container
+                    # create element
+                    d = document.createElement 'template'
+                    d.innerHTML = a
+                    b = w3ui '#'+b, d.content
+                    # set display:none
+                    b.style.display = 'none'
                     # check old present
                     if old
-                        # create element
-                        d = document.createElement 'template'
-                        d.innerHTML = a
-                        d = w3ui '#'+b, false, d.content
                         # insert
-                        @cfg.node.node.prepend d.0
-                        # update link
-                        c.cfg.node = d
+                        @cfg.node.child.insert b
                     else
-                        # replace content
-                        @cfg.node.0.innerHTML = a
-                        # update link
-                        c.cfg.node = w3ui '#'+b
+                        # replace
+                        @cfg.node.child.remove!
+                        @cfg.node.child.add b
+                    # update child link
+                    c.cfg.node = b
                 else
-                    # adjacent
+                    # adjacent container
                     # replace content
-                    @cfg.node.0.innerHTML = a
+                    @cfg.node.html = a
+                # done
                 true
             # }}}
             attach = (event) -> # {{{
@@ -173,7 +177,7 @@ w3ui and w3ui.ready ->
                         c = if d.el
                             then document.querySelectorAll '#'+@cfg.id+' '+d.el
                             else if d.el == ''
-                                then [@cfg.node.0]
+                                then [@cfg.node]
                                 else [document]
                         # determine if default action prevented
                         d.preventDefault = not x.test a
@@ -210,21 +214,44 @@ w3ui and w3ui.ready ->
         animation: -> # {{{
             # define helpers
             addTweens = (node, timeline, source) !-> # {{{
+                node = node.w3ui.group
                 source and source.forEach (a) !->
                     switch typeof a
                     # tween
                     | 'object' =>
-                        if a.tween
-                            b = w3ui.CLONE a.tween
-                            if a.duration < 0.0001
-                                timeline.set node, b
-                            else
-                                timeline.to node, a.duration, b
-                        else
-                            timeline.addPause a.duration
-                    # callback
+                        # check
+                        break if not a.to and not a.from
+                        # prepare
+                        b =
+                            if a.to
+                                then w3ui.CLONE a.to
+                                else null
+                            if a.from
+                                then w3ui.CLONE a.from
+                                else null
+                        c = if a.position
+                            then a.position
+                            else '+=0'
+                        # set
+                        if not a.duration or a.duration < 0.0001
+                            timeline.set node, (b.0 or b.1), c
+                            break
+                        # animate to
+                        if b.0 and not b.1
+                            timeline.to node, a.duration, b.0, c
+                            break
+                        # animate from
+                        if not b.0 and b.1
+                            timeline.from node, a.duration, b.1, c
+                            break
+                        # animate fromTo
+                        timeline.fromTo node, a.duration, b.0, b.1, c
+                    # add callback
                     | 'function' =>
                         timeline.add a
+                    # add label
+                    | 'string' =>
+                        timeline.addLabel a
             # }}}
             # define animations
             return {
@@ -266,15 +293,15 @@ w3ui and w3ui.ready ->
                 # }}}
                 show: (id1, id0, onComplete) !~> # {{{
                     # prepare
-                    node1  = @el[id1]
-                    node0  = @el[id0]
+                    node1  = @el[id1].cfg
+                    node0  = @el[id0].cfg
                     list   = @list id1
-                    parent = node1.cfg.parent
+                    parent = node1.parent.cfg
                     turn   = null
                     old    = null
                     if id0
-                        turn = parent.cfg.turn
-                        old  = parent.cfg.node.query '#'+id0, 0, true
+                        turn = parent.turn
+                        old  = (parent.node.query '#'+id0, 0, true).0
                     # create main timeline
                     a = new TimelineLite {
                         paused: true
@@ -285,26 +312,29 @@ w3ui and w3ui.ready ->
                         list = list.slice 1
                         # prioritize
                         # check children nodes
-                        if node0.cfg.turn or node1.cfg.turn
-                            turn = if node1.cfg.turn
-                                then node1.cfg.turn
-                                else node0.cfg.turn
+                        if node0.turn or node1.turn
+                            turn = if node1.turn
+                                then node1.turn
+                                else node0.turn
+                        # clear display property
+                        a.add !->
+                            node1.node.style.display = null
+                        a.addLabel 'start'
                         # turn off
                         b = new TimelineLite {paused: true}
                         addTweens old, b, turn.off
-                        a.add b.play!, 0
+                        a.add b.play!, 'start'
                         # turn on
                         b = new TimelineLite {paused: true}
-                        addTweens node1.cfg.node, b, turn.on
-                        a.add b.play!, 0
+                        addTweens node1.node, b, turn.on
+                        a.add b.play!, 'start'
                     # add old node remover
                     old and a.add !->
-                        parent.cfg.node.0.removeChild old
+                        parent.node.child.remove old
                     # filter show-list
                     list = list.reduce (a, b) ->
                         # active only
-                        if b.cfg.node and b.cfg.show
-                            a.push b
+                        a.push b if b.cfg.node
                         # done
                         return a
                     , []
@@ -316,6 +346,7 @@ w3ui and w3ui.ready ->
                         # create timeline
                         c = new TimelineLite {paused: true}
                         # add tweens
+                        c.add !-> el.node.style.display = null
                         addTweens el.node, c, el.show
                         # add marker
                         if not b or b != 'L'+el.level
@@ -461,6 +492,7 @@ w3ui and w3ui.ready ->
                     then node.cfg[method].apply node, param
                     else node.cfg[method].call node
             # }}}
+        ###
         ui: # {{{
             cfg: # {{{
                 id: 'ui'            # node identifier
@@ -484,82 +516,81 @@ w3ui and w3ui.ready ->
                 view: # {{{
                     cfg: # {{{
                         render: true
-                        finit: -> # {{{
-                            # set style
-                            a = @cfg.nav.id
-                            b = @cfg.node
-                            if not b.hasClass a
-                                b.removeClass!
-                                b.addClass a
-                            # done
-                            true
-                        # }}}
-                        turn:
+                        turn: # {{{
                             on:
                                 {
-                                    duration: 2
-                                }
-                                {
-                                    duration: 0
-                                    tween:
+                                    to:
                                         className: '+=color'
-                                        visibility: true
                                         opacity: 0
-                                        scale: 0.5
+                                        scale: 0.6
                                 }
                                 {
-                                    duration: 8
-                                    tween:
-                                        className: '-=color'
+                                    duration: 0.2
+                                    to:
+                                        opacity: 0.5
+                                }
+                                {
+                                    duration: 0.6
+                                    to:
                                         opacity: 1
                                         scale: 1
                                 }
+                                {
+                                    position: '-=0.1'
+                                    duration: 0.3
+                                    to:
+                                        className: '-=color'
+                                }
                             off:
                                 {
-                                    duration: 2
-                                    tween:
+                                    duration: 0.2
+                                    to:
                                         className: '+=color'
+                                        scale: 0.9
                                 }
                                 {
-                                    duration: 8
-                                    tween:
-                                        scale: 1.5
+                                    duration: 0.8
+                                    to:
+                                        scale: 1
                                         opacity: 0
                                 }
+                        # }}}
                     # }}}
                     menu: # {{{
                         cfg:
                             render: true
                             init: -> # {{{
                                 # prepare
-                                if not @cfg.data.menu
-                                    @cfg.data.menu = @cfg.node.query '.box'
-                                    @cfg.data.time = @cfg.show.1.duration
+                                c = @cfg
+                                d = @cfg.data
+                                if not d.menu
+                                    d.menu = c.node.query '.box'
+                                    d.time = c.show.1.duration
                                 # initialize model
-                                while (a = @cfg.nav.current) == undefined
-                                    @cfg.nav.current = 0
-                                while not (b = @cfg.nav.currentItem)
-                                    @cfg.nav.currentItem = @data.map -> 0
-                                # set pre-show style
-                                @cfg.data.menu.class[a].add 'active'
+                                while (a = c.nav.current) == undefined
+                                    c.nav.current = 0
+                                while not (b = c.nav.currentItem)
+                                    c.nav.currentItem = @data.map -> 0
+                                # set style
+                                d.menu[a].style.visibility = 'visible'
+                                # done
                                 true
                             # }}}
                             refresh: -> # {{{
                                 # prepare
                                 data = @cfg.data
-                                #data.menu.addClass 'attached'
                                 if not data.box
                                     # nodes
                                     a = @cfg.nav.current
-                                    data.box = data.menu.eq a
+                                    data.box = data.menu[a]
                                     data.btn = data.box.query '.button'
                                     # numbers & ids
                                     for b from 0 to data.btn.length - 1
                                         data.btn[b].dataset.num = b
                                         data.btn[b].dataset.id = @data[a].list[b].id
                                     # style
-                                    a = @cfg.nav.currentItem[@cfg.nav.current]
-                                    data.btn.class[a].add 'active'
+                                    a = @cfg.nav.currentItem[a]
+                                    data.btn[a].class.add 'active'
                                 # initialize slide effect
                                 # {{{
                                 if not data.slide
@@ -572,8 +603,8 @@ w3ui and w3ui.ready ->
                                         if a < b then a + 1 else 0 # right
                                     # define transition items
                                     a =
-                                        [data.menu[a], data.menu[c.0]]
-                                        [data.menu[a], data.menu[c.1]]
+                                        [data.menu[a].node, data.menu[c.0].node]
+                                        [data.menu[a].node, data.menu[c.1].node]
                                     # define transition parameters
                                     c =
                                         ['0%' '100%' '-100%' '0%']
@@ -585,38 +616,35 @@ w3ui and w3ui.ready ->
                                             paused: true
                                             data:
                                                 complete: !->
-                                                    # cleanup inline styles
-                                                    data.menu.propRemove 'style'
-                                                    # invalidate current data
+                                                    # invalidate
                                                     delete data.slide
                                         }
                                         # step 0
                                         # initital state
-                                        b.set a.0, {
-                                            transformOrigin: '0% 50%'
-                                            x: c[index].0
-                                            zIndex: 1
-                                        }
-                                        b.set a.1, {
-                                            transformOrigin: '0% 50%'
-                                            x: c[index].2
-                                            zIndex: 2
-                                        }
                                         b.set a, {
+                                            transformOrigin: '0% 50%'
                                             visibility: 'visible'
                                         }
                                         # step 1
                                         # move transition
                                         b.addLabel 's1'
-                                        b.to a.0, data.time, {
+                                        b.fromTo a.0, data.time, {
+                                            x: c[index].0
+                                        }, {
                                             x: c[index].1
                                         }, 's1'
-                                        b.to a.1, data.time, {
+                                        b.fromTo a.1, data.time, {
+                                            x: c[index].2
+                                        }, {
                                             x: c[index].3
                                         }, 's1'
                                         # finish
-                                        b.set a.0, {className: '-=active'}
-                                        b.set a.1, {className: '+=active'}
+                                        b.set a.0, {
+                                            visibility: 'hidden'
+                                        }
+                                        b.set a.1, {
+                                            visibility: 'visible'
+                                        }
                                         # done
                                         b
                                 # }}}
@@ -633,11 +661,11 @@ w3ui and w3ui.ready ->
                                     # define startup routine
                                     d = !~>
                                         a = 'drag'
-                                        b = not @cfg.node.hasClass a
-                                        @cfg.node.toggleClass a, b
+                                        b = not @cfg.node.class.has a
+                                        @cfg.node.class.toggle a, b
                                     # define complete routine
                                     e = (index) ~> !~>
-                                        @cfg.node.removeClass 'drag'
+                                        @cfg.node.class.remove 'drag'
                                         a[index].data.complete!
                                         b[index].data.complete!
                                         delete data.box
@@ -659,24 +687,22 @@ w3ui and w3ui.ready ->
                             # }}}
                             show: # {{{
                                 {
-                                    duration: 0
-                                    tween:
-                                        visibility: 'visible'
+                                    to:
+                                        backgroundColor: 'transparent'
                                         scale: 0
                                 }
                                 {
                                     duration: 0.8
-                                    tween:
+                                    to:
                                         scale: 1
+                                        clearProps: 'backgroundColor'
                                         ease: Back.easeOut
                                 }
-                                !-> @cfg.data.menu.addClass 'attached'
                             # }}}
                             hide: # {{{
-                                !-> @cfg.data.menu.removeClass 'attached'
                                 {
                                     duration: 0.8
-                                    tween:
+                                    to:
                                         scale: 0
                                         ease: Power3.easeIn
                                 }
@@ -752,13 +778,13 @@ w3ui and w3ui.ready ->
                             show: # {{{
                                 {
                                     duration: 0
-                                    tween:
+                                    to:
                                         visibility: 'visible'
                                         scale: 0
                                 }
                                 {
                                     duration: 0.8
-                                    tween:
+                                    to:
                                         scale: 1
                                         ease: Back.easeOut
                                 }
@@ -766,7 +792,7 @@ w3ui and w3ui.ready ->
                             hide: # {{{
                                 {
                                     duration: 0.8
-                                    tween:
+                                    to:
                                         scale: 0
                                         ease: Back.easeIn
                                 }
@@ -813,7 +839,7 @@ w3ui and w3ui.ready ->
                                 d.mode   = c.node.query '.mode .button'
                                 d.config = c.node.query '.config .button'
                             # initialize show tween
-                            c.show.1.tween.className = '+=on '+c.nav.id
+                            c.show.1.to.className = '+=on '+c.nav.id
                             # initialize title
                             # {{{
                             a = if c.context
@@ -822,7 +848,7 @@ w3ui and w3ui.ready ->
                             d.title.$text = if a
                                 then @title[a]
                                 else ''
-                            d.title.html d.title.$text
+                            d.title.html = d.title.$text
                             # }}}
                             # initialize buttons
                             # {{{
@@ -839,8 +865,8 @@ w3ui and w3ui.ready ->
                                 d.config.$text = @config[b]
                                 d.config.$icon = c.querySelector '#'+b .innerHTML
                             # set state
-                            d.mode.toggleClass 'disabled', !a
-                            d.config.toggleClass 'disabled', !a
+                            d.mode.class.toggle 'disabled', !a
+                            d.config.class.toggle 'disabled', !a
                             # }}}
                             # initialize button icon/text switch effect
                             # {{{
@@ -861,33 +887,33 @@ w3ui and w3ui.ready ->
                                 # add tweens
                                 a = a.map (a, index) ->
                                     # hide
-                                    a.0.to d.mode, 0.4, {
+                                    a.0.to d.mode.node, 0.4, {
                                         className: '-='+a.1
                                         scale: 0
                                     }, 0
-                                    a.0.to d.config, 0.4, {
+                                    a.0.to d.config.node, 0.4, {
                                         className: '-='+a.1
                                         scale: 0
                                     }, 0
                                     # change content
                                     a.0.add let a = '$'+a.2
                                         !->
-                                            d.mode.0.innerHTML = d.mode[a]
-                                            d.config.0.innerHTML = d.config[a]
+                                            d.mode.html   = d.mode[a]
+                                            d.config.html = d.config[a]
                                     # show
                                     a.0.addLabel 'L1'
-                                    a.0.to d.mode, 0.4, {
+                                    a.0.to d.mode.node, 0.4, {
                                         className: '+='+a.2
                                         scale: 1
                                     }, 'L1'
-                                    a.0.to d.config, 0.4, {
+                                    a.0.to d.config.node, 0.4, {
                                         className: '+='+a.2
                                         scale: 1
                                     }, 'L1'
                                     a.0.add !->
                                         # remove inline styles
-                                        d.mode.propRemove 'style'
-                                        d.config.propRemove 'style'
+                                        d.mode.prop.style   = null
+                                        d.config.prop.style = null
                                     # done
                                     a.0
                                 # done
@@ -912,15 +938,15 @@ w3ui and w3ui.ready ->
                                     if el.$text
                                         # get text width
                                         a = el.box.textMetrics el.$text .width
-                                        # compare
+                                        # use icon
                                         return true if el.box.innerWidth < a
-                                    # continue
+                                    # use text
                                     false
                                 # determine switch effect
-                                a = d.mode.class.0
-                                if useIcon and not a.contains 'icon'
+                                a = d.mode.class
+                                if useIcon and not a.has 'icon'
                                     a = 0
-                                else if not useIcon and not a.contains 'text'
+                                else if not useIcon and not a.has 'text'
                                     a = 1
                                 else
                                     return
@@ -951,12 +977,12 @@ w3ui and w3ui.ready ->
                         show: # {{{
                             {
                                 duration: 0
-                                tween:
+                                to:
                                     visibility: 'visible'
                             }
                             {
                                 duration: 0.8
-                                tween:
+                                to:
                                     className: ''
                                     opacity: 1
                                     ease: Power3.easeOut
@@ -967,13 +993,13 @@ w3ui and w3ui.ready ->
                         hide: # {{{
                             {
                                 duration: 0.2
-                                tween:
+                                to:
                                     opacity: 0
                                     ease: Power3.easeIn
                             }
                             {
                                 duration: 0.4
-                                tween:
+                                to:
                                     className: ''
                                     ease: Power3.easeIn
                             }
@@ -1006,7 +1032,7 @@ w3ui and w3ui.ready ->
                         attach: true
                         init: ->
                             # modify show tween
-                            @cfg.show.1.tween.className = '+=on '+@cfg.nav.id
+                            @cfg.show.1.to.className = '+=on '+@cfg.nav.id
                             true
                         resize: ->
                             # invalidate data
@@ -1024,12 +1050,12 @@ w3ui and w3ui.ready ->
                         show: # {{{
                             {
                                 duration: 0
-                                tween:
+                                to:
                                     visibility: 'visible'
                             }
                             {
                                 duration: 0.8
-                                tween:
+                                to:
                                     className: ''
                                     opacity: 1
                                     ease: Power3.easeOut
@@ -1038,13 +1064,13 @@ w3ui and w3ui.ready ->
                         hide: # {{{
                             {
                                 duration: 0.2
-                                tween:
+                                to:
                                     opacity: 0
                                     ease: Power3.easeIn
                             }
                             {
                                 duration: 0.4
-                                tween:
+                                to:
                                     className: ''
                                     ease: Power3.easeIn
                             }
@@ -1120,24 +1146,27 @@ w3ui and w3ui.ready ->
                                 # prepare
                                 a = data.box
                                 b = data.btn
+                                c =
+                                    [a.1.node, b.1.node, a.2.node, b.2.node]
+                                    [a.3.node, b.3.node, a.2.node, b.2.node]
                                 # for left and right nodes
-                                data.hover = [1, 3].map (index) ->
+                                data.hover = c.map (c) ->
                                     # create timeline
-                                    c = new TimelineLite {
+                                    d = new TimelineLite {
                                         paused: true
                                         ease: Power2.easeOut
                                     }
                                     # un-hover at start
-                                    c.add let a = a, b = b
+                                    d.add let a = a, b = b
                                         !->
-                                            a.removeClass 'hover'
-                                            b.removeClass 'hover'
+                                            a.class.remove 'hover'
+                                            b.class.remove 'hover'
                                     # hover
-                                    c.to [a[index], b[index], a.2, b.2], data.time, {
+                                    d.to c, data.time, {
                                         className: '+=hover'
                                     }
                                     # done
-                                    c
+                                    d
                             # }}}
                             # initialize slide effect
                             # {{{
@@ -1158,38 +1187,39 @@ w3ui and w3ui.ready ->
                                         then a + 2
                                         else a + 1 - b
                                 # set captions
-                                data.btn.0.innerHTML = main.data[c.0].name
-                                data.btn.4.innerHTML = main.data[c.1].name
+                                data.btn.0.html = main.data[c.0].name
+                                data.btn.4.html = main.data[c.1].name
                                 # clone border nodes
                                 a =
-                                    data.box.node.0.clone!
-                                    data.box.node.4.clone!
-                                b =
-                                    w3ui '.button', true, a.0
-                                    w3ui '.button', true, a.1
+                                    data.box.0.clone!
+                                    data.box.4.clone!
+                                #b =
+                                #    w3ui '.button', a.0, true
+                                #    w3ui '.button', a.1, true
                                 # prepare list
-                                a =
-                                    [a.0, b.0.0]
-                                    [a.1, b.1.0]
+                                #a =
+                                #    [a.0, b.0.0]
+                                #    [a.1, b.1.0]
                                 # create effect
-                                data.slide = a.map (box, index) ->
+                                data.slide = a.map (newBox, index) ->
                                     # create timeline
                                     a = new TimelineMax {
                                         paused: true
                                         data:
                                             complete: !->
                                                 # cleanup inline styles
-                                                data.box.propRemove 'style'
-                                                data.btn.propRemove 'style'
+                                                data.box.prop.style = null
+                                                data.btn.prop.style = null
                                                 # change DOM
+                                                a = data.node.child
                                                 if index
                                                     # +right -left
-                                                    data.node.node.append box.0
-                                                    data.box.node.0.remove!
+                                                    a.add newBox
+                                                    a.remove data.box.0
                                                 else
                                                     # -right +left
-                                                    data.node.node.prepend box.0
-                                                    data.box.node.4.remove!
+                                                    a.insert newBox
+                                                    a.remove data.box.4
                                                 # invalidate current data
                                                 delete data.box
                                                 delete data.hover
@@ -1206,29 +1236,29 @@ w3ui and w3ui.ready ->
                                             ['-=hidden' 'button center' 'button right' '+=hidden']
                                     # add tweens
                                     # container
-                                    a.to data.box[index + 0], data.time, {
+                                    a.to data.box[index + 0].node, data.time, {
                                         className: b.0.0
                                     }, 0
-                                    a.to data.box[index + 1], data.time, {
+                                    a.to data.box[index + 1].node, data.time, {
                                         className: b.0.1
                                     }, 0
-                                    a.to data.box[index + 2], data.time, {
+                                    a.to data.box[index + 2].node, data.time, {
                                         className: b.0.2
                                     }, 0
-                                    a.to data.box[index + 3], data.time, {
+                                    a.to data.box[index + 3].node, data.time, {
                                         className: b.0.3
                                     }, 0
                                     # button
-                                    a.to data.btn[index + 0], data.time, {
+                                    a.to data.btn[index + 0].node, data.time, {
                                         className: b.1.0
                                     }, 0
-                                    a.to data.btn[index + 1], data.time, {
+                                    a.to data.btn[index + 1].node, data.time, {
                                         className: b.1.1
                                     }, 0
-                                    a.to data.btn[index + 2], data.time, {
+                                    a.to data.btn[index + 2].node, data.time, {
                                         className: b.1.2
                                     }, 0
-                                    a.to data.btn[index + 3], data.time, {
+                                    a.to data.btn[index + 3].node, data.time, {
                                         className: b.1.3
                                     }, 0
                                     # done
@@ -1261,6 +1291,7 @@ w3ui and w3ui.ready ->
             nav    = null       # previous navigation
             id0    = ''         # previous (old)
             id1    = ''         # new
+            level  = 0          # change level
             pid    = ''         # parent
             # define helper functions
             cancelThread = (msg) ->
@@ -1284,15 +1315,21 @@ w3ui and w3ui.ready ->
                     # determine first changed id
                     if nav
                         for a,b in nav when a != M[b]
-                            id0 := a
-                            id1 := M[b]
+                            id0   := a
+                            id1   := M[b]
+                            level := b
                             break
                     else
                         id1 := M.0
                     # cancel if there is no change
                     return cancelThread! if id0 == id1
+                    # cancel if change node is undefined
+                    if not (a = V.el[id1])
+                        # restore navigation
+                        M[level] = id0
+                        return cancelThread '"'+id1+'" not found'
                     # get parent id
-                    pid := V.el[id1].cfg.parent.cfg.id
+                    pid := a.cfg.parent.cfg.id
                     # detach events
                     if not V.call 'detach'
                         return cancelThread 'detach failed'
@@ -1513,11 +1550,12 @@ w3ui and w3ui.ready ->
                     # prepare
                     event.stopPropagation!
                     # change model
-                    nav.currentItem[nav.current] = +a
-                    # set focus
-                    b = cfg.data.btn
-                    b.removeClass 'active'
-                    b.class[a].add 'active'
+                    a = +a
+                    nav.currentItem[nav.current] = a
+                    # set active state
+                    cfg.data.btn.class.toggle 'active', (el, index) ->
+                        index == a
+                    # done
                     true
                     # }}}
                 | 'keydown' =>
@@ -1544,9 +1582,9 @@ w3ui and w3ui.ready ->
                             else c.length - 1
                     # change model
                     nav.currentItem[nav.current] = a
-                    # set focus
-                    c.removeClass 'active'
-                    c.class[a].add 'active'
+                    # set active state
+                    c.class.toggle 'active', (el, index) ->
+                        index == a
                     # }}}
                 | 'click' =>
                     # navigate
@@ -1650,11 +1688,10 @@ w3ui and w3ui.ready ->
                         event.stopImmediatePropagation!
                         return data.change a if a < 2
                         # navigate
-                        # determine selected item
-                        a = cfg.context.cfg.data.btn.find (node) ->
-                            node.classList.contains 'active'
+                        # get active element
+                        for a in cfg.context.cfg.data.btn
+                            break if a.class.has 'active'
                         # get id
-                        break if not a
                         a = a.dataset.id
                         # change model
                         M[cfg.level] = a
