@@ -32,32 +32,34 @@ w3ui and w3ui.ready ->
                 return true
             # set navigation
             # prepare
-            k = a
-            a = obj.nav
-            b = obj.sav
-            c = a[k]
-            d = if k < b.length
-                then b[k]
+            k   = a
+            nav = obj.nav
+            a   = nav[k]
+            sav = if k < obj.sav.length
+                then obj.sav[k]
                 else null
             # no change
-            return true if c.id == v == ''
+            return true if a.id == v == ''
             # reset
-            v = '' if c.id == v
+            v = '' if a.id == v
             # backup/restore
-            if d
-                # save current navigation
-                d[c.id] = a.slice k + 1
-                # remove higher levels
-                a.splice k + 1
-                # get higher levels
-                b = if d[v]
-                    then d[v]
-                    else w3ui.CLONE d['']
-                # add them
-                for d in b
-                    a.push d
+            if sav
+                # backup
+                k++
+                sav[a.id] = w3ui.CLONE nav.slice k
+                # clear higher levels
+                for b from k to nav.length - 1
+                    w3ui.clearObject nav[b]
+                #nav.splice k + 1
+                # get previous data
+                sav = if sav[v]
+                    then sav[v]
+                    else sav['']
+                # restore
+                for b,c in sav
+                    nav[k + c] <<< sav[c]
             # change
-            c.id = v
+            a.id = v
             true
         # }}}
         get: (obj, p, prx) -> # {{{
@@ -73,6 +75,9 @@ w3ui and w3ui.ready ->
     V = # {{{
         init: (model) -> # {{{
             # prepare
+            @animation = @animation!
+            @el.$data  = @ui
+            @el.$model = model
             # get templates (DocumentFragment object)
             template = document.querySelector 'template' .content
             # define functions
@@ -89,14 +94,15 @@ w3ui and w3ui.ready ->
                 cfg.attach   = attach.bind node, cfg.attach if cfg.attach
                 cfg.template = template.querySelector tid
                 cfg.data     = {}
-                # initialize show/hide animations
-                # bind functions to the node
-                cfg.show and cfg.show = cfg.show.map (a) ->
-                    return a if typeof a == 'object'
-                    return a.bind node
-                cfg.hide and cfg.hide = cfg.hide.map (a) ->
-                    return a if typeof a == 'object'
-                    return a.bind node
+                # initialize animations
+                cfg.show and @animation.init node, cfg.show
+                cfg.hide and @animation.init node, cfg.hide
+                if cfg.turn
+                    if cfg.turn.on
+                        @animation.init node, cfg.turn.off
+                        @animation.init node, cfg.turn.on
+                    else
+                        @animation.init node, cfg.turn
                 # recurse to children
                 for own a,b of node when a != 'cfg' and b and b.cfg
                     init a, b, node, level + 1, tid
@@ -118,7 +124,7 @@ w3ui and w3ui.ready ->
                 # update adjacent node context
                 if not b and id and (c = a[a.cfg.nav.id][id])
                     @cfg.context = c
-                # check
+                # check if render required
                 return true  if not template or not id
                 return false if not @cfg.node
                 # get template data
@@ -128,32 +134,38 @@ w3ui and w3ui.ready ->
                     c = @[id]
                 else
                     # for adjacent
-                    a = @cfg.template.querySelector '#'+id .innerHTML
-                    c = @[id].render.call c
+                    a = if (a = @cfg.template.querySelector '#'+id)
+                        then a.innerHTML
+                        else ''
+                    c = if @[id]
+                        then @[id].render.call @
+                        else null
                 # render
-                a = Mustache.render a, c
-                if a and b
-                    # primary container
-                    # create element
-                    d = document.createElement 'template'
-                    d.innerHTML = a
-                    b = w3ui '#'+b, d.content
-                    # set display:none
-                    b.style.display = 'none'
-                    # check old present
-                    if old
-                        # insert
-                        @cfg.node.child.insert b
-                    else
-                        # replace
-                        @cfg.node.child.remove!
-                        @cfg.node.child.add b
-                    # update child link
-                    c.cfg.node = b
+                return true if not (a = Mustache.render a, c)
+                # create DOM template
+                d = document.createElement 'template'
+                d.innerHTML = a.trim!
+                # get rendered element(s)
+                c = if b
+                    then w3ui '#'+b, d.content
+                    else w3ui '', d.content
+                # set display:none
+                c.style.display = 'none'
+                # check old present
+                if old
+                    # insert
+                    @cfg.node.child.insert c
                 else
-                    # adjacent container
-                    # replace content
-                    @cfg.node.html = a
+                    # replace
+                    @cfg.node.child.remove!
+                    @cfg.node.child.add c
+                # update child link
+                if b
+                    # primary
+                    @[id].cfg.node = c
+                else
+                    # adjacent
+                    @[id].node = c
                 # done
                 true
             # }}}
@@ -206,20 +218,74 @@ w3ui and w3ui.ready ->
                 true
             # }}}
             # initialize
-            @animation = @animation!
-            @el.$data  = @ui
-            @el.$model = model
             return init 'ui', @ui, null, 0, '#t'
         # }}}
         animation: -> # {{{
             # define helpers
+            # TODO {{{
+            api =
+                pauseAll: !-> # {{{
+                    a = @
+                    do
+                        a.pause!
+                    while (a = a.timeline)
+                # }}}
+                resumeAll: !-> # {{{
+                    a = @
+                    do
+                        a.resume! if not a.isActive!
+                    while (a = a.timeline)
+                # }}}
+                removeAtLabel: (label) -> # TODO {{{
+                    # get label
+                    if (a = @getLabelTime label) == -1
+                        return
+                    # get children
+                    b = @getChildren false, true, true, a
+                    # iterate and remove
+                    for c in b when c.startTime! == a
+                        console.log 'found a tween to remove at [' + label + ']'
+                        @remove c
+                # }}}
+            apiHandler =
+                get: (obj, key) ->
+                    return api[key].bind obj if api[key]
+                    return Reflect.get obj, key
+            # }}}
             addTweens = (node, timeline, source) !-> # {{{
-                node = node.w3ui.group
+                # get DOM nodes
+                if 'w3ui' of node
+                    node = node.w3ui.group
+                # iterate
                 source and source.forEach (a) !->
                     switch typeof a
                     # tween
                     | 'object' =>
-                        # check
+                        # check enabled
+                        if a.enabled == false
+                            break
+                        # prepare
+                        node := a.node if a.node
+                        pos = if a.position
+                            then a.position
+                            else '+=0'
+                        # check object type
+                        # label
+                        if a.label
+                            timeline.addLabel a.label, pos
+                            break
+                        # callback
+                        if a.func
+                            timeline.add a.func, pos
+                            break
+                        # group
+                        if a.group
+                            b = new TimelineLite {paused:true}
+                            addTweens node, b, a.group
+                            b.duration a.duration if a.duration
+                            timeline.add b.play!, pos
+                            break
+                        # animation tween
                         break if not a.to and not a.from
                         # prepare
                         b =
@@ -229,32 +295,56 @@ w3ui and w3ui.ready ->
                             if a.from
                                 then w3ui.CLONE a.from
                                 else null
-                        c = if a.position
-                            then a.position
-                            else '+=0'
                         # set
                         if not a.duration or a.duration < 0.0001
-                            timeline.set node, (b.0 or b.1), c
+                            timeline.set node, (b.0 or b.1), pos
                             break
                         # animate to
                         if b.0 and not b.1
-                            timeline.to node, a.duration, b.0, c
+                            timeline.to node, a.duration, b.0, pos
                             break
                         # animate from
                         if not b.0 and b.1
-                            timeline.from node, a.duration, b.1, c
+                            timeline.from node, a.duration, b.1, pos
                             break
                         # animate fromTo
-                        timeline.fromTo node, a.duration, b.0, b.1, c
+                        timeline.fromTo node, a.duration, b.0, b.1, pos
                     # add callback
                     | 'function' =>
-                        timeline.add a
+                        if a.length
+                            b = new Proxy timeline, apiHandler
+                            timeline.addPause '+=0', a, [b]
+                        else
+                            timeline.add a
                     # add label
                     | 'string' =>
                         timeline.addLabel a
             # }}}
-            # define animations
+            # construct
             return {
+                init: (node, tweens) !-> # {{{
+                    # bind tween functions
+                    for a,b in tweens
+                        # check type
+                        if typeof a == 'function'
+                            tweens[b] = a.bind node
+                            continue
+                        # check object type
+                        if a.func
+                            tweens[b].func = a.func.bind node
+                            continue
+                        # recurse
+                        if a.group
+                            @init node, a.group
+                # }}}
+                queue: (node, queue) -> # {{{
+                    # create timeline
+                    a = new TimelineLite {paused:true}
+                    # add tweens
+                    addTweens node, a, queue
+                    # done
+                    return a
+                # }}}
                 hide: (id, onComplete) !~> # {{{
                     # prepare
                     if not id or not (list = @list id) or not list.length
@@ -292,75 +382,130 @@ w3ui and w3ui.ready ->
                     a.play!
                 # }}}
                 show: (id1, id0, onComplete) !~> # {{{
-                    # prepare
-                    node1  = @el[id1].cfg
-                    node0  = @el[id0].cfg
-                    list   = @list id1
-                    parent = node1.parent.cfg
-                    turn   = null
-                    old    = null
-                    if id0
-                        turn = parent.turn
-                        old  = (parent.node.query '#'+id0, 0, true).0
                     # create main timeline
-                    a = new TimelineLite {
+                    x = new TimelineLite {
                         paused: true
                     }
-                    # add node turn transition (old ~> new)
-                    if turn
-                        # exclude new node from show-list
-                        list = list.slice 1
-                        # prioritize
-                        # check children nodes
-                        if node0.turn or node1.turn
-                            turn = if node1.turn
-                                then node1.turn
-                                else node0.turn
-                        # clear display property
-                        a.add !->
-                            node1.node.style.display = null
-                        a.addLabel 'start'
-                        # turn off
-                        b = new TimelineLite {paused: true}
-                        addTweens old, b, turn.off
-                        a.add b.play!, 'start'
-                        # turn on
-                        b = new TimelineLite {paused: true}
-                        addTweens node1.node, b, turn.on
-                        a.add b.play!, 'start'
-                    # add old node remover
-                    old and a.add !->
-                        parent.node.child.remove old
-                    # filter show-list
+                    x.addLabel 'start'
+                    # TURN transition (old ~> new)
+                    # {{{
+                    node   = @el[id1].cfg
+                    parent = node.parent
+                    if id0 and (c = parent.cfg.parent)
+                        # create list
+                        list = [parent]
+                        # add adjacent nodes
+                        for a,b of c when a != 'cfg' and b.cfg
+                            # skip inactive and primary
+                            if not b.cfg.node or a == parent.cfg.id
+                                continue
+                            # add
+                            list.push b
+                        # walk through list
+                        list.forEach (parent) !->
+                            # prepare
+                            el0  = parent[id0]
+                            el1  = parent[id1]
+                            turn = parent.cfg.turn
+                            flag = !!parent.cfg.context
+                            # check old node
+                            if flag and (not el0 or not el0.render) and (not el1 or not el1.render)
+                                # adjacent parent,
+                                # with simple turn effect
+                                if turn
+                                    a = new TimelineLite {paused: true}
+                                    addTweens parent.cfg.node, a, turn
+                                    x.add a.play!, 'start'
+                                return
+                            # get old node
+                            if flag
+                                # adjacent parent
+                                old = el0.node if el0
+                            else
+                                # primary parent
+                                el0 = el0.cfg
+                                el1 = el1.cfg
+                                old = parent.cfg.node.query '#'+id0, 0, true .0
+                            # check transition defined
+                            if not turn
+                                # add old node remover
+                                old and x.add !->
+                                    parent.cfg.node.child.remove old
+                                    delete el0.node if el0.node
+                                # done
+                                return
+                            # prioritize turn
+                            turn =
+                                on: if el1 and el1.turn
+                                    then el1.turn.on
+                                    else turn.on
+                                off: if el0 and el0.turn
+                                    then el0.turn.off
+                                    else turn.off
+                            # turn on
+                            if el1
+                                # clear display property (for primary parent)
+                                not flag and x.add !->
+                                    el1.node.style.display = null
+                                , 'start'
+                                # add effects
+                                a = new TimelineLite {paused: true}
+                                addTweens el1.node, a, turn.on
+                                x.add a.play!, 'start'
+                            # turn off
+                            if old
+                                # add effects
+                                a = new TimelineLite {paused: true}
+                                addTweens old, a, turn.off
+                                x.add a.play!, 'start'
+                                # add old node remover
+                                x.add !->
+                                    parent.cfg.node.child.remove old
+                                    delete el0.node
+                    # }}}
+                    # SHOW transition (primary parent)
+                    # {{{
+                    # create show-list
+                    list = @list id1
+                    # filter
+                    # remove new node if turn transition set
+                    list = list.slice 1 if id0
+                    # active only
                     list = list.reduce (a, b) ->
-                        # active only
                         a.push b if b.cfg.node
-                        # done
                         return a
                     , []
-                    # show transition
-                    b = ''
-                    list.forEach (el) !->
+                    # add effects
+                    a = ''
+                    list.forEach (elem) !->
                         # prepare
-                        el = el.cfg
                         # create timeline
+                        b = elem.cfg
                         c = new TimelineLite {paused: true}
                         # add tweens
-                        c.add !-> el.node.style.display = null
-                        addTweens el.node, c, el.show
+                        # reset inline display style
+                        c.add !->
+                            # get node
+                            if b.context
+                                c = elem[b.nav.id]
+                                c.node.style.display = null if c
+                            else
+                                b.node.style.display = null
+                        # show
+                        addTweens b.node, c, b.show
                         # add marker
-                        if not b or b != 'L'+el.level
+                        if not a or a != 'L'+b.level
                             # update it when level changes,
                             # so nodes at the same level show together
-                            b := 'L'+el.level
-                            a.addLabel b
+                            a := 'L'+b.level
+                            c.addLabel a
                         # nest
-                        a.add c.play!, b
-                        true
+                        x.add c.play!, a
+                    # }}}
                     # add complete routine
-                    a.add onComplete
-                    # done
-                    a.play!
+                    x.add onComplete
+                    # launch
+                    x.play!
                 # }}}
             }
         # }}}
@@ -443,7 +588,7 @@ w3ui and w3ui.ready ->
                     active: true
                     reverse: true
                 finit:
-                    active: true
+                    active: false
                     reverse: true
             # }}}
             # get options
@@ -573,6 +718,12 @@ w3ui and w3ui.ready ->
                                     c.nav.currentItem = @data.map -> 0
                                 # set style
                                 d.menu[a].style.visibility = 'visible'
+                                # done
+                                true
+                            # }}}
+                            finit: -> # {{{
+                                # prepare
+                                w3ui.clearObject @cfg.data
                                 # done
                                 true
                             # }}}
@@ -722,6 +873,8 @@ w3ui and w3ui.ready ->
                                 keydown:
                                     keys: ['ArrowUp' 'ArrowDown']
                             # }}}
+                        title: 'Главное меню'
+                        config: true
                         data:
                             {
                                 id: 'card'
@@ -779,7 +932,6 @@ w3ui and w3ui.ready ->
                                 {
                                     duration: 0
                                     to:
-                                        visibility: 'visible'
                                         scale: 0
                                 }
                                 {
@@ -798,6 +950,8 @@ w3ui and w3ui.ready ->
                                 }
                                 ...
                             # }}}
+                        title: 'Адреса'
+                        config: true
                         tab:
                             # {{{
                             {
@@ -822,8 +976,28 @@ w3ui and w3ui.ready ->
                             }
                             # }}}
                     # }}}
+                    payment: # {{{
+                        cfg:
+                            refresh: -> # {{{
+                                # prepare
+                                # ..
+                                # done
+                                true
+                            # }}}
+                        title: 'Оплата'
+                    # }}}
                     config: # {{{
-                        empty: true
+                        cfg:
+                            init: -> # {{{
+                                #@current = @cfg.nav.current
+                                true
+                            # }}}
+                            refresh: -> # {{{
+                                true
+                            # }}}
+                        title: 'Конфигурация'
+                        current: ->
+                            return @cfg.nav.current
                     # }}}
                 # }}}
                 header: # {{{
@@ -832,136 +1006,90 @@ w3ui and w3ui.ready ->
                         init: -> # {{{
                             # prepare
                             # collect DOM nodes
-                            c = @cfg
-                            d = c.data
-                            if not d.title
-                                d.title  = c.node.query '.title'
-                                d.mode   = c.node.query '.mode .button'
-                                d.config = c.node.query '.config .button'
-                            # initialize show tween
-                            c.show.1.to.className = '+=on '+c.nav.id
-                            # initialize title
-                            # {{{
-                            a = if c.context
-                                then c.context.cfg.id
+                            cfg = @cfg
+                            dat = cfg.data
+                            ctx = cfg.context
+                            id  = if ctx
+                                then ctx.cfg.id
                                 else ''
-                            d.title.$text = if a
-                                then @title[a]
+                            if not dat.title
+                                dat.title  = cfg.node.query '.title'
+                                dat.mode   = cfg.node.query '.mode .button'
+                                dat.config = cfg.node.query '.config .button'
+                            # initialize container class
+                            cfg.node.class.clear 'on'
+                            cfg.node.class.add id
+                            # initialize elements
+                            # {{{
+                            # title
+                            dat.title.$text = if ctx and ctx.title
+                                then ctx.title
                                 else ''
-                            d.title.html = d.title.$text
+                            # mode
+                            a = if id == 'menu'
+                                then 'return'
+                                else 'menu'
+                            dat.mode.$text = @mode[a]
+                            dat.mode.$icon = cfg.template.querySelector '#'+a .innerHTML
+                            dat.mode.prop['data-id'] = 'mode'
+                            dat.mode.class.remove 'hovered'
+                            # config
+                            a = if id == 'config'
+                                then 'close'
+                                else 'config'
+                            dat.config.$text = @config[a]
+                            dat.config.$icon = cfg.template.querySelector '#'+a .innerHTML
+                            dat.config.prop['data-id'] = 'config'
+                            dat.config.class.remove 'hovered'
                             # }}}
-                            # initialize buttons
+                            # initialize animations
                             # {{{
-                            if a
-                                c = c.template
-                                b = if a == 'menu'
-                                    then 'return'
-                                    else 'menu'
-                                d.mode.$text = @mode[b]
-                                d.mode.$icon = c.querySelector '#'+b .innerHTML
-                                b = if a == 'config'
-                                    then 'close'
-                                    else 'config'
-                                d.config.$text = @config[b]
-                                d.config.$icon = c.querySelector '#'+b .innerHTML
-                            # set state
-                            d.mode.class.toggle 'disabled', !a
-                            d.config.class.toggle 'disabled', !a
+                            # determine disabled
+                            a =
+                                (id == 'config')
+                                (id != 'config' and (!ctx or !ctx.config))
+                            # buttons
+                            b =
+                                dat.mode.node
+                                dat.config.node
+                            # disabled buttons
+                            c = []
+                            c.push b.0 if a.0
+                            c.push b.1 if a.1
+                            # enabled buttons
+                            d = []
+                            d.push b.0 if not a.0
+                            d.push b.1 if not a.1
+                            # set
+                            cfg.show.2.node = b
+                            cfg.show.3.enabled = a.0 or a.1
+                            cfg.show.3.node = c
+                            cfg.show.4.node = dat.title.node
+                            cfg.show.6.node = b
+                            ##
+                            cfg.hide.1.node = b
+                            cfg.hide.2.node = dat.title.node
+                            ##
+                            cfg.turn.1.node = dat.title.node
+                            cfg.turn.2.node = b
+                            cfg.turn.2.group.2.node = d
+                            ##
+                            dat.resizeAnim = V.animation.queue cfg.node, [
+                                cfg.hide.1
+                                cfg.show.6
+                            ]
                             # }}}
-                            # initialize button icon/text switch effect
-                            # {{{
-                            d.buttonSwitch = do ->
-                                # create timelines
-                                a =
-                                    new TimelineLite {
-                                        paused: true
-                                        ease: Power2.easeIn
-                                    }
-                                    new TimelineLite {
-                                        paused: true
-                                        ease: Power2.easeIn
-                                    }
-                                a =
-                                    [a.0, 'text', 'icon'] # text to icon
-                                    [a.1, 'icon', 'text'] # reverse
-                                # add tweens
-                                a = a.map (a, index) ->
-                                    # hide
-                                    a.0.to d.mode.node, 0.4, {
-                                        className: '-='+a.1
-                                        scale: 0
-                                    }, 0
-                                    a.0.to d.config.node, 0.4, {
-                                        className: '-='+a.1
-                                        scale: 0
-                                    }, 0
-                                    # change content
-                                    a.0.add let a = '$'+a.2
-                                        !->
-                                            d.mode.html   = d.mode[a]
-                                            d.config.html = d.config[a]
-                                    # show
-                                    a.0.addLabel 'L1'
-                                    a.0.to d.mode.node, 0.4, {
-                                        className: '+='+a.2
-                                        scale: 1
-                                    }, 'L1'
-                                    a.0.to d.config.node, 0.4, {
-                                        className: '+='+a.2
-                                        scale: 1
-                                    }, 'L1'
-                                    a.0.add !->
-                                        # remove inline styles
-                                        d.mode.prop.style   = null
-                                        d.config.prop.style = null
-                                    # done
-                                    a.0
-                                # done
-                                a
-                            # }}}
-                            # initialize button resize routine
-                            # {{{
-                            d.buttonResize = !->
-                                # check
-                                a = d.buttonResize
-                                b = d.buttonSwitch.some (a) ->
-                                    a.isActive!
-                                # animation in progress? zero font size?
-                                if b or d.mode.style.fontSize < 0.0001
-                                    # delay
-                                    window.clearTimeout a.timer if a.timer
-                                    a.timer = window.setTimeout d.buttonResize, 500
-                                    return
-                                # prepare
-                                useIcon = [d.mode, d.config].some (el) ->
-                                    # check if text fits
-                                    if el.$text
-                                        # get text width
-                                        a = el.box.textMetrics el.$text .width
-                                        # use icon
-                                        return true if el.box.innerWidth < a
-                                    # use text
-                                    false
-                                # determine switch effect
-                                a = d.mode.class
-                                if useIcon and not a.has 'icon'
-                                    a = 0
-                                else if not useIcon and not a.has 'text'
-                                    a = 1
-                                else
-                                    return
-                                # set captions
-                                a = d.buttonSwitch[a]
-                                a.play 0
-                            # }}}
+                            # done
                             true
                         # }}}
-                        resize: -> # {{{
+                        resize: (noAnimation = false) -> # {{{
                             # prepare
+                            cfg = @cfg
+                            dat = cfg.data
+                            # determine workarea font size
+                            # {{{
+                            a = dat.title.box.fontSize dat.title.$text
                             c = V.el.wa.cfg
-                            d = @cfg.data
-                            # calculate font size (title as base)
-                            a = d.title.box.fontSize d.title.$text
                             b =
                                 c.fontSizeMin
                                 c.fontSizeMax
@@ -969,111 +1097,307 @@ w3ui and w3ui.ready ->
                             a = b.1 if a > b.1
                             # update css variable
                             c.node.style.fSize0 = a+'px'
-                            # resize buttons
-                            d.buttonResize!
-                            # done
-                            true
+                            # }}}
+                            # determine buttons state
+                            # {{{
+                            # check animation in progress
+                            a = dat.resizeAnim.isActive!
+                            return true if a
+                            # check if icon must be used
+                            dat.useIcon = [dat.mode, dat.config].some (a) ->
+                                if a.$text and not a.class.has 'disabled'
+                                    # get text width
+                                    b = a.box.textMetrics a.$text .width
+                                    # compare with container width
+                                    if a.box.innerWidth < b
+                                        # use icon!
+                                        return true
+                                # continue
+                                return false
+                            # }}}
+                            # check
+                            b = dat.mode.class.has 'icon'
+                            if noAnimation or not (dat.useIcon xor b)
+                                return true
+                            # change
+                            return dat.resizeAnim.play 0
                         # }}}
                         show: # {{{
+                            'beg'
+                            # 1. SHOW CONTAINER
                             {
-                                duration: 0
+                                position: 'beg'
+                                duration: 0.4
                                 to:
-                                    visibility: 'visible'
-                            }
-                            {
-                                duration: 0.8
-                                to:
-                                    className: ''
+                                    className: 'on'
                                     opacity: 1
                                     ease: Power3.easeOut
                             }
+                            # 2. HIDE BUTTONS
+                            {
+                                position: 'beg'
+                                node: null
+                                to:
+                                    scale: 0
+                            }
+                            # 3. DISABLE BUTTONS
+                            {
+                                position: 'beg'
+                                node: null
+                                enabled: false
+                                to:
+                                    className: '+=disabled'
+                            }
+                            # 4. SET and SHOW TITLE
+                            {
+                                position: 'beg'
+                                node: null
+                                group:
+                                    {
+                                        to:
+                                            opacity: 0
+                                            scale: 0.4
+                                    }
+                                    !->
+                                        a = @cfg.data.title
+                                        a.html = a.$text
+                                    {
+                                        duration: 0.4
+                                        to:
+                                            opacity: 1
+                                            scale: 1
+                                            ease: Back.easeOut
+                                    }
+                            }
+                            # 5. RESIZE
                             !->
-                                @cfg.resize.call @
+                                @cfg.resize.call @, true
+                            # 6. SET and SHOW BUTTONS
+                            {
+                                node: null
+                                group:
+                                    !->
+                                        # prepare
+                                        a = @cfg.data
+                                        b = if a.useIcon
+                                            then '$icon'
+                                            else '$text'
+                                        # set content
+                                        a.mode.html   = a.mode[b]
+                                        a.config.html = a.config[b]
+                                        # get icons
+                                        a.mode.$svg   = a.mode.query 'svg'
+                                        a.config.$svg = a.config.query 'svg'
+                                        # set style
+                                        a.mode.class.toggle 'icon', a.useIcon
+                                        a.config.class.toggle 'icon', a.useIcon
+                                    {
+                                        duration: 0.4
+                                        to:
+                                            scale: 1
+                                            ease: Back.easeOut
+                                    }
+                            }
                         # }}}
                         hide: # {{{
+                            # 0. LABEL
+                            'beg'
+                            # 1. HIDE BUTTONS
                             {
                                 duration: 0.2
+                                node: null
                                 to:
-                                    opacity: 0
+                                    scale: 0
                                     ease: Power3.easeIn
                             }
+                            # 2. HIDE TITLE
                             {
+                                position: 'beg'
+                                duration: 0.4
+                                node: null
+                                to:
+                                    scale: 0.2
+                                    opacity: 0
+                                    ease: Back.easeIn
+                            }
+                            # 3. HIDE CONTAINER
+                            {
+                                position: '-=0.2'
                                 duration: 0.4
                                 to:
                                     className: ''
                                     ease: Power3.easeIn
                             }
                         # }}}
-                    attach: # {{{
-                        click:
+                        turn: # {{{
+                            # 0. LABEL
+                            'beg'
+                            # 1. CHANGE TITLE
                             {
-                                el: '.back .button'
-                                id: 'back'
+                                position: 'beg'
+                                node: null
+                                group:
+                                    {
+                                        duration: 0.4
+                                        to:
+                                            opacity: 0
+                                            scale: 0.4
+                                            ease: Power2.easeIn
+                                    }
+                                    !->
+                                        a = @cfg.data
+                                        a.title.html = a.title.$text
+                                    {
+                                        duration: 0.4
+                                        to:
+                                            opacity: 1
+                                            scale: 1
+                                            ease: Back.easeOut
+                                    }
                             }
+                            # 2. CHANGE BUTTONS
                             {
-                                el: '.config .button'
-                                id: 'config'
+                                position: 'beg'
+                                node: null
+                                group:
+                                    {
+                                        duration: 0.2
+                                        to:
+                                            opacity: 0
+                                            scale: 0
+                                            ease: Power2.easeIn
+                                    }
+                                    !->
+                                        # prepare
+                                        a = @cfg.data
+                                        b = if a.useIcon
+                                            then '$icon'
+                                            else '$text'
+                                        # set content
+                                        a.mode.html   = a.mode[b]
+                                        a.config.html = a.config[b]
+                                        # get icons
+                                        a.mode.$svg   = a.mode.query 'svg'
+                                        a.config.$svg = a.config.query 'svg'
+                                        # set style
+                                        a.mode.class.toggle 'icon', a.useIcon
+                                        a.config.class.toggle 'icon', a.useIcon
+                                    {
+                                        duration: 0.4
+                                        node: null
+                                        to:
+                                            opacity: 1
+                                            scale: 1
+                                            ease: Power2.easeOut
+                                    }
                             }
-                    # }}}
-                    title:
-                        menu: 'Главное меню'
-                        address: 'Картотека адресов'
-                        config: 'Конфигурация'
+                        # }}}
+                        attach: # {{{
+                            pointerover:
+                                {
+                                    el: '.button'
+                                    id: ''
+                                }
+                            pointerout:
+                                {
+                                    el: '.button'
+                                    id: ''
+                                }
+                            click:
+                                {
+                                    el: '.mode .button'
+                                    id: 'mode'
+                                }
+                                {
+                                    el: '.config .button'
+                                    id: 'config'
+                                }
+                        # }}}
                     mode:
-                        menu: 'меню'
                         return: 'возврат'
+                        menu: 'меню'
                     config:
-                        config: 'настройки'
                         close: 'закрыть'
+                        config: 'настройки'
                 # }}}
                 console: # {{{
                     cfg: # {{{
                         render: true
                         attach: true
-                        init: ->
-                            # modify show tween
-                            @cfg.show.1.to.className = '+=on '+@cfg.nav.id
+                        init: -> # {{{
+                            # prepare
+                            cfg = @cfg
+                            id  = cfg.nav.id
+                            # set container class
+                            cfg.node.class.clear 'on'
+                            cfg.node.class.add id
+                            # initialize animations
+                            #debugger
                             true
-                        resize: ->
+                        # }}}
+                        resize: -> # {{{
                             # invalidate data
-                            for own a of @cfg.data
-                                delete @cfg.data[a]
-                            # refresh
+                            w3ui.clearObject @cfg.data
+                            # delegate
                             @cfg.refresh.call @
-                        refresh: ->
+                        # }}}
+                        refresh: -> # {{{
                             # prepare
                             a = @cfg.nav.id
                             b = @[a]
                             return true if not b or not b.refresh
                             # delegate
-                            b.refresh.call @, @cfg.data
+                            b.refresh.call @
+                        # }}}
                         show: # {{{
-                            {
-                                duration: 0
-                                to:
-                                    visibility: 'visible'
-                            }
                             {
                                 duration: 0.8
                                 to:
-                                    className: ''
-                                    opacity: 1
+                                    className: '+=on'
                                     ease: Power3.easeOut
                             }
+                            ...
                         # }}}
                         hide: # {{{
                             {
-                                duration: 0.2
+                                duration: 0.6
                                 to:
+                                    className: ''
                                     opacity: 0
                                     ease: Power3.easeIn
                             }
-                            {
-                                duration: 0.4
-                                to:
-                                    className: ''
-                                    ease: Power3.easeIn
-                            }
+                            ...
+                        # }}}
+                        turn: # {{{
+                            off:
+                                {
+                                    duration: 0.4
+                                    to:
+                                        opacity: 0
+                                }
+                                {
+                                    to:
+                                        display: 'none'
+                                }
+                            on:
+                                {
+                                    position: 0.4
+                                    label: 'beg'
+                                }
+                                {
+                                    position: 'beg'
+                                    to:
+                                        opacity: 0
+                                        scale: 0.5
+                                        clearProps: 'display'
+                                }
+                                {
+                                    position: 'beg'
+                                    duration: 0.4
+                                    to:
+                                        opacity: 1
+                                        scale: 1
+                                }
                         # }}}
                     # }}}
                     menu:
@@ -1112,31 +1436,35 @@ w3ui and w3ui.ready ->
                                 delayed: true
                         # }}}
                         render: -> # {{{
-                            # prepare data
-                            a = @data
-                            b = @cfg.nav.current or 0
+                            # prepare
+                            ctx = @cfg.context
+                            a = ctx.data
+                            b = ctx.cfg.nav.current or 0
                             c = a.length - 1
-                            d = a.map (item) ->
+                            d = @cfg.data
+                            # generate template data
+                            d.list = a.map (a) ->
                                 {
-                                    id: item.id
-                                    name: item.name
+                                    id: a.id
+                                    name: a.name
                                 }
+                            d.current = a[b].name
+                            d.prev = if b
+                                then a[b - 1].name
+                                else a[* - 1].name
+                            d.next = if b == c
+                                then a.0.name
+                                else a[b + 1].name
                             # done
-                            return
-                                list: d
-                                current: a[b].name
-                                prev: if b
-                                    then a[b - 1].name
-                                    else a[* - 1].name
-                                next: if b == c
-                                    then a.0.name
-                                    else a[b + 1].name
+                            return d
                         # }}}
-                        refresh: (data) -> # {{{
+                        refresh: -> # {{{
+                            # TODO!
                             # initialize data
+                            data = @cfg.data
                             if not data.node
-                                data.node = @cfg.node.query '.carousel'
-                                data.time = @cfg.show.1.duration
+                                data.node = @cfg.node.query '.menu'
+                                data.time = @cfg.show.0.duration
                             if not data.box
                                 data.box = data.node.query '.item'
                                 data.btn = data.node.query '.button'
@@ -1267,6 +1595,14 @@ w3ui and w3ui.ready ->
                             # done
                             true
                         # }}}
+                    address:
+                        render: -> # {{{
+                            return {}
+                        # }}}
+                    payment:
+                        render: -> # {{{
+                            return {}
+                        # }}}
                 # }}}
         # }}}
     # }}}
@@ -1292,7 +1628,7 @@ w3ui and w3ui.ready ->
             id0    = ''         # previous (old)
             id1    = ''         # new
             level  = 0          # change level
-            pid    = ''         # parent
+            rid    = ''         # render root id
             # define helper functions
             cancelThread = (msg) ->
                 # display message
@@ -1328,8 +1664,10 @@ w3ui and w3ui.ready ->
                         # restore navigation
                         M[level] = id0
                         return cancelThread '"'+id1+'" not found'
-                    # get parent id
-                    pid := a.cfg.parent.cfg.id
+                    # determine render root
+                    a = a.cfg.parent
+                    a = a.cfg.parent if a.cfg.parent
+                    rid := a.cfg.id
                     # detach events
                     if not V.call 'detach'
                         return cancelThread 'detach failed'
@@ -1337,6 +1675,9 @@ w3ui and w3ui.ready ->
                     if id0
                         lock := true
                         V.animation.hide id0, !-> lock := false
+                    # finalize
+                    if not V.call 'finit', id1
+                        return cancelThread 'finit failed'
                     # continue
                     true
                 ->
@@ -1344,7 +1685,7 @@ w3ui and w3ui.ready ->
                     not lock
                 ->
                     # render
-                    if not V.call 'render', pid, id0
+                    if not V.call 'render', rid, id0
                         return cancelThread 'render failed'
                     # initialize
                     if not V.call 'init'
@@ -1359,7 +1700,8 @@ w3ui and w3ui.ready ->
                     not lock
                 ->
                     # finalize
-                    ['resize' 'refresh' 'finit' 'attach'].every (a) -> V.call a
+                    ['resize' 'refresh' 'attach'].forEach (a) ->
+                        V.call a
                     # save navigation and unlock
                     nav  := M.nav.map (a) -> a.id
                     busy := false
@@ -1437,6 +1779,67 @@ w3ui and w3ui.ready ->
         # }}}
         react: (event, data, cfg, nav) -> # {{{
             switch cfg.id
+            | 'header' =>
+                # {{{
+                switch event.type
+                | 'pointerover' =>
+                    # hover
+                    # {{{
+                    a = event.currentTarget.dataset.id
+                    a = @cfg.data[a]
+                    if @cfg.data.useIcon
+                        # icon
+                        a.$svg.class.add 'hovered'
+                    else
+                        # button
+                        TweenLite.to a.node, 0.6, {
+                            className: '+=hovered'
+                            ease: Power4.easeOut
+                        }
+                    # }}}
+                | 'pointerout' =>
+                    # unhover
+                    # {{{
+                    a = event.currentTarget.dataset.id
+                    a = @cfg.data[a]
+                    if @cfg.data.useIcon
+                        # icon
+                        a.$svg.class.remove 'hovered'
+                    else
+                        # button
+                        TweenLite.to a.node, 0.4, {
+                            className: '-=hovered'
+                            ease: Power4.easeIn
+                        }
+                    # }}}
+                | 'click' =>
+                    # navigation
+                    # {{{
+                    a = event.currentTarget.dataset.id
+                    b = @cfg.nav.id
+                    if a == 'mode' and b == 'menu'
+                        # close main menu of workareas,
+                        # return to selector
+                        # ..
+                        break
+                    else if a == 'config'
+                        if b == 'config'
+                            # close configuration,
+                            # return to workarea
+                            M[@cfg.level] = M.nav[@cfg.level + 1].current
+                        else
+                            # open configuration,
+                            # close workarea
+                            M[@cfg.level] = 'config'
+                            M.nav[@cfg.level + 1].current = b
+                    else
+                        # return to main menu,
+                        # close workarea
+                        M[@cfg.level] = 'menu'
+                    # go
+                    P.construct!
+                    # }}}
+                # }}}
             | 'menu' =>
                 # {{{
                 # define menu change routine

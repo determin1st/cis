@@ -687,6 +687,12 @@ w3ui = function(){
     PROXY: PROXY,
     BOUNCE: BOUNCE,
     THREAD: THREAD,
+    clearObject: function(obj){
+      var k, own$ = {}.hasOwnProperty;
+      for (k in obj) if (own$.call(obj, k)) {
+        delete obj[k];
+      }
+    },
     ready: function(f){
       document.addEventListener('DOMContentLoaded', f);
     },
@@ -808,7 +814,37 @@ w3ui = function(){
           this.node.classList.add(name);
         },
         remove: function(name){
-          this.node.classList.remove(name);
+          var this$ = this;
+          if (!name) {
+            this.api['class'].clear();
+            return;
+          }
+          if (typeof name === 'string') {
+            this.node.classList.remove(name);
+            return;
+          }
+          name.forEach && name.forEach(function(name){
+            this$.node.classList.remove(name);
+          });
+        },
+        clear: function(except){
+          var a, b, c;
+          except == null && (except = '');
+          a = this.node.classList;
+          b = a.length;
+          if (!except) {
+            while (--b >= 0) {
+              a.remove(a.item(b));
+            }
+          } else {
+            except += ' ';
+            while (--b >= 0) {
+              c = a.item(b);
+              if (!except.includes(c + ' ')) {
+                a.remove(c);
+              }
+            }
+          }
         },
         has: function(name){
           return this.node.classList.contains(name);
@@ -990,12 +1026,11 @@ w3ui = function(){
       var node, a, i$, to$, b, style, data, wrap, ref$;
       parent == null && (parent = document);
       noWrap == null && (noWrap = false);
-      if (!selector) {
-        return null;
-      }
       node = [];
       if (typeof selector === 'string') {
-        a = parent.querySelectorAll(selector);
+        a = selector
+          ? parent.querySelectorAll(selector)
+          : parent.children;
         if (!a || !a.length) {
           return null;
         }
@@ -1004,6 +1039,9 @@ w3ui = function(){
           node[b] = a[b];
         }
       } else {
+        if (!selector) {
+          return null;
+        }
         if (!(selector instanceof HTMLElement)) {
           return null;
         }

@@ -151,7 +151,6 @@ svg
   min-height: 32px;
 }
 #header > div {
-  box-sizing: border-box;
   min-width: 0;
   min-height: 100%;
   padding: 4px 0;
@@ -173,53 +172,51 @@ svg
   align-items: center;
   white-space: nowrap;
   font-size: var(--f-size0);
-  /**/
-  transition: all 0.6s ease;
 }
 /* buttons */
 #header .button
 {
-  border-radius: 6px;
-  font-size: var(--f-size8);
   padding: 0 8px;
-}
-#header .button.disabled
-{
-  visibility: hidden;
-}
-#header .button.text
-{
+  font-size: var(--f-size8);
   background-color: var(--col90);
   border: 1px solid var(--col85);
+  border-radius: 6px;
   cursor: pointer;
 }
 #header .button.icon
 {
   background-color: transparent;
   border: 0;
-  cursor: pointer;
 }
+#header .button.disabled
+{
+  background-color: transparent;
+  border: 1px solid var(--col90);
+  font-size: 0;
+  cursor: default;
+}
+
+
 #header .button svg
 {
   stroke: var(--col40);
   stroke-width: 6;
   fill: var(--col90);
 }
-/**/
-#header .button.icon path,
-#header .button.text
+/* HOVER */
+#header .button.hovered
 {
-  transition: all 0.4s ease-out;
+  background-color: var(--col93);
+  font-size: var(--f-size7);
+  color: var(--col30);
 }
-#header .button.icon:hover path
+#header .button svg path
+{
+  transition: all 0.6s ease-out;
+}
+#header .button svg.hovered path
 {
   filter: drop-shadow(0 0 50px hsl(var(--col-h), var(--col-s)%, 40%));
-}
-#header .button.text:hover
-{
-  font-size: var(--f-size7);
-  background-color: var(--col93);
-  color: var(--col30);
 }
 /* }}} */
 /* view  {{{ */
@@ -243,15 +240,14 @@ svg
 }
 /* }}} */
 /* console {{{ */
-#console.on {
-}
-#console.menu
+#console.on
 {
   flex: 2 2 10%;
   min-height: 32px;
   max-height: 80px;
 }
-#console.menu .carousel
+/** menu {{{ */
+#console .menu
 {
   width: 100%;
   height: 100%;
@@ -259,7 +255,7 @@ svg
   flex-direction: row;
   padding: 0 2px;
 }
-#console.menu .item
+#console .menu .item
 {
   flex: 2.5 2.5;
   width: 25%;
@@ -268,66 +264,91 @@ svg
   min-height: 100%;
   padding: 8px 0 8px 0;
 }
-#console.menu .item.hidden
+#console .menu .item.hidden
 {
   flex: 0 0 0;
   display: none;
 }
-#console.menu .item.active
+#console .menu .item.active
 {
   flex: 5 5;
   width: 50%;
   padding: 4px 0 4px 0;
 }
-#console.menu .item.hover
+#console .menu .item.hover
 {
   padding: 6px 0 6px 0;
 }
 /***/
-#console.menu .button
+#console .menu .button
 {
   font-size: var(--f-size8);
   background-color: var(--col93);
   border: 1px solid var(--col85);
 }
-#console.menu .button.center
+#console .menu .button.center
 {
   font-size: var(--f-size4);
   background-color: var(--col95);
   border-radius: 6px;
 }
-#console.menu .button.left
+#console .menu .button.left
 {
   cursor: pointer;
   border-right: 0;
 }
-#console.menu .button.right
+#console .menu .button.right
 {
   cursor: pointer;
   border-left: 0;
 }
-#console.menu .button.hidden
+#console .menu .button.hidden
 {
   font-size: 0;
 }
-#console.menu .button.center.hover
+#console .menu .button.center.hover
 {
   border-radius: 0;
   font-size: var(--f-size7);
   background-color: var(--col93);
 }
-#console.menu .button.left.hover
+#console .menu .button.left.hover
 {
   border-left: 0;
   font-size: var(--f-size7);
   background-color: var(--col95);
 }
-#console.menu .button.right.hover
+#console .menu .button.right.hover
 {
   border-right: 0;
   font-size: var(--f-size7);
   background-color: var(--col95);
 }
+/** }}} */
+/** address {{{ */
+#console .address
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+
+  font-size: 20px;
+  font-weight: bold;
+}
+/** }}} */
+/** payment {{{ */
+#console .payment
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+
+  font-size: 20px;
+  font-weight: bold;
+}
+/** }}} */
 /* }}} */
 /* views */
 /* menu {{{ */
@@ -405,6 +426,34 @@ svg
   justify-content: center;
 }
 #address span
+{
+  font-size: var(--f-size0);
+  font-weight: bold;
+}
+/* }}} */
+/* payment {{{ */
+#payment
+{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#payment span
+{
+  font-size: var(--f-size0);
+  font-weight: bold;
+}
+/* }}} */
+/* config {{{ */
+#config
+{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#config span
 {
   font-size: var(--f-size0);
   font-weight: bold;

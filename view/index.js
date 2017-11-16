@@ -28,35 +28,39 @@ w3ui && w3ui.ready(function(){
       return obj;
     },
     set: function(obj, k, v, prx){
-      var a, b, c, d, i$, len$;
+      var a, nav, sav, i$, to$, b, len$, c;
       a = parseInt(k);
       if (isNaN(a)) {
         obj[k] = v;
         return true;
       }
       k = a;
-      a = obj.nav;
-      b = obj.sav;
-      c = a[k];
-      d = k < b.length ? b[k] : null;
-      if (c.id === v && v === '') {
+      nav = obj.nav;
+      a = nav[k];
+      sav = k < obj.sav.length ? obj.sav[k] : null;
+      if (a.id === v && v === '') {
         return true;
       }
-      if (c.id === v) {
+      if (a.id === v) {
         v = '';
       }
-      if (d) {
-        d[c.id] = a.slice(k + 1);
-        a.splice(k + 1);
-        b = d[v]
-          ? d[v]
-          : w3ui.CLONE(d['']);
-        for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-          d = b[i$];
-          a.push(d);
+      if (sav) {
+        k++;
+        sav[a.id] = w3ui.CLONE(nav.slice(k));
+        for (i$ = k, to$ = nav.length - 1; i$ <= to$; ++i$) {
+          b = i$;
+          w3ui.clearObject(nav[b]);
+        }
+        sav = sav[v]
+          ? sav[v]
+          : sav[''];
+        for (i$ = 0, len$ = sav.length; i$ < len$; ++i$) {
+          c = i$;
+          b = sav[i$];
+          import$(nav[k + c], sav[c]);
         }
       }
-      c.id = v;
+      a.id = v;
       return true;
     },
     get: function(obj, p, prx){
@@ -74,6 +78,9 @@ w3ui && w3ui.ready(function(){
   V = {
     init: function(model){
       var template, init, render, attach, this$ = this;
+      this.animation = this.animation();
+      this.el.$data = this.ui;
+      this.el.$model = model;
       template = document.querySelector('template').content;
       init = function(id, node, parent, level, tid){
         var cfg, a, b, own$ = {}.hasOwnProperty;
@@ -93,18 +100,16 @@ w3ui && w3ui.ready(function(){
         }
         cfg.template = template.querySelector(tid);
         cfg.data = {};
-        cfg.show && (cfg.show = cfg.show.map(function(a){
-          if (typeof a === 'object') {
-            return a;
+        cfg.show && this$.animation.init(node, cfg.show);
+        cfg.hide && this$.animation.init(node, cfg.hide);
+        if (cfg.turn) {
+          if (cfg.turn.on) {
+            this$.animation.init(node, cfg.turn.off);
+            this$.animation.init(node, cfg.turn.on);
+          } else {
+            this$.animation.init(node, cfg.turn);
           }
-          return a.bind(node);
-        }));
-        cfg.hide && (cfg.hide = cfg.hide.map(function(a){
-          if (typeof a === 'object') {
-            return a;
-          }
-          return a.bind(node);
-        }));
+        }
         for (a in node) if (own$.call(node, a)) {
           b = node[a];
           if (a !== 'cfg' && b && b.cfg) {
@@ -135,24 +140,28 @@ w3ui && w3ui.ready(function(){
           a = this[id].cfg.template.innerHTML;
           c = this[id];
         } else {
-          a = this.cfg.template.querySelector('#' + id).innerHTML;
-          c = this[id].render.call(c);
+          a = (a = this.cfg.template.querySelector('#' + id)) ? a.innerHTML : '';
+          c = this[id] ? this[id].render.call(this) : null;
         }
-        a = Mustache.render(a, c);
-        if (a && b) {
-          d = document.createElement('template');
-          d.innerHTML = a;
-          b = w3ui('#' + b, d.content);
-          b.style.display = 'none';
-          if (old) {
-            this.cfg.node.child.insert(b);
-          } else {
-            this.cfg.node.child.remove();
-            this.cfg.node.child.add(b);
-          }
-          c.cfg.node = b;
+        if (!(a = Mustache.render(a, c))) {
+          return true;
+        }
+        d = document.createElement('template');
+        d.innerHTML = a.trim();
+        c = b
+          ? w3ui('#' + b, d.content)
+          : w3ui('', d.content);
+        c.style.display = 'none';
+        if (old) {
+          this.cfg.node.child.insert(c);
         } else {
-          this.cfg.node.html = a;
+          this.cfg.node.child.remove();
+          this.cfg.node.child.add(c);
+        }
+        if (b) {
+          this[id].cfg.node = c;
+        } else {
+          this[id].node = c;
         }
         return true;
       };
@@ -211,40 +220,110 @@ w3ui && w3ui.ready(function(){
           a.addEventListener(b, c);
         }
       };
-      this.animation = this.animation();
-      this.el.$data = this.ui;
-      this.el.$model = model;
       return init('ui', this.ui, null, 0, '#t');
     },
     animation: function(){
-      var addTweens, this$ = this;
+      var api, apiHandler, addTweens, this$ = this;
+      api = {
+        pauseAll: function(){
+          var a;
+          a = this;
+          do {
+            a.pause();
+          } while (a = a.timeline);
+        },
+        resumeAll: function(){
+          var a;
+          a = this;
+          do {
+            if (!a.isActive()) {
+              a.resume();
+            }
+          } while (a = a.timeline);
+        },
+        removeAtLabel: function(label){
+          var a, b, i$, len$, c, results$ = [];
+          if ((a = this.getLabelTime(label)) === -1) {
+            return;
+          }
+          b = this.getChildren(false, true, true, a);
+          for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+            c = b[i$];
+            if (c.startTime() === a) {
+              console.log('found a tween to remove at [' + label + ']');
+              results$.push(this.remove(c));
+            }
+          }
+          return results$;
+        }
+      };
+      apiHandler = {
+        get: function(obj, key){
+          if (api[key]) {
+            return api[key].bind(obj);
+          }
+          return Reflect.get(obj, key);
+        }
+      };
       addTweens = function(node, timeline, source){
-        node = node.w3ui.group;
+        if ('w3ui' in node) {
+          node = node.w3ui.group;
+        }
         source && source.forEach(function(a){
-          var b, c;
+          var pos, b;
           switch (typeof a) {
           case 'object':
+            if (a.enabled === false) {
+              break;
+            }
+            if (a.node) {
+              node = a.node;
+            }
+            pos = a.position ? a.position : '+=0';
+            if (a.label) {
+              timeline.addLabel(a.label, pos);
+              break;
+            }
+            if (a.func) {
+              timeline.add(a.func, pos);
+              break;
+            }
+            if (a.group) {
+              b = new TimelineLite({
+                paused: true
+              });
+              addTweens(node, b, a.group);
+              if (a.duration) {
+                b.duration(a.duration);
+              }
+              timeline.add(b.play(), pos);
+              break;
+            }
             if (!a.to && !a.from) {
               break;
             }
             b = [a.to ? w3ui.CLONE(a.to) : null, a.from ? w3ui.CLONE(a.from) : null];
-            c = a.position ? a.position : '+=0';
             if (!a.duration || a.duration < 0.0001) {
-              timeline.set(node, b[0] || b[1], c);
+              timeline.set(node, b[0] || b[1], pos);
               break;
             }
             if (b[0] && !b[1]) {
-              timeline.to(node, a.duration, b[0], c);
+              timeline.to(node, a.duration, b[0], pos);
               break;
             }
             if (!b[0] && b[1]) {
-              timeline.from(node, a.duration, b[1], c);
+              timeline.from(node, a.duration, b[1], pos);
               break;
             }
-            timeline.fromTo(node, a.duration, b[0], b[1], c);
+            timeline.fromTo(node, a.duration, b[0], b[1], pos);
             break;
           case 'function':
-            timeline.add(a);
+            if (a.length) {
+              b = new Proxy(timeline, apiHandler);
+              timeline.addPause('+=0', a, [b]);
+            } else {
+              timeline.add(a);
+            }
             break;
           case 'string':
             timeline.addLabel(a);
@@ -252,6 +331,32 @@ w3ui && w3ui.ready(function(){
         });
       };
       return {
+        init: function(node, tweens){
+          var i$, len$, b, a;
+          for (i$ = 0, len$ = tweens.length; i$ < len$; ++i$) {
+            b = i$;
+            a = tweens[i$];
+            if (typeof a === 'function') {
+              tweens[b] = a.bind(node);
+              continue;
+            }
+            if (a.func) {
+              tweens[b].func = a.func.bind(node);
+              continue;
+            }
+            if (a.group) {
+              this.init(node, a.group);
+            }
+          }
+        },
+        queue: function(node, queue){
+          var a;
+          a = new TimelineLite({
+            paused: true
+          });
+          addTweens(node, a, queue);
+          return a;
+        },
         hide: function(id, onComplete){
           var list, a, b;
           if (!id || !(list = this$.list(id)) || !list.length) {
@@ -283,71 +388,126 @@ w3ui && w3ui.ready(function(){
           a.play();
         },
         show: function(id1, id0, onComplete){
-          var node1, node0, list, parent, turn, old, a, b;
-          node1 = this$.el[id1].cfg;
-          node0 = this$.el[id0].cfg;
-          list = this$.list(id1);
-          parent = node1.parent.cfg;
-          turn = null;
-          old = null;
-          if (id0) {
-            turn = parent.turn;
-            old = parent.node.query('#' + id0, 0, true)[0];
-          }
-          a = new TimelineLite({
+          var x, node, parent, c, list, a, b;
+          x = new TimelineLite({
             paused: true
           });
-          if (turn) {
-            list = list.slice(1);
-            if (node0.turn || node1.turn) {
-              turn = node1.turn
-                ? node1.turn
-                : node0.turn;
+          x.addLabel('start');
+          node = this$.el[id1].cfg;
+          parent = node.parent;
+          if (id0 && (c = parent.cfg.parent)) {
+            list = [parent];
+            for (a in c) {
+              b = c[a];
+              if (a !== 'cfg' && b.cfg) {
+                if (!b.cfg.node || a === parent.cfg.id) {
+                  continue;
+                }
+                list.push(b);
+              }
             }
-            a.add(function(){
-              node1.node.style.display = null;
+            list.forEach(function(parent){
+              var el0, el1, turn, flag, a, old;
+              el0 = parent[id0];
+              el1 = parent[id1];
+              turn = parent.cfg.turn;
+              flag = !!parent.cfg.context;
+              if (flag && (!el0 || !el0.render) && (!el1 || !el1.render)) {
+                if (turn) {
+                  a = new TimelineLite({
+                    paused: true
+                  });
+                  addTweens(parent.cfg.node, a, turn);
+                  x.add(a.play(), 'start');
+                }
+                return;
+              }
+              if (flag) {
+                if (el0) {
+                  old = el0.node;
+                }
+              } else {
+                el0 = el0.cfg;
+                el1 = el1.cfg;
+                old = parent.cfg.node.query('#' + id0, 0, true)[0];
+              }
+              if (!turn) {
+                old && x.add(function(){
+                  parent.cfg.node.child.remove(old);
+                  if (el0.node) {
+                    delete el0.node;
+                  }
+                });
+                return;
+              }
+              turn = {
+                on: el1 && el1.turn
+                  ? el1.turn.on
+                  : turn.on,
+                off: el0 && el0.turn
+                  ? el0.turn.off
+                  : turn.off
+              };
+              if (el1) {
+                !flag && x.add(function(){
+                  el1.node.style.display = null;
+                }, 'start');
+                a = new TimelineLite({
+                  paused: true
+                });
+                addTweens(el1.node, a, turn.on);
+                x.add(a.play(), 'start');
+              }
+              if (old) {
+                a = new TimelineLite({
+                  paused: true
+                });
+                addTweens(old, a, turn.off);
+                x.add(a.play(), 'start');
+                x.add(function(){
+                  parent.cfg.node.child.remove(old);
+                  delete el0.node;
+                });
+              }
             });
-            a.addLabel('start');
-            b = new TimelineLite({
-              paused: true
-            });
-            addTweens(old, b, turn.off);
-            a.add(b.play(), 'start');
-            b = new TimelineLite({
-              paused: true
-            });
-            addTweens(node1.node, b, turn.on);
-            a.add(b.play(), 'start');
           }
-          old && a.add(function(){
-            parent.node.child.remove(old);
-          });
+          list = this$.list(id1);
+          if (id0) {
+            list = list.slice(1);
+          }
           list = list.reduce(function(a, b){
             if (b.cfg.node) {
               a.push(b);
             }
             return a;
           }, []);
-          b = '';
-          list.forEach(function(el){
-            var c;
-            el = el.cfg;
+          a = '';
+          list.forEach(function(elem){
+            var b, c;
+            b = elem.cfg;
             c = new TimelineLite({
               paused: true
             });
             c.add(function(){
-              el.node.style.display = null;
+              var c;
+              if (b.context) {
+                c = elem[b.nav.id];
+                if (c) {
+                  c.node.style.display = null;
+                }
+              } else {
+                b.node.style.display = null;
+              }
             });
-            addTweens(el.node, c, el.show);
-            if (!b || b !== 'L' + el.level) {
-              b = 'L' + el.level;
-              a.addLabel(b);
+            addTweens(b.node, c, b.show);
+            if (!a || a !== 'L' + b.level) {
+              a = 'L' + b.level;
+              c.addLabel(a);
             }
-            a.add(c.play(), b);
-            true;
+            x.add(c.play(), a);
           });
-          a.add(onComplete);
-          a.play();
+          x.add(onComplete);
+          x.play();
         }
       };
     },
@@ -447,7 +607,7 @@ w3ui && w3ui.ready(function(){
           reverse: true
         },
         finit: {
-          active: true,
+          active: false,
           reverse: true
         }
       });
@@ -591,6 +751,10 @@ w3ui && w3ui.ready(function(){
                   return 0;
                 }
               },
+              finit: function(){
+                w3ui.clearObject(this.cfg.data);
+                return true;
+              },
               refresh: function(){
                 var data, a, i$, to$, b, c, d, e, this$ = this;
                 data = this.cfg.data;
@@ -728,6 +892,8 @@ w3ui && w3ui.ready(function(){
                 }
               }
             },
+            title: 'Главное меню',
+            config: true,
             data: [
               {
                 id: 'card',
@@ -780,7 +946,6 @@ w3ui && w3ui.ready(function(){
                 {
                   duration: 0,
                   to: {
-                    visibility: 'visible',
                     scale: 0
                   }
                 }, {
@@ -799,6 +964,8 @@ w3ui && w3ui.ready(function(){
                 }
               }]
             },
+            title: 'Адреса',
+            config: true,
             tab: [
               {
                 id: 'a0',
@@ -818,122 +985,92 @@ w3ui && w3ui.ready(function(){
               }
             ]
           },
+          payment: {
+            cfg: {
+              refresh: function(){
+                return true;
+              }
+            },
+            title: 'Оплата'
+          },
           config: {
-            empty: true
+            cfg: {
+              init: function(){
+                return true;
+              },
+              refresh: function(){
+                return true;
+              }
+            },
+            title: 'Конфигурация',
+            current: function(){
+              return this.cfg.nav.current;
+            }
           }
         },
         header: {
           cfg: {
             render: false,
             init: function(){
-              var c, d, a, b;
-              c = this.cfg;
-              d = c.data;
-              if (!d.title) {
-                d.title = c.node.query('.title');
-                d.mode = c.node.query('.mode .button');
-                d.config = c.node.query('.config .button');
+              var cfg, dat, ctx, id, a, b, c, d;
+              cfg = this.cfg;
+              dat = cfg.data;
+              ctx = cfg.context;
+              id = ctx ? ctx.cfg.id : '';
+              if (!dat.title) {
+                dat.title = cfg.node.query('.title');
+                dat.mode = cfg.node.query('.mode .button');
+                dat.config = cfg.node.query('.config .button');
               }
-              c.show[1].to.className = '+=on ' + c.nav.id;
-              a = c.context ? c.context.cfg.id : '';
-              d.title.$text = a ? this.title[a] : '';
-              d.title.html = d.title.$text;
-              if (a) {
-                c = c.template;
-                b = a === 'menu' ? 'return' : 'menu';
-                d.mode.$text = this.mode[b];
-                d.mode.$icon = c.querySelector('#' + b).innerHTML;
-                b = a === 'config' ? 'close' : 'config';
-                d.config.$text = this.config[b];
-                d.config.$icon = c.querySelector('#' + b).innerHTML;
+              cfg.node['class'].clear('on');
+              cfg.node['class'].add(id);
+              dat.title.$text = ctx && ctx.title ? ctx.title : '';
+              a = id === 'menu' ? 'return' : 'menu';
+              dat.mode.$text = this.mode[a];
+              dat.mode.$icon = cfg.template.querySelector('#' + a).innerHTML;
+              dat.mode.prop['data-id'] = 'mode';
+              dat.mode['class'].remove('hovered');
+              a = id === 'config' ? 'close' : 'config';
+              dat.config.$text = this.config[a];
+              dat.config.$icon = cfg.template.querySelector('#' + a).innerHTML;
+              dat.config.prop['data-id'] = 'config';
+              dat.config['class'].remove('hovered');
+              a = [id === 'config', id !== 'config' && (!ctx || !ctx.config)];
+              b = [dat.mode.node, dat.config.node];
+              c = [];
+              if (a[0]) {
+                c.push(b[0]);
               }
-              d.mode['class'].toggle('disabled', !a);
-              d.config['class'].toggle('disabled', !a);
-              d.buttonSwitch = function(){
-                var a;
-                a = [
-                  new TimelineLite({
-                    paused: true,
-                    ease: Power2.easeIn
-                  }), new TimelineLite({
-                    paused: true,
-                    ease: Power2.easeIn
-                  })
-                ];
-                a = [[a[0], 'text', 'icon'], [a[1], 'icon', 'text']];
-                a = a.map(function(a, index){
-                  a[0].to(d.mode.node, 0.4, {
-                    className: '-=' + a[1],
-                    scale: 0
-                  }, 0);
-                  a[0].to(d.config.node, 0.4, {
-                    className: '-=' + a[1],
-                    scale: 0
-                  }, 0);
-                  a[0].add((function(a){
-                    return function(){
-                      d.mode.html = d.mode[a];
-                      d.config.html = d.config[a];
-                    };
-                  }.call(this, '$' + a[2])));
-                  a[0].addLabel('L1');
-                  a[0].to(d.mode.node, 0.4, {
-                    className: '+=' + a[2],
-                    scale: 1
-                  }, 'L1');
-                  a[0].to(d.config.node, 0.4, {
-                    className: '+=' + a[2],
-                    scale: 1
-                  }, 'L1');
-                  a[0].add(function(){
-                    d.mode.prop.style = null;
-                    d.config.prop.style = null;
-                  });
-                  return a[0];
-                });
-                return a;
-              }();
-              d.buttonResize = function(){
-                var a, b, useIcon;
-                a = d.buttonResize;
-                b = d.buttonSwitch.some(function(a){
-                  return a.isActive();
-                });
-                if (b || d.mode.style.fontSize < 0.0001) {
-                  if (a.timer) {
-                    window.clearTimeout(a.timer);
-                  }
-                  a.timer = window.setTimeout(d.buttonResize, 500);
-                  return;
-                }
-                useIcon = [d.mode, d.config].some(function(el){
-                  var a;
-                  if (el.$text) {
-                    a = el.box.textMetrics(el.$text).width;
-                    if (el.box.innerWidth < a) {
-                      return true;
-                    }
-                  }
-                  return false;
-                });
-                a = d.mode['class'];
-                if (useIcon && !a.has('icon')) {
-                  a = 0;
-                } else if (!useIcon && !a.has('text')) {
-                  a = 1;
-                } else {
-                  return;
-                }
-                a = d.buttonSwitch[a];
-                a.play(0);
-              };
+              if (a[1]) {
+                c.push(b[1]);
+              }
+              d = [];
+              if (!a[0]) {
+                d.push(b[0]);
+              }
+              if (!a[1]) {
+                d.push(b[1]);
+              }
+              cfg.show[2].node = b;
+              cfg.show[3].enabled = a[0] || a[1];
+              cfg.show[3].node = c;
+              cfg.show[4].node = dat.title.node;
+              cfg.show[6].node = b;
+              cfg.hide[1].node = b;
+              cfg.hide[2].node = dat.title.node;
+              cfg.turn[1].node = dat.title.node;
+              cfg.turn[2].node = b;
+              cfg.turn[2].group[2].node = d;
+              dat.resizeAnim = V.animation.queue(cfg.node, [cfg.hide[1], cfg.show[6]]);
               return true;
             },
-            resize: function(){
-              var c, d, a, b;
+            resize: function(noAnimation){
+              var cfg, dat, a, c, b;
+              noAnimation == null && (noAnimation = false);
+              cfg = this.cfg;
+              dat = cfg.data;
+              a = dat.title.box.fontSize(dat.title.$text);
               c = V.el.wa.cfg;
-              d = this.cfg.data;
-              a = d.title.box.fontSize(d.title.$text);
               b = [c.fontSizeMin, c.fontSizeMax];
               if (a < b[0]) {
                 a = 0;
@@ -942,65 +1079,206 @@ w3ui && w3ui.ready(function(){
                 a = b[1];
               }
               c.node.style.fSize0 = a + 'px';
-              d.buttonResize();
-              return true;
+              a = dat.resizeAnim.isActive();
+              if (a) {
+                return true;
+              }
+              dat.useIcon = [dat.mode, dat.config].some(function(a){
+                var b;
+                if (a.$text && !a['class'].has('disabled')) {
+                  b = a.box.textMetrics(a.$text).width;
+                  if (a.box.innerWidth < b) {
+                    return true;
+                  }
+                }
+                return false;
+              });
+              b = dat.mode['class'].has('icon');
+              if (noAnimation || !(!dat.useIcon !== !b && (dat.useIcon || b))) {
+                return true;
+              }
+              return dat.resizeAnim.play(0);
             },
             show: [
-              {
-                duration: 0,
+              'beg', {
+                position: 'beg',
+                duration: 0.4,
                 to: {
-                  visibility: 'visible'
-                }
-              }, {
-                duration: 0.8,
-                to: {
-                  className: '',
+                  className: 'on',
                   opacity: 1,
                   ease: Power3.easeOut
                 }
+              }, {
+                position: 'beg',
+                node: null,
+                to: {
+                  scale: 0
+                }
+              }, {
+                position: 'beg',
+                node: null,
+                enabled: false,
+                to: {
+                  className: '+=disabled'
+                }
+              }, {
+                position: 'beg',
+                node: null,
+                group: [
+                  {
+                    to: {
+                      opacity: 0,
+                      scale: 0.4
+                    }
+                  }, function(){
+                    var a;
+                    a = this.cfg.data.title;
+                    a.html = a.$text;
+                  }, {
+                    duration: 0.4,
+                    to: {
+                      opacity: 1,
+                      scale: 1,
+                      ease: Back.easeOut
+                    }
+                  }
+                ]
               }, function(){
-                this.cfg.resize.call(this);
+                this.cfg.resize.call(this, true);
+              }, {
+                node: null,
+                group: [
+                  function(){
+                    var a, b;
+                    a = this.cfg.data;
+                    b = a.useIcon ? '$icon' : '$text';
+                    a.mode.html = a.mode[b];
+                    a.config.html = a.config[b];
+                    a.mode.$svg = a.mode.query('svg');
+                    a.config.$svg = a.config.query('svg');
+                    a.mode['class'].toggle('icon', a.useIcon);
+                    a.config['class'].toggle('icon', a.useIcon);
+                  }, {
+                    duration: 0.4,
+                    to: {
+                      scale: 1,
+                      ease: Back.easeOut
+                    }
+                  }
+                ]
               }
             ],
             hide: [
-              {
+              'beg', {
                 duration: 0.2,
+                node: null,
                 to: {
-                  opacity: 0,
+                  scale: 0,
                   ease: Power3.easeIn
                 }
               }, {
+                position: 'beg',
+                duration: 0.4,
+                node: null,
+                to: {
+                  scale: 0.2,
+                  opacity: 0,
+                  ease: Back.easeIn
+                }
+              }, {
+                position: '-=0.2',
                 duration: 0.4,
                 to: {
                   className: '',
                   ease: Power3.easeIn
                 }
               }
-            ]
-          },
-          attach: {
-            click: [
-              {
-                el: '.back .button',
-                id: 'back'
+            ],
+            turn: [
+              'beg', {
+                position: 'beg',
+                node: null,
+                group: [
+                  {
+                    duration: 0.4,
+                    to: {
+                      opacity: 0,
+                      scale: 0.4,
+                      ease: Power2.easeIn
+                    }
+                  }, function(){
+                    var a;
+                    a = this.cfg.data;
+                    a.title.html = a.title.$text;
+                  }, {
+                    duration: 0.4,
+                    to: {
+                      opacity: 1,
+                      scale: 1,
+                      ease: Back.easeOut
+                    }
+                  }
+                ]
               }, {
-                el: '.config .button',
-                id: 'config'
+                position: 'beg',
+                node: null,
+                group: [
+                  {
+                    duration: 0.2,
+                    to: {
+                      opacity: 0,
+                      scale: 0,
+                      ease: Power2.easeIn
+                    }
+                  }, function(){
+                    var a, b;
+                    a = this.cfg.data;
+                    b = a.useIcon ? '$icon' : '$text';
+                    a.mode.html = a.mode[b];
+                    a.config.html = a.config[b];
+                    a.mode.$svg = a.mode.query('svg');
+                    a.config.$svg = a.config.query('svg');
+                    a.mode['class'].toggle('icon', a.useIcon);
+                    a.config['class'].toggle('icon', a.useIcon);
+                  }, {
+                    duration: 0.4,
+                    node: null,
+                    to: {
+                      opacity: 1,
+                      scale: 1,
+                      ease: Power2.easeOut
+                    }
+                  }
+                ]
               }
-            ]
-          },
-          title: {
-            menu: 'Главное меню',
-            address: 'Картотека адресов',
-            config: 'Конфигурация'
+            ],
+            attach: {
+              pointerover: {
+                el: '.button',
+                id: ''
+              },
+              pointerout: {
+                el: '.button',
+                id: ''
+              },
+              click: [
+                {
+                  el: '.mode .button',
+                  id: 'mode'
+                }, {
+                  el: '.config .button',
+                  id: 'config'
+                }
+              ]
+            }
           },
           mode: {
-            menu: 'меню',
-            'return': 'возврат'
+            'return': 'возврат',
+            menu: 'меню'
           },
           config: {
-            config: 'настройки',
-            close: 'закрыть'
+            close: 'закрыть',
+            config: 'настройки'
           }
         },
         console: {
@@ -1008,14 +1286,15 @@ w3ui && w3ui.ready(function(){
             render: true,
             attach: true,
             init: function(){
-              this.cfg.show[1].to.className = '+=on ' + this.cfg.nav.id;
+              var cfg, id;
+              cfg = this.cfg;
+              id = cfg.nav.id;
+              cfg.node['class'].clear('on');
+              cfg.node['class'].add(id);
               return true;
             },
             resize: function(){
-              var a, ref$, own$ = {}.hasOwnProperty;
-              for (a in ref$ = this.cfg.data) if (own$.call(ref$, a)) {
-                delete this.cfg.data[a];
-              }
+              w3ui.clearObject(this.cfg.data);
               return this.cfg.refresh.call(this);
             },
             refresh: function(){
@@ -1025,38 +1304,57 @@ w3ui && w3ui.ready(function(){
               if (!b || !b.refresh) {
                 return true;
               }
-              return b.refresh.call(this, this.cfg.data);
+              return b.refresh.call(this);
             },
-            show: [
-              {
-                duration: 0,
-                to: {
-                  visibility: 'visible'
-                }
-              }, {
-                duration: 0.8,
-                to: {
-                  className: '',
-                  opacity: 1,
-                  ease: Power3.easeOut
-                }
+            show: [{
+              duration: 0.8,
+              to: {
+                className: '+=on',
+                ease: Power3.easeOut
               }
-            ],
-            hide: [
-              {
-                duration: 0.2,
-                to: {
-                  opacity: 0,
-                  ease: Power3.easeIn
-                }
-              }, {
-                duration: 0.4,
-                to: {
-                  className: '',
-                  ease: Power3.easeIn
-                }
+            }],
+            hide: [{
+              duration: 0.6,
+              to: {
+                className: '',
+                opacity: 0,
+                ease: Power3.easeIn
               }
-            ]
+            }],
+            turn: {
+              off: [
+                {
+                  duration: 0.4,
+                  to: {
+                    opacity: 0
+                  }
+                }, {
+                  to: {
+                    display: 'none'
+                  }
+                }
+              ],
+              on: [
+                {
+                  position: 0.4,
+                  label: 'beg'
+                }, {
+                  position: 'beg',
+                  to: {
+                    opacity: 0,
+                    scale: 0.5,
+                    clearProps: 'display'
+                  }
+                }, {
+                  position: 'beg',
+                  duration: 0.4,
+                  to: {
+                    opacity: 1,
+                    scale: 1
+                  }
+                }
+              ]
+            }
           },
           menu: {
             attach: {
@@ -1095,32 +1393,33 @@ w3ui && w3ui.ready(function(){
               }
             },
             render: function(){
-              var a, b, c, d;
-              a = this.data;
-              b = this.cfg.nav.current || 0;
+              var ctx, a, b, c, d;
+              ctx = this.cfg.context;
+              a = ctx.data;
+              b = ctx.cfg.nav.current || 0;
               c = a.length - 1;
-              d = a.map(function(item){
+              d = this.cfg.data;
+              d.list = a.map(function(a){
                 return {
-                  id: item.id,
-                  name: item.name
+                  id: a.id,
+                  name: a.name
                 };
               });
-              return {
-                list: d,
-                current: a[b].name,
-                prev: b
-                  ? a[b - 1].name
-                  : a[a.length - 1].name,
-                next: b === c
-                  ? a[0].name
-                  : a[b + 1].name
-              };
+              d.current = a[b].name;
+              d.prev = b
+                ? a[b - 1].name
+                : a[a.length - 1].name;
+              d.next = b === c
+                ? a[0].name
+                : a[b + 1].name;
+              return d;
             },
-            refresh: function(data){
-              var a, b, c, main;
+            refresh: function(){
+              var data, a, b, c, main;
+              data = this.cfg.data;
               if (!data.node) {
-                data.node = this.cfg.node.query('.carousel');
-                data.time = this.cfg.show[1].duration;
+                data.node = this.cfg.node.query('.menu');
+                data.time = this.cfg.show[0].duration;
               }
               if (!data.box) {
                 data.box = data.node.query('.item');
@@ -1219,6 +1518,16 @@ w3ui && w3ui.ready(function(){
               }
               return true;
             }
+          },
+          address: {
+            render: function(){
+              return {};
+            }
+          },
+          payment: {
+            render: function(){
+              return {};
+            }
           }
         }
       }
@@ -1235,14 +1544,14 @@ w3ui && w3ui.ready(function(){
       return true;
     },
     construct: function(){
-      var busy, lock, nav, id0, id1, level, pid, cancelThread, thread;
+      var busy, lock, nav, id0, id1, level, rid, cancelThread, thread;
       busy = false;
       lock = false;
       nav = null;
       id0 = '';
       id1 = '';
       level = 0;
-      pid = '';
+      rid = '';
       cancelThread = function(msg){
         if (msg) {
           console.log(msg);
@@ -1278,7 +1587,11 @@ w3ui && w3ui.ready(function(){
             M[level] = id0;
             return cancelThread('"' + id1 + '" not found');
           }
-          pid = a.cfg.parent.cfg.id;
+          a = a.cfg.parent;
+          if (a.cfg.parent) {
+            a = a.cfg.parent;
+          }
+          rid = a.cfg.id;
           if (!V.call('detach')) {
             return cancelThread('detach failed');
           }
@@ -1288,11 +1601,14 @@ w3ui && w3ui.ready(function(){
               lock = false;
             });
           }
+          if (!V.call('finit', id1)) {
+            return cancelThread('finit failed');
+          }
           return true;
         }, function(){
           return !lock;
         }, function(){
-          if (!V.call('render', pid, id0)) {
+          if (!V.call('render', rid, id0)) {
             return cancelThread('render failed');
           }
           if (!V.call('init')) {
@@ -1306,7 +1622,7 @@ w3ui && w3ui.ready(function(){
         }, function(){
           return !lock;
         }, function(){
-          ['resize', 'refresh', 'finit', 'attach'].every(function(a){
+          ['resize', 'refresh', 'attach'].forEach(function(a){
             return V.call(a);
           });
           nav = M.nav.map(function(a){
@@ -1379,6 +1695,50 @@ w3ui && w3ui.ready(function(){
     react: function(event, data, cfg, nav){
       var a, b, c, d, e, i$, ref$, len$, this$ = this;
       switch (cfg.id) {
+      case 'header':
+        switch (event.type) {
+        case 'pointerover':
+          a = event.currentTarget.dataset.id;
+          a = this.cfg.data[a];
+          if (this.cfg.data.useIcon) {
+            a.$svg['class'].add('hovered');
+          } else {
+            TweenLite.to(a.node, 0.6, {
+              className: '+=hovered',
+              ease: Power4.easeOut
+            });
+          }
+          break;
+        case 'pointerout':
+          a = event.currentTarget.dataset.id;
+          a = this.cfg.data[a];
+          if (this.cfg.data.useIcon) {
+            a.$svg['class'].remove('hovered');
+          } else {
+            TweenLite.to(a.node, 0.4, {
+              className: '-=hovered',
+              ease: Power4.easeIn
+            });
+          }
+          break;
+        case 'click':
+          a = event.currentTarget.dataset.id;
+          b = this.cfg.nav.id;
+          if (a === 'mode' && b === 'menu') {
+            break;
+          } else if (a === 'config') {
+            if (b === 'config') {
+              M[this.cfg.level] = M.nav[this.cfg.level + 1].current;
+            } else {
+              M[this.cfg.level] = 'config';
+              M.nav[this.cfg.level + 1].current = b;
+            }
+          } else {
+            M[this.cfg.level] = 'menu';
+          }
+          P.construct();
+        }
+        break;
       case 'menu':
         !data.change && (data.change = function(active){
           var a, b;
@@ -1590,3 +1950,8 @@ w3ui && w3ui.ready(function(){
     return P.init();
   }
 });
+function import$(obj, src){
+  var own = {}.hasOwnProperty;
+  for (var key in src) if (own.call(src, key)) obj[key] = src[key];
+  return obj;
+}
