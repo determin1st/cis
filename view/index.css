@@ -3,9 +3,13 @@
 @font-face
 {
   font-family: 'uiMenu';
+  src: url('font/RobotoCondensed.woff2') format('woff2'),
+       url('font/RobotoCondensed.woff')  format('woff');
+  /***
   src: url('font/AmericanCaptain.woff2') format('woff2'),
        url('font/AmericanCaptain.woff')  format('woff');
-  /***
+  src: url('font/Molot.woff2') format('woff2'),
+       url('font/Molot.woff')  format('woff');
   src: url('font/Troika.woff2') format('woff2'),
        url('font/Troika.woff')  format('woff');
   /***/
@@ -13,8 +17,8 @@
 @font-face
 {
   font-family: 'uiNav';
-  src: url('font/Molot.woff2') format('woff2'),
-       url('font/Molot.woff')  format('woff');
+  src: url('font/OpenSans.woff2') format('woff2'),
+       url('font/OpenSans.woff')  format('woff');
 }
 html
 {
