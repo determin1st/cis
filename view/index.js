@@ -1705,7 +1705,7 @@ w3ui && w3ui.ready(function(){
           } else {
             TweenLite.to(a.node, 0.6, {
               className: '+=hovered',
-              ease: Power4.easeOut
+              ease: Back.easeOut
             });
           }
           break;
@@ -1717,7 +1717,7 @@ w3ui && w3ui.ready(function(){
           } else {
             TweenLite.to(a.node, 0.4, {
               className: '-=hovered',
-              ease: Power4.easeIn
+              ease: Power3.easeIn
             });
           }
           break;

@@ -1794,7 +1794,7 @@ w3ui and w3ui.ready ->
                         # button
                         TweenLite.to a.node, 0.6, {
                             className: '+=hovered'
-                            ease: Power4.easeOut
+                            ease: Back.easeOut
                         }
                     # }}}
                 | 'pointerout' =>
@@ -1809,7 +1809,7 @@ w3ui and w3ui.ready ->
                         # button
                         TweenLite.to a.node, 0.4, {
                             className: '-=hovered'
-                            ease: Power4.easeIn
+                            ease: Power3.easeIn
                         }
                     # }}}
                 | 'click' =>

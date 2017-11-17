@@ -1,5 +1,21 @@
 /* CSSv3 */
 /* common {{{ */
+@font-face
+{
+  font-family: 'uiMenu';
+  src: url('font/AmericanCaptain.woff2') format('woff2'),
+       url('font/AmericanCaptain.woff')  format('woff');
+  /***
+  src: url('font/Troika.woff2') format('woff2'),
+       url('font/Troika.woff')  format('woff');
+  /***/
+}
+@font-face
+{
+  font-family: 'uiNav';
+  src: url('font/Molot.woff2') format('woff2'),
+       url('font/Molot.woff')  format('woff');
+}
 html
 {
   min-height: 100vh;
@@ -103,9 +119,9 @@ svg
   background-color: var(--col95);
   color: var(--col40);
   /* font */
-  --f-name: Segoe UI, Tahoma, Geneva, sans-serif;
+  font-family: uiMenu;
   --f-size-min: 18;
-  --f-size-max: 36;
+  --f-size-max: 60;
   /* dynamic */
   --f-size0: 0px;
   /* css dynamic */
@@ -118,9 +134,6 @@ svg
   --f-size7: calc(var(--f-size0) - 14px);
   --f-size8: calc(var(--f-size0) - 16px);
   --f-size9: calc(var(--f-size0) - 18px);
-  /**/
-  font-family: var(--f-name);
-  font-weight: 700;
 }
 #header  {flex: 0 0 0%;}
 #view    {flex: 9 9 90%;}
@@ -334,7 +347,6 @@ svg
   height: 100%;
 
   font-size: 20px;
-  font-weight: bold;
 }
 /** }}} */
 /** payment {{{ */
@@ -346,7 +358,6 @@ svg
   height: 100%;
 
   font-size: 20px;
-  font-weight: bold;
 }
 /** }}} */
 /* }}} */
@@ -354,6 +365,7 @@ svg
 /* menu {{{ */
 #menu
 {
+  font-family: uiNav;
   cursor: -webkit-grab;
   cursor: grab;
 }
@@ -394,7 +406,6 @@ svg
   color: var(--col40);
   border: 1px solid var(--col85);
   border-radius: 6px;
-  font-weight: 700;
   font-size: var(--f-size6);
   transition: All 0.6s ease;
 }
@@ -428,7 +439,6 @@ svg
 #address span
 {
   font-size: var(--f-size0);
-  font-weight: bold;
 }
 /* }}} */
 /* payment {{{ */
@@ -442,7 +452,6 @@ svg
 #payment span
 {
   font-size: var(--f-size0);
-  font-weight: bold;
 }
 /* }}} */
 /* config {{{ */
@@ -456,7 +465,6 @@ svg
 #config span
 {
   font-size: var(--f-size0);
-  font-weight: bold;
 }
 /* }}} */
 
