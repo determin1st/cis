@@ -1029,18 +1029,21 @@ w3ui and w3ui.ready ->
                             a = if id == 'menu'
                                 then 'return'
                                 else 'menu'
-                            dat.mode.$text = @mode[a]
-                            dat.mode.$icon = cfg.template.querySelector '#'+a .innerHTML
-                            dat.mode.prop['data-id'] = 'mode'
-                            dat.mode.class.remove 'hovered'
+                            b = dat.mode
+                            ##
+                            b.$text = @mode[a]
+                            b.$icon = cfg.template.querySelector '#'+a .innerHTML
+                            b.$anim.kill! if b.$anim
+                            b.prop.dataId = 'mode'
                             # config
                             a = if id == 'config'
                                 then 'close'
                                 else 'config'
-                            dat.config.$text = @config[a]
-                            dat.config.$icon = cfg.template.querySelector '#'+a .innerHTML
-                            dat.config.prop['data-id'] = 'config'
-                            dat.config.class.remove 'hovered'
+                            b = dat.config
+                            b.$text = @config[a]
+                            b.$icon = cfg.template.querySelector '#'+a .innerHTML
+                            b.$anim.kill! if b.$anim
+                            b.prop.dataId = 'config'
                             # }}}
                             # initialize animations
                             # {{{
@@ -1138,6 +1141,7 @@ w3ui and w3ui.ready ->
                                 position: 'beg'
                                 node: null
                                 to:
+                                    className: '-=hovered'
                                     scale: 0
                             }
                             # 3. DISABLE BUTTONS
@@ -1263,25 +1267,28 @@ w3ui and w3ui.ready ->
                                     {
                                         duration: 0.2
                                         to:
+                                            className: '-=hovered'
                                             opacity: 0
                                             scale: 0
                                             ease: Power2.easeIn
                                     }
                                     !->
                                         # prepare
-                                        a = @cfg.data
-                                        b = if a.useIcon
+                                        d = @cfg.data
+                                        a = d.mode
+                                        b = d.config
+                                        c = if d.useIcon
                                             then '$icon'
                                             else '$text'
                                         # set content
-                                        a.mode.html   = a.mode[b]
-                                        a.config.html = a.config[b]
+                                        a.html = a[c]
+                                        b.html = b[c]
                                         # get icons
-                                        a.mode.$svg   = a.mode.query 'svg'
-                                        a.config.$svg = a.config.query 'svg'
-                                        # set style
-                                        a.mode.class.toggle 'icon', a.useIcon
-                                        a.config.class.toggle 'icon', a.useIcon
+                                        a.$svg = a.query 'svg'
+                                        b.$svg = b.query 'svg'
+                                        # reset style
+                                        a.class.toggle 'icon', d.useIcon
+                                        b.class.toggle 'icon', d.useIcon
                                     {
                                         duration: 0.4
                                         node: null
@@ -1781,33 +1788,35 @@ w3ui and w3ui.ready ->
             switch cfg.id
             | 'header' =>
                 # {{{
+                # prepare
+                a = event.currentTarget.dataset.id
+                # kill hover animation
+                b = @cfg.data[a]
+                b.$anim.kill! if b.$anim
+                # proceed
                 switch event.type
                 | 'pointerover' =>
                     # hover
                     # {{{
-                    a = event.currentTarget.dataset.id
-                    a = @cfg.data[a]
                     if @cfg.data.useIcon
                         # icon
-                        a.$svg.class.add 'hovered'
+                        b.$svg.class.add 'hovered'
                     else
                         # button
-                        TweenLite.to a.node, 0.6, {
+                        b.$anim = TweenLite.to b.node, 0.6, {
                             className: '+=hovered'
-                            ease: Back.easeOut
+                            ease: Power3.easeOut
                         }
                     # }}}
                 | 'pointerout' =>
                     # unhover
                     # {{{
-                    a = event.currentTarget.dataset.id
-                    a = @cfg.data[a]
                     if @cfg.data.useIcon
                         # icon
-                        a.$svg.class.remove 'hovered'
+                        b.$svg.class.remove 'hovered'
                     else
                         # button
-                        TweenLite.to a.node, 0.4, {
+                        TweenLite.to b.node, 0.4, {
                             className: '-=hovered'
                             ease: Power3.easeIn
                         }
@@ -1815,7 +1824,6 @@ w3ui and w3ui.ready ->
                 | 'click' =>
                     # navigation
                     # {{{
-                    a = event.currentTarget.dataset.id
                     b = @cfg.nav.id
                     if a == 'mode' and b == 'menu'
                         # close main menu of workareas,

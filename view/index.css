@@ -3,13 +3,13 @@
 @font-face
 {
   font-family: 'uiMenu';
-  src: url('font/RobotoCondensed.woff2') format('woff2'),
-       url('font/RobotoCondensed.woff')  format('woff');
-  /***
   src: url('font/AmericanCaptain.woff2') format('woff2'),
        url('font/AmericanCaptain.woff')  format('woff');
-  src: url('font/Molot.woff2') format('woff2'),
-       url('font/Molot.woff')  format('woff');
+  /***
+  src: url('font/RobotoCondensed.woff2') format('woff2'),
+       url('font/RobotoCondensed.woff')  format('woff');
+  src: url('font/OpenSans.woff2') format('woff2'),
+       url('font/OpenSans.woff')  format('woff');
   src: url('font/Troika.woff2') format('woff2'),
        url('font/Troika.woff')  format('woff');
   /***/
@@ -17,8 +17,8 @@
 @font-face
 {
   font-family: 'uiNav';
-  src: url('font/OpenSans.woff2') format('woff2'),
-       url('font/OpenSans.woff')  format('woff');
+  src: url('font/Molot.woff2') format('woff2'),
+       url('font/Molot.woff')  format('woff');
 }
 html
 {
@@ -193,7 +193,7 @@ svg
 /* buttons */
 #header .button
 {
-  padding: 0 8px;
+  padding: 4px 8px 0 8px;
   font-size: var(--f-size8);
   background-color: var(--col90);
   border: 1px solid var(--col85);
@@ -212,8 +212,6 @@ svg
   font-size: 0;
   cursor: default;
 }
-
-
 #header .button svg
 {
   stroke: var(--col40);
@@ -223,9 +221,14 @@ svg
 /* HOVER */
 #header .button.hovered
 {
-  background-color: var(--col93);
+  background-color: var(--col95);
   font-size: var(--f-size7);
   color: var(--col30);
+  /***
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+  /***/
 }
 #header .button svg path
 {

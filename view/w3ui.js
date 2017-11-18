@@ -862,9 +862,15 @@ w3ui = function(){
       prop: {
         _proxy: true,
         get: function(data, key){
+          key = key.replace(/([A-Z])/g, function(a){
+            return '-' + a[0].toLowerCase();
+          });
           return data.node.getAttribute(key);
         },
         set: function(data, key, val){
+          key = key.replace(/([A-Z])/g, function(a){
+            return '-' + a[0].toLowerCase();
+          });
           if (val === null) {
             data.node.removeAttribute(key);
             return true;

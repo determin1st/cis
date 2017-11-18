@@ -1026,15 +1026,21 @@ w3ui && w3ui.ready(function(){
               cfg.node['class'].add(id);
               dat.title.$text = ctx && ctx.title ? ctx.title : '';
               a = id === 'menu' ? 'return' : 'menu';
-              dat.mode.$text = this.mode[a];
-              dat.mode.$icon = cfg.template.querySelector('#' + a).innerHTML;
-              dat.mode.prop['data-id'] = 'mode';
-              dat.mode['class'].remove('hovered');
+              b = dat.mode;
+              b.$text = this.mode[a];
+              b.$icon = cfg.template.querySelector('#' + a).innerHTML;
+              if (b.$anim) {
+                b.$anim.kill();
+              }
+              b.prop.dataId = 'mode';
               a = id === 'config' ? 'close' : 'config';
-              dat.config.$text = this.config[a];
-              dat.config.$icon = cfg.template.querySelector('#' + a).innerHTML;
-              dat.config.prop['data-id'] = 'config';
-              dat.config['class'].remove('hovered');
+              b = dat.config;
+              b.$text = this.config[a];
+              b.$icon = cfg.template.querySelector('#' + a).innerHTML;
+              if (b.$anim) {
+                b.$anim.kill();
+              }
+              b.prop.dataId = 'config';
               a = [id === 'config', id !== 'config' && (!ctx || !ctx.config)];
               b = [dat.mode.node, dat.config.node];
               c = [];
@@ -1112,6 +1118,7 @@ w3ui && w3ui.ready(function(){
                 position: 'beg',
                 node: null,
                 to: {
+                  className: '-=hovered',
                   scale: 0
                 }
               }, {
@@ -1226,20 +1233,23 @@ w3ui && w3ui.ready(function(){
                   {
                     duration: 0.2,
                     to: {
+                      className: '-=hovered',
                       opacity: 0,
                       scale: 0,
                       ease: Power2.easeIn
                     }
                   }, function(){
-                    var a, b;
-                    a = this.cfg.data;
-                    b = a.useIcon ? '$icon' : '$text';
-                    a.mode.html = a.mode[b];
-                    a.config.html = a.config[b];
-                    a.mode.$svg = a.mode.query('svg');
-                    a.config.$svg = a.config.query('svg');
-                    a.mode['class'].toggle('icon', a.useIcon);
-                    a.config['class'].toggle('icon', a.useIcon);
+                    var d, a, b, c;
+                    d = this.cfg.data;
+                    a = d.mode;
+                    b = d.config;
+                    c = d.useIcon ? '$icon' : '$text';
+                    a.html = a[c];
+                    b.html = b[c];
+                    a.$svg = a.query('svg');
+                    b.$svg = b.query('svg');
+                    a['class'].toggle('icon', d.useIcon);
+                    b['class'].toggle('icon', d.useIcon);
                   }, {
                     duration: 0.4,
                     node: null,
@@ -1696,33 +1706,33 @@ w3ui && w3ui.ready(function(){
       var a, b, c, d, e, i$, ref$, len$, this$ = this;
       switch (cfg.id) {
       case 'header':
+        a = event.currentTarget.dataset.id;
+        b = this.cfg.data[a];
+        if (b.$anim) {
+          b.$anim.kill();
+        }
         switch (event.type) {
         case 'pointerover':
-          a = event.currentTarget.dataset.id;
-          a = this.cfg.data[a];
           if (this.cfg.data.useIcon) {
-            a.$svg['class'].add('hovered');
+            b.$svg['class'].add('hovered');
           } else {
-            TweenLite.to(a.node, 0.6, {
+            b.$anim = TweenLite.to(b.node, 0.6, {
               className: '+=hovered',
-              ease: Back.easeOut
+              ease: Power3.easeOut
             });
           }
           break;
         case 'pointerout':
-          a = event.currentTarget.dataset.id;
-          a = this.cfg.data[a];
           if (this.cfg.data.useIcon) {
-            a.$svg['class'].remove('hovered');
+            b.$svg['class'].remove('hovered');
           } else {
-            TweenLite.to(a.node, 0.4, {
+            TweenLite.to(b.node, 0.4, {
               className: '-=hovered',
               ease: Power3.easeIn
             });
           }
           break;
         case 'click':
-          a = event.currentTarget.dataset.id;
           b = this.cfg.nav.id;
           if (a === 'mode' && b === 'menu') {
             break;
