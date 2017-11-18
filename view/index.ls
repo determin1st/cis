@@ -252,8 +252,10 @@ w3ui and w3ui.ready ->
                     return api[key].bind obj if api[key]
                     return Reflect.get obj, key
             # }}}
-            addTweens = (node, timeline, source) !-> # {{{
+            addTweens = (node, timeline, source, noPosition) !-> # {{{
                 # get DOM nodes
+                if not node or ('length' of node and not node.length)
+                    return
                 if 'w3ui' of node
                     node = node.w3ui.group
                 # iterate
@@ -261,14 +263,14 @@ w3ui and w3ui.ready ->
                     switch typeof a
                     # tween
                     | 'object' =>
-                        # check enabled
-                        if a.enabled == false
-                            break
                         # prepare
                         node := a.node if a.node
-                        pos = if a.position
+                        pos = if a.position and not noPosition
                             then a.position
                             else '+=0'
+                        # check node
+                        if not node or ('length' of node and not node.length)
+                            break
                         # check object type
                         # label
                         if a.label
@@ -341,7 +343,7 @@ w3ui and w3ui.ready ->
                     # create timeline
                     a = new TimelineLite {paused:true}
                     # add tweens
-                    addTweens node, a, queue
+                    addTweens node, a, queue, true
                     # done
                     return a
                 # }}}
@@ -1076,11 +1078,12 @@ w3ui and w3ui.ready ->
                             d.push b.0 if not a.0
                             d.push b.1 if not a.1
                             # set
-                            cfg.show.2.node = b
-                            cfg.show.3.enabled = a.0 or a.1
-                            cfg.show.3.node = c
+                            a = cfg.show.0.group
+                            a.0.node = dat.title.node
+                            a.2.node = c
+                            a.3.node = b
                             cfg.show.4.node = dat.title.node
-                            cfg.show.6.node = b
+                            cfg.show.5.node = b
                             ##
                             cfg.hide.1.node = b
                             cfg.hide.2.node = dat.title.node
@@ -1091,7 +1094,7 @@ w3ui and w3ui.ready ->
                             ##
                             dat.resizeAnim = V.animation.queue cfg.node, [
                                 cfg.hide.1
-                                cfg.show.6
+                                cfg.show.5
                             ]
                             # }}}
                             # done
@@ -1138,7 +1141,34 @@ w3ui and w3ui.ready ->
                             return dat.resizeAnim.play 0
                         # }}}
                         show: # {{{
-                            'beg'
+                            # 0. PREPARE TITLE and BUTTONS
+                            {
+                                group:
+                                    # 0. TITLE HIDE
+                                    {
+                                        node: null
+                                        to:
+                                            opacity: 0
+                                            scale: 0
+                                    }
+                                    # 1. TITLE SET
+                                    !->
+                                        a = @cfg.data.title
+                                        a.html = a.$text
+                                    # 2. BUTTONS DISABLE
+                                    {
+                                        node: null
+                                        to:
+                                            className: '+=disabled'
+                                    }
+                                    # 3. BUTTONS UN-HOVER and HIDE
+                                    {
+                                        node: null
+                                        to:
+                                            className: '-=hovered'
+                                            scale: 0
+                                    }
+                            }
                             # 1. SHOW CONTAINER
                             {
                                 position: 'beg'
@@ -1148,50 +1178,26 @@ w3ui and w3ui.ready ->
                                     opacity: 1
                                     ease: Power3.easeOut
                             }
-                            # 2. HIDE BUTTONS
+                            # 2. RESIZE
+                            !-> @cfg.resize.call @, true
+                            # 3. LABEL
+                            'show'
+                            # 4. SHOW TITLE
                             {
-                                position: 'beg'
+                                position: 'show'
                                 node: null
+                                duration: 0.6
                                 to:
-                                    className: '-=hovered'
-                                    scale: 0
+                                    opacity: 1
+                                    scale: 1
+                                    ease: Back.easeOut
                             }
-                            # 3. DISABLE BUTTONS
+                            # 5. SHOW BUTTONS
                             {
-                                position: 'beg'
-                                node: null
-                                enabled: false
-                                to:
-                                    className: '+=disabled'
-                            }
-                            # 4. SET and SHOW TITLE
-                            {
-                                position: 'beg'
+                                position: 'show'
                                 node: null
                                 group:
-                                    {
-                                        to:
-                                            opacity: 0
-                                            scale: 0.4
-                                    }
-                                    !->
-                                        a = @cfg.data.title
-                                        a.html = a.$text
-                                    {
-                                        duration: 0.4
-                                        to:
-                                            opacity: 1
-                                            scale: 1
-                                            ease: Back.easeOut
-                                    }
-                            }
-                            # 5. RESIZE
-                            !->
-                                @cfg.resize.call @, true
-                            # 6. SET and SHOW BUTTONS
-                            {
-                                node: null
-                                group:
+                                    # SET
                                     !->
                                         # prepare
                                         a = @cfg.data
@@ -1207,6 +1213,7 @@ w3ui and w3ui.ready ->
                                         # set style
                                         a.mode.class.toggle 'icon', a.useIcon
                                         a.config.class.toggle 'icon', a.useIcon
+                                    # SHOW
                                     {
                                         duration: 0.4
                                         to:
@@ -1220,10 +1227,12 @@ w3ui and w3ui.ready ->
                             'beg'
                             # 1. HIDE BUTTONS
                             {
-                                duration: 0.2
+                                position: 'beg'
+                                duration: 0.4
                                 node: null
                                 to:
                                     scale: 0
+                                    opacity: 0
                                     ease: Power3.easeIn
                             }
                             # 2. HIDE TITLE
@@ -1232,13 +1241,12 @@ w3ui and w3ui.ready ->
                                 duration: 0.4
                                 node: null
                                 to:
-                                    scale: 0.2
+                                    scale: 0
                                     opacity: 0
-                                    ease: Back.easeIn
+                                    ease: Power3.easeIn
                             }
                             # 3. HIDE CONTAINER
                             {
-                                position: '-=0.2'
                                 duration: 0.4
                                 to:
                                     className: ''
@@ -1253,16 +1261,19 @@ w3ui and w3ui.ready ->
                                 position: 'beg'
                                 node: null
                                 group:
+                                    # 0. HIDE
                                     {
                                         duration: 0.4
                                         to:
                                             opacity: 0
-                                            scale: 0.4
+                                            scale: 0.6
                                             ease: Power2.easeIn
                                     }
+                                    # 1. SET
                                     !->
                                         a = @cfg.data
                                         a.title.html = a.title.$text
+                                    # 2. SHOW
                                     {
                                         duration: 0.4
                                         to:
@@ -1276,14 +1287,16 @@ w3ui and w3ui.ready ->
                                 position: 'beg'
                                 node: null
                                 group:
+                                    # 0. HIDE
                                     {
                                         duration: 0.2
                                         to:
                                             className: '-=hovered'
                                             opacity: 0
-                                            scale: 0
+                                            scale: 0.8
                                             ease: Power2.easeIn
                                     }
+                                    # 1. SET
                                     !->
                                         # prepare
                                         d = @cfg.data
@@ -1301,6 +1314,7 @@ w3ui and w3ui.ready ->
                                         # reset style
                                         a.class.toggle 'icon', d.useIcon
                                         b.class.toggle 'icon', d.useIcon
+                                    # 2. SHOW
                                     {
                                         duration: 0.4
                                         node: null

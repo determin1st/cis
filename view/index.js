@@ -265,7 +265,10 @@ w3ui && w3ui.ready(function(){
           return Reflect.get(obj, key);
         }
       };
-      addTweens = function(node, timeline, source){
+      addTweens = function(node, timeline, source, noPosition){
+        if (!node || ('length' in node && !node.length)) {
+          return;
+        }
         if ('w3ui' in node) {
           node = node.w3ui.group;
         }
@@ -273,13 +276,13 @@ w3ui && w3ui.ready(function(){
           var pos, b;
           switch (typeof a) {
           case 'object':
-            if (a.enabled === false) {
-              break;
-            }
             if (a.node) {
               node = a.node;
             }
-            pos = a.position ? a.position : '+=0';
+            pos = a.position && !noPosition ? a.position : '+=0';
+            if (!node || ('length' in node && !node.length)) {
+              break;
+            }
             if (a.label) {
               timeline.addLabel(a.label, pos);
               break;
@@ -354,7 +357,7 @@ w3ui && w3ui.ready(function(){
           a = new TimelineLite({
             paused: true
           });
-          addTweens(node, a, queue);
+          addTweens(node, a, queue, true);
           return a;
         },
         hide: function(id, onComplete){
@@ -1063,17 +1066,18 @@ w3ui && w3ui.ready(function(){
               if (!a[1]) {
                 d.push(b[1]);
               }
-              cfg.show[2].node = b;
-              cfg.show[3].enabled = a[0] || a[1];
-              cfg.show[3].node = c;
+              a = cfg.show[0].group;
+              a[0].node = dat.title.node;
+              a[2].node = c;
+              a[3].node = b;
               cfg.show[4].node = dat.title.node;
-              cfg.show[6].node = b;
+              cfg.show[5].node = b;
               cfg.hide[1].node = b;
               cfg.hide[2].node = dat.title.node;
               cfg.turn[1].node = dat.title.node;
               cfg.turn[2].node = b;
               cfg.turn[2].group[2].node = d;
-              dat.resizeAnim = V.animation.queue(cfg.node, [cfg.hide[1], cfg.show[6]]);
+              dat.resizeAnim = V.animation.queue(cfg.node, [cfg.hide[1], cfg.show[5]]);
               return true;
             },
             resize: function(noAnimation){
@@ -1112,7 +1116,32 @@ w3ui && w3ui.ready(function(){
               return dat.resizeAnim.play(0);
             },
             show: [
-              'beg', {
+              {
+                group: [
+                  {
+                    node: null,
+                    to: {
+                      opacity: 0,
+                      scale: 0
+                    }
+                  }, function(){
+                    var a;
+                    a = this.cfg.data.title;
+                    a.html = a.$text;
+                  }, {
+                    node: null,
+                    to: {
+                      className: '+=disabled'
+                    }
+                  }, {
+                    node: null,
+                    to: {
+                      className: '-=hovered',
+                      scale: 0
+                    }
+                  }
+                ]
+              }, {
                 position: 'beg',
                 duration: 0.4,
                 to: {
@@ -1120,45 +1149,19 @@ w3ui && w3ui.ready(function(){
                   opacity: 1,
                   ease: Power3.easeOut
                 }
-              }, {
-                position: 'beg',
-                node: null,
-                to: {
-                  className: '-=hovered',
-                  scale: 0
-                }
-              }, {
-                position: 'beg',
-                node: null,
-                enabled: false,
-                to: {
-                  className: '+=disabled'
-                }
-              }, {
-                position: 'beg',
-                node: null,
-                group: [
-                  {
-                    to: {
-                      opacity: 0,
-                      scale: 0.4
-                    }
-                  }, function(){
-                    var a;
-                    a = this.cfg.data.title;
-                    a.html = a.$text;
-                  }, {
-                    duration: 0.4,
-                    to: {
-                      opacity: 1,
-                      scale: 1,
-                      ease: Back.easeOut
-                    }
-                  }
-                ]
               }, function(){
                 this.cfg.resize.call(this, true);
+              }, 'show', {
+                position: 'show',
+                node: null,
+                duration: 0.6,
+                to: {
+                  opacity: 1,
+                  scale: 1,
+                  ease: Back.easeOut
+                }
               }, {
+                position: 'show',
                 node: null,
                 group: [
                   function(){
@@ -1183,10 +1186,12 @@ w3ui && w3ui.ready(function(){
             ],
             hide: [
               'beg', {
-                duration: 0.2,
+                position: 'beg',
+                duration: 0.4,
                 node: null,
                 to: {
                   scale: 0,
+                  opacity: 0,
                   ease: Power3.easeIn
                 }
               }, {
@@ -1194,12 +1199,11 @@ w3ui && w3ui.ready(function(){
                 duration: 0.4,
                 node: null,
                 to: {
-                  scale: 0.2,
+                  scale: 0,
                   opacity: 0,
-                  ease: Back.easeIn
+                  ease: Power3.easeIn
                 }
               }, {
-                position: '-=0.2',
                 duration: 0.4,
                 to: {
                   className: '',
@@ -1216,7 +1220,7 @@ w3ui && w3ui.ready(function(){
                     duration: 0.4,
                     to: {
                       opacity: 0,
-                      scale: 0.4,
+                      scale: 0.6,
                       ease: Power2.easeIn
                     }
                   }, function(){
@@ -1241,7 +1245,7 @@ w3ui && w3ui.ready(function(){
                     to: {
                       className: '-=hovered',
                       opacity: 0,
-                      scale: 0,
+                      scale: 0.8,
                       ease: Power2.easeIn
                     }
                   }, function(){
