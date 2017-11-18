@@ -386,7 +386,7 @@ w3ui and w3ui.ready ->
                     x = new TimelineLite {
                         paused: true
                     }
-                    x.addLabel 'start'
+                    x.addLabel 'turn'
                     # TURN transition (old ~> new)
                     # {{{
                     node   = @el[id1].cfg
@@ -415,7 +415,7 @@ w3ui and w3ui.ready ->
                                 if turn
                                     a = new TimelineLite {paused: true}
                                     addTweens parent.cfg.node, a, turn
-                                    x.add a.play!, 'start'
+                                    x.add a.play!, 'turn'
                                 return
                             # get old node
                             if flag
@@ -444,20 +444,32 @@ w3ui and w3ui.ready ->
                                     else turn.off
                             # turn on
                             if el1
+                                # create effect
+                                a = new TimelineLite {paused: true}
+                                # show parent,
+                                # if there is no old node
+                                if not old and parent.cfg.show
+                                    addTweens parent.cfg.node, a, parent.cfg.show
                                 # clear display property (for primary parent)
                                 not flag and x.add !->
                                     el1.node.style.display = null
-                                , 'start'
-                                # add effects
-                                a = new TimelineLite {paused: true}
+                                , 'turn'
+                                # turn on new node
                                 addTweens el1.node, a, turn.on
-                                x.add a.play!, 'start'
+                                # nest
+                                x.add a.play!, 'turn'
                             # turn off
                             if old
-                                # add effects
+                                # create effect
                                 a = new TimelineLite {paused: true}
+                                # turn off old node
                                 addTweens old, a, turn.off
-                                x.add a.play!, 'start'
+                                # hide parent,
+                                # if there is no new node
+                                if not el1 and parent.cfg.hide
+                                    addTweens parent.cfg.node, a, parent.cfg.hide
+                                # nest
+                                x.add a.play!, 'turn'
                                 # add old node remover
                                 x.add !->
                                     parent.cfg.node.child.remove old
@@ -1361,6 +1373,7 @@ w3ui and w3ui.ready ->
                                 duration: 0.8
                                 to:
                                     className: '+=on'
+                                    opacity: 1
                                     ease: Power3.easeOut
                             }
                             ...

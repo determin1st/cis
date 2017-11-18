@@ -392,7 +392,7 @@ w3ui && w3ui.ready(function(){
           x = new TimelineLite({
             paused: true
           });
-          x.addLabel('start');
+          x.addLabel('turn');
           node = this$.el[id1].cfg;
           parent = node.parent;
           if (id0 && (c = parent.cfg.parent)) {
@@ -418,7 +418,7 @@ w3ui && w3ui.ready(function(){
                     paused: true
                   });
                   addTweens(parent.cfg.node, a, turn);
-                  x.add(a.play(), 'start');
+                  x.add(a.play(), 'turn');
                 }
                 return;
               }
@@ -449,21 +449,27 @@ w3ui && w3ui.ready(function(){
                   : turn.off
               };
               if (el1) {
-                !flag && x.add(function(){
-                  el1.node.style.display = null;
-                }, 'start');
                 a = new TimelineLite({
                   paused: true
                 });
+                if (!old && parent.cfg.show) {
+                  addTweens(parent.cfg.node, a, parent.cfg.show);
+                }
+                !flag && x.add(function(){
+                  el1.node.style.display = null;
+                }, 'turn');
                 addTweens(el1.node, a, turn.on);
-                x.add(a.play(), 'start');
+                x.add(a.play(), 'turn');
               }
               if (old) {
                 a = new TimelineLite({
                   paused: true
                 });
                 addTweens(old, a, turn.off);
-                x.add(a.play(), 'start');
+                if (!el1 && parent.cfg.hide) {
+                  addTweens(parent.cfg.node, a, parent.cfg.hide);
+                }
+                x.add(a.play(), 'turn');
                 x.add(function(){
                   parent.cfg.node.child.remove(old);
                   delete el0.node;
@@ -1320,6 +1326,7 @@ w3ui && w3ui.ready(function(){
               duration: 0.8,
               to: {
                 className: '+=on',
+                opacity: 1,
                 ease: Power3.easeOut
               }
             }],
