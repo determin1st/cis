@@ -8,5 +8,5 @@ cis ~ web application.
 
 **Tests**
 
-https://rawgit.com/determin1st/cis/master/view/index.html
+https://rawgit.com/determin1st/cis/master/index.html
 
