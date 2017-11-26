@@ -1,5 +1,5 @@
 app/
-view/w3ui
+w3ui/
 *.vim
 *.swp
 
