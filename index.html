@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>cis</title>
+    <link type='text/css' rel='stylesheet' href='w3ui.css'>
     <link type='text/css' rel='stylesheet' href='index.css'>
     <link rel='icon' href='img/triangle1.png'>
     <meta name='viewport' content='width=device-width,initial-scale=0.7'>
@@ -109,6 +110,35 @@
             <span>payment controls</span>
           </div>
         </div>
+      </div>
+      <!-- }}} -->
+      <!-- demo -->
+      <!-- w3demo {{{ -->
+      <div id='t-w3demo'>
+        <div id='w3demo'>
+          <div id='sidebar'>list selector</div>
+          <div id='view'></div>
+        </div>
+      </div>
+      <!-- }}} -->
+      <!-- sidebar {{{ -->
+      <div id='t-w3demo-sidebar'>
+        {{list}}
+          <div class='button'>{{{name}}}</div>
+        {{/list}}
+      </div>
+      <!-- }}} -->
+      <!-- view {{{ -->
+      <div id='t-w3demo-view-intro'>
+        <div id='intro'>
+          {{#data}}
+            <h1>{{title}}</h1>
+            <p>{{text}}</p>
+          {{/data}}
+        </div>
+      </div>
+      <div id='t-w3demo-view-widget'>
+        <div id='widget'></div>
       </div>
       <!-- }}} -->
       <!-- ... -->

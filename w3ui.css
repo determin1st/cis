@@ -1,0 +1,60 @@
+.w3ui {
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
+}
+.w3ui.accordion {
+  display: flex;
+  flex-direction: column;
+}
+.w3ui.accordion .title {
+  height: 0;
+  font-size: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--col90);
+  font-weight: bold;
+}
+.w3ui.accordion .content {
+  height: 0;
+  font-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+.w3ui.slider {
+  position: relative;
+}
+.w3ui.slider.horizontal {
+  height: 1em;
+}
+.w3ui.slider.vertical {
+  width: 1em;
+}
+.w3ui.slider .handle {
+  position: absolute;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  outline: none;
+  cursor: default;
+  touch-action: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.w3ui.slider.horizontal .range {
+  height: 100%;
+}
+.w3ui.slider.vertical .range {
+  width: 100%;
+}
+.w3ui.slider .range {
+  position: absolute;
+  z-index: 1;
+  border-width: 0;
+  border-style: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+/* vim: set et ts=4 sw=4 sts=4 fdm=marker fenc=utf-8 ff=unix: */

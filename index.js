@@ -2,7 +2,7 @@
 'use strict';
 w3ui && w3ui.app({
   M: {
-    navDefault: ['wa', 'view', 'menu']
+    navDefault: ['w3demo', 'view', 'widget', 'accordion']
   },
   V: {
     ui: {
@@ -885,6 +885,72 @@ w3ui && w3ui.app({
           payment: {
             render: function(){
               return {};
+            }
+          }
+        }
+      },
+      w3demo: {
+        cfg: {
+          empty: true
+        },
+        view: {
+          cfg: {
+            render: true
+          },
+          intro: {
+            cfg: {
+              empty: true
+            },
+            data: [{
+              title: 'Документация w3ui',
+              text: 'bla bla bla'
+            }]
+          },
+          widget: {
+            cfg: {
+              init: function(){
+                var a, b;
+                a = this.cfg.nav.id;
+                b = w3ui[a](this.cfg.node, this[a].options);
+                this.cfg.data.widget = b;
+                return true;
+              }
+            },
+            accordion: {
+              title: 'аккордеон',
+              options: {
+                panels: [
+                  {
+                    name: 'test1',
+                    val: 'text1'
+                  }, {
+                    name: 'test2',
+                    val: [
+                      {
+                        name: 'test2-1',
+                        val: 'text2-1'
+                      }, {
+                        name: 'test2-2',
+                        val: 'text2-2'
+                      }
+                    ]
+                  }, {
+                    name: 'test3',
+                    val: 'text3'
+                  }
+                ]
+              }
+            },
+            slider: {
+              title: 'слайдер'
+            }
+          }
+        },
+        sidebar: {
+          cfg: {
+            render: false,
+            init: function(){
+              return true;
             }
           }
         }

@@ -1,0 +1,509 @@
+/* CSSv3 */
+/* common {{{ */
+@font-face
+{
+  font-family: 'uiMenu';
+  src: url('font/AmericanCaptain.woff2') format('woff2'),
+       url('font/AmericanCaptain.woff')  format('woff');
+  /***
+  src: url('font/RobotoCondensed.woff2') format('woff2'),
+       url('font/RobotoCondensed.woff')  format('woff');
+  src: url('font/OpenSans.woff2') format('woff2'),
+       url('font/OpenSans.woff')  format('woff');
+  src: url('font/Troika.woff2') format('woff2'),
+       url('font/Troika.woff')  format('woff');
+  /***/
+}
+@font-face
+{
+  font-family: 'uiNav';
+  src: url('font/Molot.woff2') format('woff2'),
+       url('font/Molot.woff')  format('woff');
+}
+html
+{
+  min-height: 100vh;
+  min-width: 100vw;
+  height: 100%;
+  width: 100%;
+  /* colors {{{ */
+  /* default: ALICE BLUE */
+  /* main */
+  --col-h: 211;/* hue */
+  --col-s:  92;/* saturation */
+  /* opaque */
+  --col99: hsl(211, 92%, 99%);
+  --col95: hsl(211, 92%, 95%);
+  --col94: hsl(211, 92%, 94%);
+  --col93: hsl(211, 92%, 93%);
+  --col92: hsl(211, 92%, 92%);
+  --col90: hsl(211, 92%, 90%);
+  --col88: hsl(211, 92%, 88%);
+  --col87: hsl(211, 92%, 87%);
+  --col85: hsl(211, 92%, 85%);
+  --col84: hsl(211, 92%, 84%);
+  --col83: hsl(211, 92%, 83%);
+  --col82: hsl(211, 92%, 82%);
+  --col80: hsl(211, 92%, 80%);
+  --col77: hsl(211, 92%, 77%);
+  --col75: hsl(211, 92%, 75%);
+  --col73: hsl(211, 92%, 73%);
+  --col70: hsl(211, 92%, 70%);
+  --col65: hsl(211, 92%, 65%);
+  --col60: hsl(211, 92%, 60%);
+  --col55: hsl(211, 92%, 55%);
+  --col50: hsl(211, 92%, 50%);
+  --col40: hsl(211, 92%, 40%);
+  --col35: hsl(211, 92%, 35%);
+  --col30: hsl(211, 92%, 30%);
+  --col20: hsl(211, 92%, 20%);
+  /* transparent */
+  --col95a: hsla(211, 92%, 95%, 0);
+  --col90a: hsla(211, 92%, 90%, 0);
+  --col85a: hsla(211, 92%, 85%, 0);
+  --col80a: hsla(211, 92%, 80%, 0);
+  /* gradients */
+  --gr0: linear-gradient(--col90, --col95a 20%, --col95a 80%, --col90);
+  --gr1: linear-gradient(to right, --col90, --col95a 10%, --col95a 90%, --col90);
+  --gr2: radial-gradient(ellipse, transparent, --col90 75%);
+  --gr3: radial-gradient(ellipse, --col90 25%, transparent 75%);
+  /* }}} */
+  --v-width: 0;
+  --v-height: 0;
+}
+body
+{
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  background-color: var(--col99);/**/
+  color: var(--col40);
+  font-family: 'uiMenu';
+}
+div
+{
+  box-sizing: border-box;
+}
+svg
+{
+  height: 100%;
+  width: 100%;
+  overflow: visible;
+}
+.button, .title
+{
+  -webkit-user-select: none;
+  user-select: none;
+}
+.button
+{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  white-space: nowrap;
+}
+#ui
+{
+  height: 100%;
+  width: 100%;
+}
+/* }}} */
+
+
+/* workarea {{{ */
+#wa
+{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    ////
+    overflow: hidden;
+    background-color: var(--col95);
+    color: var(--col40);
+    // font
+    font-family: uiMenu;
+    --f-size-min: 18;
+    --f-size-max: 60;
+    /* dynamic */
+    --f-size0: 0px;
+    /* css dynamic */
+    --f-size1: calc(var(--f-size0) - 2px);
+    --f-size2: calc(var(--f-size0) - 4px);
+    --f-size3: calc(var(--f-size0) - 6px);
+    --f-size4: calc(var(--f-size0) - 8px);
+    --f-size5: calc(var(--f-size0) - 10px);
+    --f-size6: calc(var(--f-size0) - 12px);
+    --f-size7: calc(var(--f-size0) - 14px);
+    --f-size8: calc(var(--f-size0) - 16px);
+    --f-size9: calc(var(--f-size0) - 18px);
+    ////
+    // header {{{
+    &#header
+    {
+        display: flex;
+        max-height: 64px;
+        padding: 0 2px;
+        //
+        &.on {
+        flex: 1 1 10%;
+        min-height: 32px;
+        }
+    }
+    &#header > div
+    {
+        min-width: 0;
+        min-height: 100%;
+        padding: 4px 0;
+    }
+    #header .mode,
+    #header .config
+    {
+    flex: 2 2;
+    width: 20%;
+    }
+    #header .title
+    {
+    flex: 8 8;
+    width: 80%;
+    padding: 4px 0;
+    /**/
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;
+    font-size: var(--f-size0);
+    }
+    /* buttons */
+    #header .button
+    {
+    padding: 4px 8px 0 8px;
+    font-size: var(--f-size8);
+    background-color: var(--col90);
+    border: 1px solid var(--col85);
+    border-radius: 6px;
+    cursor: pointer;
+    }
+    #header .button.icon
+    {
+    background-color: transparent;
+    border: 0;
+    }
+    #header .button.disabled
+    {
+    background-color: transparent;
+    border: 1px solid var(--col90);
+    font-size: 0;
+    cursor: default;
+    }
+    #header .button svg
+    {
+    stroke: var(--col40);
+    stroke-width: 6;
+    fill: var(--col90);
+    }
+    /* HOVER */
+    #header .button.hovered
+    {
+    background-color: var(--col95);
+    font-size: var(--f-size7);
+    color: var(--col30);
+    /***
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    /***/
+    }
+    #header .button svg path
+    {
+    transition: all 0.6s ease-out;
+    }
+    #header .button svg.hovered path
+    {
+    //filter: drop-shadow(0 0 50px hsl(var(--col-h), var(--col-s)%, 40%));
+    }
+    /* }}} */
+}
+#wa > div
+{
+  min-height: 0;
+  min-width: 80px;
+}
+#wa .separator
+{
+  flex: 0 0;
+  min-height: 4px;
+  background-color: var(--col93);
+  border: 1px solid var(--col85);
+  border-radius: 2px;
+}
+#header  {flex: 0 0 0%;}
+#view    {flex: 9 9 90%;}
+#console {flex: 0 0 0%;}
+/* view  {{{ */
+#view
+{
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+#view > div
+{
+  flex: 1 1;
+  position: absolute; /* flexbox trick! */
+  width: 100%;/***/
+  height: 100%;/***/
+  background-color: var(--col95);
+}
+#view > .color
+{
+  background-color: var(--col90);
+}
+/* }}} */
+/* console {{{ */
+#console.on
+{
+  flex: 2 2 10%;
+  min-height: 32px;
+  max-height: 80px;
+}
+/** menu {{{ */
+#console .menu
+{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  padding: 0 2px;
+}
+#console .menu .item
+{
+  flex: 2.5 2.5;
+  width: 25%;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 100%;
+  padding: 8px 0 8px 0;
+}
+#console .menu .item.hidden
+{
+  flex: 0 0 0;
+  display: none;
+}
+#console .menu .item.active
+{
+  flex: 5 5;
+  width: 50%;
+  padding: 4px 0 4px 0;
+}
+#console .menu .item.hover
+{
+  padding: 6px 0 6px 0;
+}
+/***/
+#console .menu .button
+{
+  font-size: var(--f-size8);
+  background-color: var(--col93);
+  border: 1px solid var(--col85);
+}
+#console .menu .button.center
+{
+  font-size: var(--f-size4);
+  background-color: var(--col95);
+  border-radius: 6px;
+}
+#console .menu .button.left
+{
+  cursor: pointer;
+  border-right: 0;
+}
+#console .menu .button.right
+{
+  cursor: pointer;
+  border-left: 0;
+}
+#console .menu .button.hidden
+{
+  font-size: 0;
+}
+#console .menu .button.center.hover
+{
+  border-radius: 0;
+  font-size: var(--f-size7);
+  background-color: var(--col93);
+}
+#console .menu .button.left.hover
+{
+  border-left: 0;
+  font-size: var(--f-size7);
+  background-color: var(--col95);
+}
+#console .menu .button.right.hover
+{
+  border-right: 0;
+  font-size: var(--f-size7);
+  background-color: var(--col95);
+}
+/** }}} */
+/** address {{{ */
+#console .address
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+
+  font-size: 20px;
+}
+/** }}} */
+/** payment {{{ */
+#console .payment
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+
+  font-size: 20px;
+}
+/** }}} */
+/* }}} */
+/* }}} */
+/* views */
+/* menu {{{ */
+#menu
+{
+  font-family: uiNav;
+  cursor: -webkit-grab;
+  cursor: grab;
+}
+#menu.drag
+{
+  cursor: -webkit-grabbing;
+  cursor: grabbing;
+}
+#menu .box
+{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background-color: transparent;
+  visibility: hidden;
+}
+/* menu option buttons */
+#menu .box > div
+{
+  width: 65%;
+  max-width: 640px;
+}
+#menu .button
+{
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  max-height: 56px;
+  margin: 1px 0;
+  background-color: var(--col90);
+  color: var(--col40);
+  border: 1px solid var(--col85);
+  border-radius: 6px;
+  font-size: var(--f-size6);
+  transition: All 0.6s ease;
+}
+#menu:not(.drag) .button
+{
+  cursor: pointer;
+}
+#menu:not(.drag) .button:hover
+{
+  max-height: 72px;
+  background-color: var(--col92);
+  color: var(--col30);
+  font-size: var(--f-size5);
+  width: 70%;
+  max-width: 680px;
+}
+#menu:not(.drag) .button.active
+{
+  background-color: var(--col93);
+  color: var(--col30);
+}
+/* }}} */
+/* address {{{ */
+#address
+{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#address span
+{
+  font-size: var(--f-size0);
+}
+/* }}} */
+/* payment {{{ */
+#payment
+{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#payment span
+{
+  font-size: var(--f-size0);
+}
+/* }}} */
+/* config {{{ */
+#config
+{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#config span
+{
+  font-size: var(--f-size0);
+}
+/* }}} */
+
+// w3demo {{{
+#w3demo
+{
+    display: flex;
+    height: 100%;
+    width: 100%;
+    ////
+    overflow: hidden;
+    background-color: var(--col95);
+    color: var(--col40);
+    ////
+    #sidebar
+    {
+        width: 15%;
+    }
+    #view
+    {
+        width: 85%;
+        #widget
+        {
+            width: 100%;
+            height: 100%;
+        }
+    }
+}
+// }}}
+
+
