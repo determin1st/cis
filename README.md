@@ -1,12 +1,4 @@
-# cis project
+# w3ui demo project
 
-
-**Definition**
-
-cis ~ communal informational system.
-cis ~ web application.
-
-**Tests**
-
-https://rawgit.com/determin1st/cis/master/index.html
+https://rawgit.com/determin1st/w3ui-demo/master/index.html
 
