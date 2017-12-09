@@ -1,25 +1,74 @@
+:root {
+  /* default color: ALICE BLUE */
+  /* main */
+  --col-h: 211;
+  /* hue */
+  --col-s: 92;
+  /* saturation */
+  /* opaque */
+  --col99: #fafcff;
+  --col95: #e7f2fe;
+  --col94: #e2effe;
+  --col93: #ddedfe;
+  --col92: #d8eafd;
+  --col90: #cee5fd;
+  --col88: #c4dffd;
+  --col87: #bfddfc;
+  --col85: #b6d8fc;
+  --col84: #b1d5fc;
+  --col83: #acd2fc;
+  --col82: #a7d0fb;
+  --col80: #9dcafb;
+  --col77: #8ec3fa;
+  --col75: #85bdfa;
+  --col73: #7bb8f9;
+  --col70: #6cb0f9;
+  --col65: #54a3f8;
+  --col60: #3b96f7;
+  --col55: #2389f6;
+  --col50: #0a7cf5;
+  --col40: #0863c4;
+  --col35: #0757ab;
+  --col30: #064a93;
+  --col20: #043162;
+  /* transparent */
+  --col95a: rgba(231, 242, 254, 0);
+  --col90a: rgba(206, 229, 253, 0);
+  --col85a: rgba(182, 216, 252, 0);
+  --col80a: rgba(157, 202, 251, 0);
+}
 .w3ui {
   font-family: Arial, Helvetica, sans-serif;
   box-sizing: border-box;
 }
 .w3ui.accordion {
+  --c-height: 0;
+  --c-width: 0;
   display: flex;
   flex-direction: column;
 }
 .w3ui.accordion .title {
-  height: 0;
-  font-size: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--col90);
   font-weight: bold;
+  background-color: var(--col90);
+  color: var(--col40);
+  margin-top: 2px;
+}
+.w3ui.accordion .title.n0 {
+  margin-top: 0;
+}
+.w3ui.accordion .title.show {
+  background-color: var(--col85);
+  color: var(--col30);
 }
 .w3ui.accordion .content {
-  height: 0;
-  font-size: 0;
-  display: flex;
-  flex-direction: column;
+  display: none;
+  width: 100%;
+}
+.w3ui.accordion .content.show {
+  display: block;
 }
 .w3ui.slider {
   position: relative;

@@ -156,7 +156,7 @@ w3ui = function(){
         return;
       }
       if ('w3ui' in node) {
-        node = node.w3ui.group;
+        node = node.nodes;
       }
       source && source.forEach(function(a){
         var pos, b;
@@ -373,27 +373,43 @@ w3ui = function(){
     }()
   };
   API = function(){
-    var apiNode, proxyNode, proxyGroup;
-    apiNode = {
+    var api, apiProxy, apiBind, wrapNode, getNodes;
+    api = {
+      w3ui: {
+        _property: true,
+        get: function(){
+          return this;
+        }
+      },
+      query: {
+        _func: function(selector, noWrap){
+          noWrap == null && (noWrap = false);
+          if (this.selector) {
+            selector = this.selector + ' ' + selector;
+          }
+          return API(selector, this.node, noWrap);
+        }
+      },
       node: {
-        _immediate: true,
-        _group: true,
+        _property: true,
         get: function(){
           return this.node;
         }
       },
-      clone: {
-        _immediate: true,
+      nodes: {
+        _property: true,
         get: function(){
-          return function(deep){
-            deep == null && (deep = true);
-            return this.node.cloneNode(deep);
-          };
+          return this.nodes;
+        }
+      },
+      clone: {
+        _func: function(deep){
+          deep == null && (deep = true);
+          return this.node.cloneNode(deep);
         }
       },
       html: {
-        _immediate: true,
-        _group: true,
+        _property: true,
         get: function(){
           return this.node.innerHTML;
         },
@@ -482,7 +498,7 @@ w3ui = function(){
         }
       },
       'class': {
-        _immediate: true,
+        _property: true,
         _proxy: true,
         set: function(val){
           if (typeof val === 'string') {
@@ -540,7 +556,7 @@ w3ui = function(){
         },
         toggle: function(name, flag){
           if (typeof flag === 'function') {
-            flag = flag(this.self, this.index);
+            flag = flag(this.wrap, this.index);
           }
           return this.node.classList.toggle(name, !!flag);
         }
@@ -569,29 +585,29 @@ w3ui = function(){
         }
       },
       child: {
-        add: function(node){
-          var parent;
-          parent = this.node;
+        add: function(node, parent){
+          parent == null && (parent = this.node);
           if ('w3ui' in node) {
-            node.w3ui.group.forEach(function(node){
+            node = node.w3ui.group
+              ? node.nodes
+              : node.node;
+            api.child.add(node, parent);
+            return;
+          }
+          if (toString$.call(node).slice(8, -1) === 'Array') {
+            node.forEach(function(node){
               parent.appendChild(node);
             });
           } else {
             parent.appendChild(node);
           }
         },
-        insert: function(node, index){
-          var parent, a;
+        insert: function(node, index, parent){
+          var a;
           index == null && (index = 0);
-          parent = this.node;
+          parent == null && (parent = this.node);
           if (parent.children.length === 0) {
-            if ('w3ui' in node) {
-              node.w3ui.group.forEach(function(node){
-                parent.appendChild(node);
-              });
-              return;
-            }
-            parent.appendChild(node);
+            api.child.add(node, parent);
             return;
           }
           if (index < 0) {
@@ -601,123 +617,141 @@ w3ui = function(){
           }
           a = parent.children[index];
           if ('w3ui' in node) {
-            node.w3ui.group.forEach(function(node){
+            node = node.w3ui.group
+              ? node.nodes
+              : node.node;
+            api.child.insert(node, index, parent);
+            return;
+          }
+          if (toString$.call(node).slice(8, -1) === 'Array') {
+            node.forEach(function(node){
               parent.insertBefore(node, a);
             });
           } else {
             parent.insertBefore(node, a);
           }
         },
-        remove: function(node){
-          var a, parent;
+        remove: function(node, parent){
+          var a;
           node == null && (node = null);
+          parent == null && (parent = this.node);
           if (!node) {
             a = document.createRange();
-            a.selectNodeContents(this.node);
+            a.selectNodeContents(parent);
             a.deleteContents();
             return;
           }
-          parent = this.node;
           if ('w3ui' in node) {
-            node.w3ui.group.forEach(function(node){
+            node = node.w3ui.group
+              ? node.nodes
+              : node.node;
+            api.child.remove(node, parent);
+            return;
+          }
+          if (toString$.call(node).slice(8, -1) === 'Array') {
+            return node.forEach(function(node){
               parent.removeChild(node);
             });
           } else {
-            parent.removeChild(node);
+            return parent.removeChild(node);
           }
         }
       },
-      query: function(selector, noWrap){
-        noWrap == null && (noWrap = false);
-        if (this.selector) {
-          selector = this.selector + ' ' + selector;
-        }
-        return API(selector, this.node, noWrap);
-      },
       addEventListener: {
-        _immediate: true,
-        _group: true,
+        _property: true,
         get: function(){
           return this.node.addEventListener.bind(this.node);
         }
       },
       removeEventListener: {
-        _immediate: true,
-        _group: true,
+        _property: true,
         get: function(){
           return this.node.removeEventListener.bind(this.node);
         }
       }
     };
-    proxyNode = {
+    apiProxy = {
       get: function(arg$, key){
         var data, api;
         data = arg$[0], api = arg$[1];
         if (!isNaN(parseInt(key)) || !(api = api[key])) {
           return null;
         }
-        if (api.length > 0) {
-          return api.bind(data);
-        }
-        return api.call(data);
+        return api.length > 0
+          ? api.bind(data)
+          : api.call(data);
       },
       set: function(arg$, key, val){
         var data, api;
         data = arg$[0], api = arg$[1];
-        if (!api._set) {
-          return true;
+        if ('set' in api) {
+          api.set.call(data, key, val);
         }
-        api._set.call(data, key, val);
         return true;
       }
     };
-    proxyGroup = {
-      get: function(arg$, key){
-        var group, method, a;
-        group = arg$[0], method = arg$[1];
-        a = apiNode[method];
-        if (!isNaN(parseInt(key)) || !(key in a) && !a._proxy) {
-          return null;
+    apiBind = function(data, target){
+      var b, ref$, a, c;
+      target == null && (target = {});
+      for (b in ref$ = api) {
+        a = ref$[b];
+        if (a._func) {
+          a = {
+            value: a._func.bind(data)
+          };
+        } else if (a._property) {
+          c = {};
+          if (a._proxy) {
+            c.get = (fn$.call(this, new Proxy([data, a], apiProxy)));
+          } else if ('get' in a) {
+            c.get = a.get.bind(data);
+          }
+          if (a.set) {
+            c.set = a.set.bind(data);
+          }
+          a = c;
+        } else if (a._proxy) {
+          a = {
+            value: new Proxy(data, a)
+          };
+        } else {
+          a = {
+            value: new Proxy([data, a], apiProxy)
+          };
         }
-        if (!group.length) {
-          return null;
-        }
-        if (group.length === 1) {
-          return group[0][method][key];
-        }
-        if (a.proxy || !a[key].length) {
-          return group.map(function(el){
-            return el[method][key];
-          });
-        }
+        Object.defineProperty(target, b, a);
+      }
+      return target;
+      function fn$(a){
         return function(){
-          var a;
-          a = arguments;
-          return group.map(function(el){
-            return el[method][key].apply(el, a);
-          });
+          return a;
         };
-      },
-      set: function(arg$, key, val){
-        var group, method;
-        group = arg$[0], method = arg$[1];
-        if (!apiNode[method] || !group.length) {
-          return true;
-        }
-        if (group.length === 1) {
-          group[0][method][key] = val;
-          return true;
-        }
-        group.forEach(function(el){
-          el[method][key] = val;
-        });
-        return true;
       }
     };
-    return function(selector, parent, noWrap){
-      var node, a, i$, to$, b, len$, style, data, wrap, ref$;
-      parent == null && (parent = document);
-      noWrap == null && (noWrap = false);
+    wrapNode = function(node, boundApi){
+      return new Proxy(node, {
+        get: function(node, key){
+          return key in api
+            ? boundApi[key]
+            : Reflect.get(node, key);
+        },
+        set: function(node, key, val){
+          if (key in api) {
+            boundApi[key] = val;
+            return true;
+          }
+          return Reflect.set(node, key, val);
+        },
+        has: function(node, key){
+          return key in api
+            ? true
+            : Reflect.has(node, key);
+        }
+      });
+    };
+    getNodes = function(selector, parent){
+      var node, a, i$, to$, b, len$;
+      parent.w3ui && (parent = parent.w3ui.node);
       node = [];
       if (typeof selector === 'string') {
         a = selector
@@ -735,9 +769,7 @@ w3ui = function(){
           return null;
         }
         if ('w3ui' in selector) {
-          selector = selector.map(function(el){
-            return el.node;
-          });
+          selector = selector.nodes;
         }
         if (!Array.isArray(selector)) {
           selector = [selector];
@@ -751,6 +783,15 @@ w3ui = function(){
         node = selector;
         selector = '';
       }
+      return node;
+    };
+    return function(selector, parent, noWrap){
+      var node, style, data, wrap;
+      parent == null && (parent = document);
+      noWrap == null && (noWrap = false);
+      if (!(node = getNodes(selector, parent))) {
+        return null;
+      }
       if (noWrap) {
         return node;
       }
@@ -758,106 +799,26 @@ w3ui = function(){
         return window.getComputedStyle(node);
       });
       data = {
-        group: node,
+        group: true,
         selector: selector,
+        nodes: node,
         node: node[0],
         index: 0,
         parent: parent,
         style: style
       };
       wrap = node.map(function(node, index){
-        var api, dat, b, ref$, a, c;
-        api = {};
-        dat = Object.create(data);
-        dat.group = [node];
-        dat.api = api;
-        dat.node = node;
-        dat.index = index;
-        dat.style = data.style[index];
-        for (b in ref$ = apiNode) {
-          a = ref$[b];
-          do {
-            if (typeof a === 'function') {
-              a = {
-                value: a.bind(dat)
-              };
-              break;
-            }
-            if (a._immediate) {
-              c = {};
-              if (a._proxy) {
-                c.get = (fn$.call(this, new Proxy([dat, a], proxyNode)));
-              } else {
-                if (a.get) {
-                  c.get = a.get.bind(dat);
-                }
-              }
-              if (a.set) {
-                c.set = a.set.bind(dat);
-              }
-              a = c;
-              break;
-            }
-            a = {
-              value: a._proxy
-                ? new Proxy(dat, a)
-                : new Proxy([dat, a], proxyNode)
-            };
-          } while (false);
-          Object.defineProperty(api, b, a);
-        }
-        api.w3ui = dat;
-        dat.self = new Proxy(node, {
-          get: function(node, key){
-            if (api[key]) {
-              return api[key];
-            }
-            return Reflect.get(node, key);
-          },
-          set: function(node, key, val){
-            if (api[key] !== undefined) {
-              api[key] = val;
-              return true;
-            }
-            return Reflect.set(node, key, val);
-          },
-          has: function(node, key){
-            if (api[key] !== undefined) {
-              return true;
-            }
-            return Reflect.has(node, key);
-          }
-        });
-        return dat.self;
-        function fn$(a){
-          return function(){
-            return a;
-          };
-        }
+        var a;
+        a = Object.create(data);
+        a.group = false;
+        a.node = node;
+        a.index = index;
+        a.style = style[index];
+        a.api = apiBind(a);
+        a.wrap = wrapNode(node, a.api);
+        return a.wrap;
       });
-      for (b in ref$ = apiNode) {
-        a = ref$[b];
-        if (a._immediate) {
-          if (!a._group) {
-            continue;
-          }
-          a = {
-            get: a.get ? a.get.bind(data) : undefined,
-            set: a.set ? a.set.bind(data) : undefined
-          };
-        } else {
-          a = {
-            value: typeof a === 'function'
-              ? a.bind(data)
-              : new Proxy([wrap, b], proxyGroup)
-          };
-        }
-        Object.defineProperty(wrap, b, a);
-      }
-      Object.defineProperty(wrap, 'w3ui', {
-        value: data
-      });
-      return wrap;
+      return apiBind(wrap[0].w3ui, wrap);
     };
   }();
   APP = function(){
@@ -1072,58 +1033,54 @@ w3ui = function(){
         return true;
       },
       attach: function(P, event){
-        var a, b, x, e, i$, len$, d, c, ref$, own$ = {}.hasOwnProperty;
-        if (!this.cfg.node) {
-          return true;
-        }
+        var a, b, c, i$, len$, ref$;
         if (event === true) {
           if (!(a = this.cfg.nav.id) || !(b = this[a])) {
             return true;
           }
           event = b.attach;
         }
-        x = /^key.+/;
-        e = [];
-        for (a in event) if (own$.call(event, a)) {
-          b = event[a];
-          if (!Array.isArray(b)) {
-            b = [b];
-          }
-          for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-            d = b[i$];
-            c = d.el
-              ? document.querySelectorAll('#' + this.cfg.id + ' ' + d.el)
-              : d.el === ''
-                ? [this.cfg.node]
-                : [document];
-            d.preventDefault = !x.test(a);
-            d = P.event.bind(this, d);
-            e.push([c, a, d]);
-          }
-        }
-        if (!e.length) {
+        if (toString$.call(event).slice(8, -1) !== 'Array' || !event.length) {
           return true;
         }
+        c = [];
+        for (i$ = 0, len$ = event.length; i$ < len$; ++i$) {
+          a = event[i$];
+          b = !a.el
+            ? [this.cfg.node]
+            : typeof a.el === 'string'
+              ? API(a.el, this.cfg.node, true)
+              : a.el.length
+                ? a.el
+                : [a.el];
+          if (!('preventDefault' in a)) {
+            a.preventDefault = !/^key.+/.test(a.event);
+          }
+          if (!('handler' in a)) {
+            a.handler = P.event.bind(this, a);
+          }
+          c.push([a, b]);
+        }
         this.cfg.detach = function(){
-          var i$, ref$, len$, ref1$, a, b, c;
-          for (i$ = 0, len$ = (ref$ = e).length; i$ < len$; ++i$) {
-            ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1], c = ref1$[2];
-            a.forEach(fn$);
+          var i$, ref$, len$, ref1$, a, b;
+          for (i$ = 0, len$ = (ref$ = c).length; i$ < len$; ++i$) {
+            ref1$ = ref$[i$], a = ref1$[0], b = ref1$[1];
+            b.forEach(fn$);
           }
           delete this.detach;
           return true;
-          function fn$(a){
-            a.removeEventListener(b, c);
+          function fn$(b){
+            b.removeEventListener(a.event, a.handler);
           }
         };
         this.cfg.detach.data = {};
-        for (i$ = 0, len$ = e.length; i$ < len$; ++i$) {
-          ref$ = e[i$], a = ref$[0], b = ref$[1], c = ref$[2];
-          a.forEach(fn$);
+        for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
+          ref$ = c[i$], a = ref$[0], b = ref$[1];
+          b.forEach(fn$);
         }
         return true;
-        function fn$(a){
-          a.addEventListener(b, c);
+        function fn$(b){
+          b.addEventListener(a.event, a.handler);
         }
       },
       el: function(M, V){
@@ -1682,14 +1639,27 @@ w3ui && (w3ui.accordion = {
   * TODO:
   */
   options: {
-    panels: null
+    panels: null,
+    panelsAutoSize: true,
+    render: Mustache.render,
+    template: {
+      title: '',
+      content: ''
+    }
   },
   data: {
-    panels: null,
-    selected: null
+    panels: [],
+    activePanel: []
   },
   animation: {
-    empty: true
+    show: [{
+      node: null,
+      duration: 0.2,
+      to: {
+        className: '+=show',
+        ease: Power2.easeOut
+      }
+    }]
   },
   setOption: function(key, val){
     switch (key) {
@@ -1707,11 +1677,13 @@ w3ui && (w3ui.accordion = {
       this.log('failed to create panels');
       return false;
     }
-    return true;
+    return this.refresh();
   },
   destroy: function(){
-    debugger;
     this.panels.destroy();
+  },
+  attach: function(){
+    return true;
   },
   refresh: function(){
     this.panels.refresh();
@@ -1728,77 +1700,88 @@ w3ui && (w3ui.accordion = {
       return this$.data.panels = data;
     };
     initData = function(data, parent){
-      var i$, ref$, len$, a;
+      var i$, len$, index, el;
       parent == null && (parent = null);
-      el.parent = parent;
-      el.level = parent ? parent.level + 1 : 0;
-      if (typeof el.val === 'object') {
-        for (i$ = 0, len$ = (ref$ = el.val).length; i$ < len$; ++i$) {
-          a = ref$[i$];
-          initData(a, el);
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        index = i$;
+        el = data[i$];
+        el.parent = parent;
+        el.level = parent ? parent.level + 1 : 0;
+        if (!el.id) {
+          el.id = el.level + '#' + index;
+        }
+        if (el.active) {
+          this$.data.activePanel.push(el.id);
+        }
+        if (typeof el.val === 'object') {
+          initData(el.val, el);
         }
       }
     };
-    createPanelNodes = function(el, parent){
-      var a, b, i$, ref$, len$;
-      el == null && (el = this$.data.panels);
+    createPanelNodes = function(data, parent){
+      var i$, len$, index, el, a, b;
+      data == null && (data = this$.data.panels);
       parent == null && (parent = this$.node[0]);
-      if (!el) {
+      if (!data) {
         return false;
       }
-      if (!el.parentNode) {
-        el.parentNode = parent;
-      }
-      if (!el.node) {
-        a = document.createElement('div');
-        b = document.createElement('div');
-        el.node = w3ui([a, b]);
-        a = el.node[0];
-        b = el.node[1];
-        a['class'] = 'l' + el.level + ' title';
-        a.html = el.name;
-        b['class'] = 'l' + el.level + ' content';
-        if (typeof el.val === 'string') {
-          b.html = el.val;
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        index = i$;
+        el = data[i$];
+        if (!el.parentNode) {
+          el.parentNode = parent;
         }
-      }
-      if (typeof el.val === 'object') {
-        for (i$ = 0, len$ = (ref$ = el.val).length; i$ < len$; ++i$) {
-          a = ref$[i$];
-          if (!createPanelNodes(a, el.node[1])) {
+        if (!el.node) {
+          a = document.createElement('div');
+          b = document.createElement('div');
+          el.node = w3ui([a, b]);
+          a = el.node[0];
+          b = el.node[1];
+          a.prop.dataId = el.id;
+          a['class'] = 'l' + el.level + ' n' + index + ' title';
+          b['class'] = 'l' + el.level + ' n' + index + ' content';
+          if (index === data.length - 1) {
+            a['class'].add('last');
+          }
+        }
+        if (typeof el.val === 'object') {
+          if (!createPanelNodes(el.val, el.node[1])) {
             return false;
           }
         }
       }
       return true;
     };
-    listPanels = function(el, list){
-      var group, b, i$, len$, a;
-      el == null && (el = this$.data.panels);
-      list == null && (list = [el]);
-      if (!el) {
-        return null;
-      }
-      if (typeof el.val !== 'object') {
+    listPanels = function(data, list){
+      var i$, len$, el, group, a, b;
+      data == null && (data = this$.data.panels);
+      list == null && (list = []);
+      if (!data) {
         return list;
       }
-      group = el.val;
-      list = list.concat(group);
+      list = list.concat(data);
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        if (Array.isArray(el.val)) {
+          group = el.val;
+          list = list.concat(group);
+        }
+      }
       do {
-        b = [];
-        for (i$ = 0, len$ = group.length; i$ < len$; ++i$) {
-          a = group[i$];
-          if (typeof a.val === 'object') {
-            b.push(a);
+        a = [];
+        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+          b = data[i$];
+          if (Array.isArray(b.val)) {
+            a.push(b);
           }
         }
-        group = [];
-        for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-          a = b[i$];
-          list = list.concat(a.val);
-          group = group.concat(a.val);
+        data = [];
+        for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
+          b = a[i$];
+          list = list.concat(b.val);
+          data = data.concat(b.val);
         }
-      } while (group.length);
+      } while (data.length);
       return list;
     };
     createPanels = function(){
@@ -1828,30 +1811,58 @@ w3ui && (w3ui.accordion = {
       }
       this$.node.child.remove();
     };
-    refreshPanels = function(){
-      var list;
-      if (!(list = listPanels())) {
+    refreshPanels = function(data){
+      var list, opt, ani, i$, len$, el, a, b;
+      if (!(list = listPanels(data))) {
         return;
       }
-    };
-    getPanel = function(name, getParent, el){
-      var i$, ref$, len$, a, b;
-      getParent == null && (getParent = false);
-      el == null && (el = this$.data.panels);
-      if (el.name === name) {
-        return getParent ? null : el;
-      }
-      for (i$ = 0, len$ = (ref$ = el.val).length; i$ < len$; ++i$) {
-        a = ref$[i$];
-        if (a.name === name) {
-          return getParent ? el : a;
+      opt = this$.options;
+      ani = this$.animation;
+      for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+        el = list[i$];
+        a = el.node[0];
+        b = el.node[1];
+        switch (typeof el.name) {
+        case 'string':
+          a.html = el.name;
+          break;
+        case 'object':
+          if (opt.render && opt.template.title) {
+            a.html = opt.render(opt.template.title, el.val);
+          }
+        }
+        switch (toString$.call(el.val).slice(8, -1)) {
+        case 'String':
+          b.html = el.val;
+          break;
+        case 'Array':
+          break;
+        case 'Object':
+          if (opt.render && opt.template.content) {
+            b.html = opt.render(opt.template.content, el.val);
+          }
         }
       }
-      for (i$ = 0, len$ = (ref$ = el.val).length; i$ < len$; ++i$) {
-        a = ref$[i$];
-        if (typeof a.val === 'object') {
-          if (b = getPanel(name, getParent, a)) {
-            return b;
+      a = [];
+      this$.data.activePanel.forEach(function(id){
+        var b;
+        if (b = getPanel(id)) {
+          a = a.concat(b.node.nodes);
+        }
+      });
+      ani.show[0].node = a;
+    };
+    getPanel = function(id, data){
+      var i$, len$, el, a;
+      data == null && (data = this$.data.panels);
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        if (el.id === id) {
+          return el;
+        }
+        if (toString$.call(el.val).slice(8, -1) === 'Array') {
+          if (a = getPanel(id, el.val)) {
+            return a;
           }
         }
       }
@@ -1860,6 +1871,7 @@ w3ui && (w3ui.accordion = {
     api = {
       create: createPanels,
       destroy: destroyPanels,
+      refresh: refreshPanels,
       $proxy: {
         get: function(api, key){
           if (key in api) {

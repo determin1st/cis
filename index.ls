@@ -2,8 +2,8 @@
 
 w3ui and w3ui.app {
     M: # {{{
-        #navDefault: ['wa' 'view' 'menu']
-        navDefault: ['w3demo' 'view' 'widget' 'accordion']
+        navDefault: ['wa' 'view' 'menu']
+        #navDefault: ['w3demo' 'view' 'widget' 'accordion']
     # }}}
     V: # {{{
         ui:
@@ -230,18 +230,31 @@ w3ui and w3ui.app {
                                 ...
                             # }}}
                             attach: # {{{
-                                click:
+                                {
+                                    event: 'click'
                                     el: '.button'
-                                pointerover:
+                                }
+                                {
+                                    event: 'pointerover'
                                     el: '.button'
-                                pointerdown:
+                                }
+                                {
+                                    event: 'pointerdown'
                                     el: ''
-                                pointermove:
+                                }
+                                {
+                                    event: 'pointermove'
                                     el: ''
-                                pointerup:
+                                }
+                                {
+                                    event: 'pointerup'
                                     el: ''
-                                keydown:
+                                }
+                                {
+                                    event: 'keydown'
+                                    el: document
                                     keys: ['ArrowUp' 'ArrowDown']
+                                }
                             # }}}
                         title: 'Главное меню'
                         config: true
@@ -681,25 +694,24 @@ w3ui and w3ui.app {
                             }
                         # }}}
                         attach: # {{{
-                            pointerover:
-                                {
-                                    el: '.button'
-                                    id: ''
-                                }
-                            pointerout:
-                                {
-                                    el: '.button'
-                                    id: ''
-                                }
-                            click:
-                                {
-                                    el: '.mode .button'
-                                    id: 'mode'
-                                }
-                                {
-                                    el: '.config .button'
-                                    id: 'config'
-                                }
+                            {
+                                event: 'pointerover'
+                                el: '.button'
+                            }
+                            {
+                                event: 'pointerout'
+                                el: '.button'
+                            }
+                            {
+                                event: 'click'
+                                el: '.mode .button'
+                                id: 'mode'
+                            }
+                            {
+                                event: 'click'
+                                el: '.config .button'
+                                id: 'config'
+                            }
                         # }}}
                     mode:
                         return: 'возврат'
@@ -789,38 +801,44 @@ w3ui and w3ui.app {
                     # }}}
                     menu:
                         attach: # {{{
-                            pointerover:
-                                {
-                                    el: '.button.left'
-                                    id: 'left'
-                                }
-                                {
-                                    el: '.button.right'
-                                    id: 'right'
-                                }
-                            pointerout:
-                                {
-                                    el: '.button.left'
-                                    id: 'left'
-                                }
-                                {
-                                    el: '.button.right'
-                                    id: 'right'
-                                }
-                            click:
-                                {
-                                    el: '.button.left'
-                                    id: 'left'
-                                    delayed: true
-                                }
-                                {
-                                    el: '.button.right'
-                                    id: 'right'
-                                    delayed: true
-                                }
-                            keydown:
+                            {
+                                event: 'pointerover'
+                                el: '.button.left'
+                                id: 'left'
+                            }
+                            {
+                                event: 'pointerover'
+                                el: '.button.right'
+                                id: 'right'
+                            }
+                            {
+                                event: 'pointerout'
+                                el: '.button.left'
+                                id: 'left'
+                            }
+                            {
+                                event: 'pointerout'
+                                el: '.button.right'
+                                id: 'right'
+                            }
+                            {
+                                event: 'click'
+                                el: '.button.left'
+                                id: 'left'
+                                delayed: true
+                            }
+                            {
+                                event: 'click'
+                                el: '.button.right'
+                                id: 'right'
+                                delayed: true
+                            }
+                            {
+                                event: 'keydown'
+                                el: document
                                 keys: ['ArrowLeft' 'ArrowRight' 'Enter']
                                 delayed: true
+                            }
                         # }}}
                         render: -> # {{{
                             # prepare
@@ -908,13 +926,6 @@ w3ui and w3ui.app {
                                 a =
                                     data.box.0.clone!
                                     data.box.4.clone!
-                                #b =
-                                #    w3ui '.button', a.0, true
-                                #    w3ui '.button', a.1, true
-                                # prepare list
-                                #a =
-                                #    [a.0, b.0.0]
-                                #    [a.1, b.1.0]
                                 # create effect
                                 data.slide = a.map (newBox, index) ->
                                     # create timeline
@@ -922,9 +933,6 @@ w3ui and w3ui.app {
                                         paused: true
                                         data:
                                             complete: !->
-                                                # cleanup inline styles
-                                                data.box.prop.style = null
-                                                data.btn.prop.style = null
                                                 # change DOM
                                                 a = data.node.child
                                                 if index
@@ -1017,14 +1025,31 @@ w3ui and w3ui.app {
                                 b = w3ui[a] @cfg.node, @[a].options
                                 # store
                                 @cfg.data.widget = b
+                                # sync with widget animations
+                                @cfg.show = @cfg.show ++ b.animation.show
                                 true
                             # }}}
+                            finit: -> # {{{
+                                # remove sync animations
+                                @cfg.show = @cfg.show.slice 0, 1
+                                true
+                            # }}}
+                            show: # {{{
+                                {
+                                    duration: 0.4
+                                    to:
+                                        className: '+=show'
+                                }
+                                ...
+                            # }}}
+                        ###
                         accordion: # {{{
                             title: 'аккордеон'
                             options:
                                 panels: [
                                     {
                                         name: 'test1'
+                                        active: true
                                         val: 'text1'
                                     }
                                     {
