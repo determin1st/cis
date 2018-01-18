@@ -1,21 +1,23 @@
 /* CSSv3 */
-/* Base */
-/* common {{{ */
 @font-face {
-  font-family: 'uiMenu';
+  font-family: 'uiCaptain';
   src: url('font/AmericanCaptain.woff2') format('woff2'), url('font/AmericanCaptain.woff') format('woff');
-  /***
-  src: url('font/RobotoCondensed.woff2') format('woff2'),
-       url('font/RobotoCondensed.woff')  format('woff');
-  src: url('font/OpenSans.woff2') format('woff2'),
-       url('font/OpenSans.woff')  format('woff');
-  src: url('font/Troika.woff2') format('woff2'),
-       url('font/Troika.woff')  format('woff');
-  /***/
 }
 @font-face {
-  font-family: 'uiNav';
+  font-family: 'uiMolot';
   src: url('font/Molot.woff2') format('woff2'), url('font/Molot.woff') format('woff');
+}
+@font-face {
+  font-family: 'uiBebas';
+  src: url('font/AABebasNeue.woff2') format('woff2'), url('font/AABebasNeue.woff') format('woff');
+}
+@font-face {
+  font-family: 'uiRoboto';
+  src: url('font/RobotoCondensed.woff2') format('woff2'), url('font/RobotoCondensed.woff') format('woff');
+}
+@font-face {
+  font-family: 'uiTroika';
+  src: url('font/Troika.woff2') format('woff2'), url('font/Troika.woff') format('woff');
 }
 html {
   min-height: 100vh;
@@ -32,7 +34,7 @@ body {
   background-color: var(--col99);
   /**/
   color: var(--col40);
-  font-family: 'uiMenu';
+  font-family: uiCaptain;
 }
 div {
   box-sizing: border-box;
@@ -59,8 +61,7 @@ svg {
   height: 100%;
   width: 100%;
 }
-/* }}} */
-/* Sections */
+/* APP Sections */
 #w3demo {
   display: flex;
   height: 100%;
@@ -68,9 +69,6 @@ svg {
   overflow: hidden;
   background-color: var(--col95);
   color: var(--col40);
-}
-#w3demo #sidebar {
-  width: 15%;
 }
 #w3demo #view {
   width: 85%;
@@ -83,7 +81,13 @@ svg {
 #w3demo #view #widget.show {
   opacity: 1;
 }
-/* workarea {{{ */
+#w3demo #view #widget.accordion {
+  --title-font: uiTroika;
+  --panel-font: uiRoboto;
+}
+#w3demo #sidebar {
+  width: 15%;
+}
 #wa {
   display: flex;
   flex-direction: column;
@@ -92,7 +96,7 @@ svg {
   overflow: hidden;
   background-color: var(--col95);
   color: var(--col40);
-  font-family: uiMenu;
+  font-family: uiCaptain;
   --f-size-min: 18;
   --f-size-max: 60;
   /* dynamic */
@@ -308,11 +312,10 @@ svg {
 }
 /** }}} */
 /* }}} */
-/* }}} */
 /* views */
 /* menu {{{ */
 #menu {
-  font-family: uiNav;
+  font-family: uiMolot;
   cursor: -webkit-grab;
   cursor: grab;
 }
@@ -400,4 +403,5 @@ svg {
 #config span {
   font-size: var(--f-size0);
 }
+/* }}} */
 /* }}} */

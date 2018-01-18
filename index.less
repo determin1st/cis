@@ -1,26 +1,38 @@
 /* CSSv3 */
-/* Base */
-/* common {{{ */
+
+// fonts {{{
 @font-face
 {
-  font-family: 'uiMenu';
+  font-family: 'uiCaptain';
   src: url('font/AmericanCaptain.woff2') format('woff2'),
        url('font/AmericanCaptain.woff')  format('woff');
-  /***
-  src: url('font/RobotoCondensed.woff2') format('woff2'),
-       url('font/RobotoCondensed.woff')  format('woff');
-  src: url('font/OpenSans.woff2') format('woff2'),
-       url('font/OpenSans.woff')  format('woff');
-  src: url('font/Troika.woff2') format('woff2'),
-       url('font/Troika.woff')  format('woff');
-  /***/
 }
 @font-face
 {
-  font-family: 'uiNav';
+  font-family: 'uiMolot';
   src: url('font/Molot.woff2') format('woff2'),
        url('font/Molot.woff')  format('woff');
 }
+@font-face
+{
+  font-family: 'uiBebas';
+  src: url('font/AABebasNeue.woff2') format('woff2'),
+       url('font/AABebasNeue.woff')  format('woff');
+}
+@font-face
+{
+  font-family: 'uiRoboto';
+  src: url('font/RobotoCondensed.woff2') format('woff2'),
+       url('font/RobotoCondensed.woff')  format('woff');
+}
+@font-face
+{
+  font-family: 'uiTroika';
+  src: url('font/Troika.woff2') format('woff2'),
+       url('font/Troika.woff')  format('woff');
+}
+// }}}
+// base elements {{{
 html
 {
   min-height: 100vh;
@@ -38,7 +50,7 @@ body
   margin: 0;
   background-color: var(--col99);/**/
   color: var(--col40);
-  font-family: 'uiMenu';
+  font-family: uiCaptain;
 }
 div
 {
@@ -50,6 +62,8 @@ svg
   width: 100%;
   overflow: visible;
 }
+// }}}
+// common {{{
 .button, .title
 {
   -webkit-user-select: none;
@@ -69,10 +83,11 @@ svg
   height: 100%;
   width: 100%;
 }
-/* }}} */
-/* Sections */
-// w3demo {{{
-#w3demo
+// }}}
+
+/* APP Sections */
+
+#w3demo // {{{
 {
     display: flex;
     height: 100%;
@@ -82,10 +97,6 @@ svg
     background-color: var(--col95);
     color: var(--col40);
     ////
-    #sidebar
-    {
-        width: 15%;
-    }
     #view
     {
         width: 85%;
@@ -93,18 +104,29 @@ svg
         {
             width: 100%;
             height: 100%;
-            ////
             opacity: 0;
+            ////
+            // states
             &.show
             {
                 opacity: 1;
             }
+            ////
+            // widget style
+            &.accordion
+            {
+                --title-font: uiTroika;
+                --panel-font: uiRoboto;
+            }
         }
+    }
+    #sidebar
+    {
+        width: 15%;
     }
 }
 // }}}
-/* workarea {{{ */
-#wa
+#wa // {{{
 {
     display: flex;
     flex-direction: column;
@@ -115,7 +137,7 @@ svg
     background-color: var(--col95);
     color: var(--col40);
     // font
-    font-family: uiMenu;
+    font-family: uiCaptain;
     --f-size-min: 18;
     --f-size-max: 60;
     /* dynamic */
@@ -362,18 +384,11 @@ svg
 }
 /** }}} */
 /* }}} */
-/* }}} */
-
-
-
-
-
-
 /* views */
 /* menu {{{ */
 #menu
 {
-  font-family: uiNav;
+  font-family: uiMolot;
   cursor: -webkit-grab;
   cursor: grab;
 }
@@ -475,6 +490,6 @@ svg
   font-size: var(--f-size0);
 }
 /* }}} */
-
+/* }}} */
 
 

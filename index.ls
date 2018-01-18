@@ -1,9 +1,9 @@
 'use strict'
 
-w3ui and w3ui.app {
+w3ui and w3ui.APP {
     M: # {{{
-        navDefault: ['wa' 'view' 'menu']
-        #navDefault: ['w3demo' 'view' 'widget' 'accordion']
+        #navDefault: ['wa' 'view' 'menu']
+        navDefault: ['w3demo' 'view' 'widget' 'accordion']
     # }}}
     V: # {{{
         ui:
@@ -461,10 +461,10 @@ w3ui and w3ui.app {
                             cfg.turn.2.node = b
                             cfg.turn.2.group.2.node = d
                             ##
-                            dat.resizeAnim = w3ui.GSAP.queue cfg.node, [
+                            dat.resizeAnim = w3ui.GSAP.queue [
                                 cfg.hide.1
                                 cfg.show.5
-                            ]
+                            ], cfg.node
                             # }}}
                             # done
                             true
@@ -1018,23 +1018,26 @@ w3ui and w3ui.app {
                             ...
                     # }}}
                     widget: # {{{
-                        cfg:
+                        cfg: # {{{
                             init: -> # {{{
                                 # create widget
                                 a = @cfg.nav.id
                                 b = w3ui[a] @cfg.node, @[a].options
-                                # store
+                                # store it
                                 @cfg.data.widget = b
-                                # sync with widget animations
-                                @cfg.show = @cfg.show ++ b.animation.show
+                                @cfg.show.0.widget = b
                                 true
                             # }}}
                             finit: -> # {{{
-                                # remove sync animations
-                                @cfg.show = @cfg.show.slice 0, 1
+                                a.destroy! if (a = @cfg.data.widget)
+                                true
+                            # }}}
+                            resize: -> # {{{
+                                #@cfg.data.widget.resize true
                                 true
                             # }}}
                             show: # {{{
+                                !-> (a = @cfg.data.widget) and a.resize!
                                 {
                                     duration: 0.4
                                     to:
@@ -1042,32 +1045,41 @@ w3ui and w3ui.app {
                                 }
                                 ...
                             # }}}
-                        ###
+                            attach: # {{{
+                                -> @cfg.data.widget
+                                ...
+                            # }}}
+                        # }}}
                         accordion: # {{{
                             title: 'аккордеон'
                             options:
                                 panels: [
                                     {
-                                        name: 'test1'
-                                        active: true
-                                        val: 'text1'
+                                        title: 'title #1'
+                                        content: 'content'
                                     }
                                     {
-                                        name: 'test2'
-                                        val: [
+                                        title: 'title #2'
+                                        panels: [
                                             {
-                                                name: 'test2-1'
-                                                val: 'text2-1'
+                                                title: 'title #2-1'
+                                                content: 'text2-1'
+                                                disabled: true
                                             }
                                             {
-                                                name: 'test2-2'
-                                                val: 'text2-2'
+                                                title: 'title #2-2'
+                                                content: 'text2-2'
                                             }
                                         ]
                                     }
                                     {
-                                        name: 'test3'
-                                        val: 'text3'
+                                        title: 'title #3'
+                                        content: 'text3'
+                                        hidden: true
+                                    }
+                                    {
+                                        title: 'title #4'
+                                        content: 'text4'
                                     }
                                 ]
                         # }}}
