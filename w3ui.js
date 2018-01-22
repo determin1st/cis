@@ -322,43 +322,46 @@ w3ui = function(){
       attach: function(){
         var attach, react, detach;
         attach = function(){
-          var i$, ref$, len$, a, j$, ref1$, len1$, b;
+          var i$, ref$, len$, a, j$, ref1$, len1$, c, b, this$ = this;
           if (!this.attach.ready) {
             for (i$ = 0, len$ = (ref$ = this.data.events).length; i$ < len$; ++i$) {
               a = ref$[i$];
-              a.node = !a.el
-                ? [this.node]
-                : typeof a.el === 'string'
-                  ? QUERY(a.el, this.node, true)
-                  : a.el.length
-                    ? a.el
-                    : [a.el];
-              a.handler = react.bind(this, a);
+              a.node = a.el
+                ? QUERY(a.el, this.node)
+                : this.node;
+              a.handler = a.node.map(fn$);
             }
             this.attach.ready = true;
           }
           for (i$ = 0, len$ = (ref$ = this.data.events).length; i$ < len$; ++i$) {
             a = ref$[i$];
             for (j$ = 0, len1$ = (ref1$ = a.node).length; j$ < len1$; ++j$) {
+              c = j$;
               b = ref1$[j$];
-              b.addEventListener(a.event, a.handler);
+              b.addEventListener(a.event, a.handler[c]);
             }
           }
           this.detach = detach.bind(this);
+          function fn$(el, index){
+            var b, ref$;
+            b = (ref$ = clone$(a), ref$.el = el, ref$.index = index, ref$);
+            return react.bind(this$, b);
+          }
         };
         react = function(data, event){
-          if (this.__proto__.react.call(this, data.id, event, this.options.events)) {
+          if (this.__proto__.react.call(this, data, event, this.options.events)) {
             event.preventDefault();
           }
           return true;
         };
         detach = function(){
-          var i$, ref$, len$, a, j$, ref1$, len1$, b;
+          var i$, ref$, len$, a, j$, ref1$, len1$, c, b;
           for (i$ = 0, len$ = (ref$ = this.data.events).length; i$ < len$; ++i$) {
             a = ref$[i$];
             for (j$ = 0, len1$ = (ref1$ = a.node).length; j$ < len1$; ++j$) {
+              c = j$;
               b = ref1$[j$];
-              b.removeEventListener(a.event, a.handler);
+              b.removeEventListener(a.event, a.handler[c]);
             }
           }
         };
@@ -962,37 +965,38 @@ w3ui = function(){
     };
     getNodes = function(selector, parent){
       var node, a, i$, to$, b, len$;
-      parent.w3ui && (parent = parent.w3ui.node);
       node = [];
-      if (typeof selector === 'string') {
+      if (!selector) {
+        return node;
+      }
+      if ('w3ui' in parent) {
+        parent = parent.w3ui.node;
+      }
+      switch (toString$.call(selector).slice(8, -1)) {
+      case 'String':
         a = selector
           ? parent.querySelectorAll(selector)
           : parent.children;
-        if (!a || !a.length) {
-          return null;
-        }
-        for (i$ = 0, to$ = a.length - 1; i$ <= to$; ++i$) {
-          b = i$;
-          node[b] = a[b];
-        }
-      } else {
-        if (!selector) {
-          return null;
-        }
-        if ('w3ui' in selector) {
-          selector = selector.nodes;
-        }
-        if (!Array.isArray(selector)) {
-          selector = [selector];
-        }
-        for (i$ = 0, len$ = selector.length; i$ < len$; ++i$) {
-          a = selector[i$];
-          if (!(a instanceof HTMLElement)) {
-            return null;
+        if (a && a.length) {
+          for (i$ = 0, to$ = a.length - 1; i$ <= to$; ++i$) {
+            b = i$;
+            node[b] = a[b];
           }
         }
-        node = selector;
-        selector = '';
+        break;
+      case 'Array':
+        for (i$ = 0, len$ = selector.length; i$ < len$; ++i$) {
+          a = selector[i$];
+          if (a) {
+            node = node.concat(getNodes(a, parent));
+          }
+        }
+        break;
+      default:
+        if ('w3ui' in selector) {
+          return selector.nodes;
+        }
+        node.push(selector);
       }
       return node;
     };
@@ -1000,7 +1004,8 @@ w3ui = function(){
       var node, style, data;
       parent == null && (parent = document);
       noWrap == null && (noWrap = false);
-      if (!(node = getNodes(selector, parent))) {
+      node = getNodes(selector, parent);
+      if (!node.length) {
         return null;
       }
       if (noWrap) {
@@ -1889,7 +1894,7 @@ w3ui && (w3ui.accordion = {
     ORDER: ['panels'],
     multiSelect: false,
     activeSwitch: true,
-    exclusiveHover: true
+    activeHover: true
     /***
     # hides adjacent panels on selection
     deepDive: false
@@ -1911,7 +1916,7 @@ w3ui && (w3ui.accordion = {
       hover: [
         {
           label: 'A',
-          duration: 0.4,
+          duration: 0.6,
           to: {
             className: '+=hover hovered',
             ease: Bounce.easeOut
@@ -1924,7 +1929,7 @@ w3ui && (w3ui.accordion = {
           }
         }, {
           position: 'A',
-          duration: 0.6,
+          duration: 8,
           to: {
             className: '+=hover hovered',
             ease: Power2.easeOut
@@ -2107,11 +2112,11 @@ w3ui && (w3ui.accordion = {
     events: [
       {
         id: 'hover',
-        event: 'pointerover',
+        event: 'pointerenter',
         el: '.title'
       }, {
         id: 'unhover',
-        event: 'pointerout',
+        event: 'pointerleave',
         el: '.title'
       }, {
         id: 'select',
@@ -2119,7 +2124,7 @@ w3ui && (w3ui.accordion = {
         el: '.title .box.N1'
       }
     ],
-    busy: null
+    selecting: null
   },
   api: {
     none: true
@@ -2157,7 +2162,7 @@ w3ui && (w3ui.accordion = {
     return null;
   },
   react: function(){
-    var stopAnimations, selectComplete;
+    var stopAnimations, selectComplete, addAnimation;
     stopAnimations = function(el){
       var c, a, ref$, b;
       c = false;
@@ -2178,44 +2183,47 @@ w3ui && (w3ui.accordion = {
     selectComplete = function(el, func){
       this.data.busy = null;
     };
-    return function(id, event, trigger){
-      var a, b, i$, len$, c, opts;
-      switch (id) {
+    addAnimation = function(a){
+      true;
+    };
+    return function(data, event, trigger){
+      var id, a, b, c, i$, len$, el, opts;
+      switch (id = data.id) {
       case 'hover':
       case 'unhover':
         a = event.currentTarget.dataset.id;
-        if (!(a = this.panels[a])) {
+        if (!(a = this.panels[a]) || a.disabled) {
           break;
         }
-        if (a.disabled) {
-          el.hovered = false;
+        b = id === 'hover';
+        if (b && a.hovered || !b && !a.hovered) {
           break;
         }
-        if (id === 'hover') {
-          b = 'hovered';
-          a.nodePanel.classAdd(b, c);
-          a.nodeBox.classAdd(b, c);
-          a.node.classAdd(b, c);
-        }
-        stopAnimations(a);
-        a.animation[id].invalidate();
-        a.animation[id].play(0);
-        if (this.options.multiSelect || !this.options.exclusiveHover) {
-          break;
-        }
-        b = a.parent
+        c = a.parent
           ? a.parent.panels
           : this.panels[''];
-        for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-          c = b[i$];
-          if (c !== a && !c.hidden && c.active) {
-            stopAnimations(c);
-            if (id === 'hover') {
-              id = 'xhover';
-            }
-            c.animation[id].invalidate();
-            c.animation[id].play(0);
+        if (b) {
+          a.hovered = true;
+          for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
+            el = c[i$];
+            el.hoverx = !!el.active;
           }
+        } else {
+          a.hovered = false;
+          for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
+            el = c[i$];
+            el.hoverx = false;
+          }
+        }
+        if (!this.data.selecting) {
+          if (a.hovering) {
+            a.hovering.progress(1);
+          }
+          c = this.panels.refreshHovered(a);
+          c.add(function(){
+            delete a.hovering;
+          });
+          a.hovering = c.play();
         }
         break;
       case 'select':
@@ -2262,7 +2270,6 @@ w3ui && (w3ui.accordion = {
           : this.panels.refresh(true);
         b.add(selectComplete.bind(this, a, trigger.selectComplete));
         this.data.busy = b;
-        stopAnimations(a);
         b.play();
         break;
       default:
@@ -2272,7 +2279,7 @@ w3ui && (w3ui.accordion = {
     };
   }(),
   panels: function(){
-    var initialize, createNodes, createAnimations, getItem, getList;
+    var initialize, initAnimations, createNodes, getItem, getList;
     initialize = function(data, parent){
       var i$, len$, index, el;
       parent == null && (parent = null);
@@ -2293,6 +2300,35 @@ w3ui && (w3ui.accordion = {
         }
       }
       return true;
+    };
+    initAnimations = function(data, animation){
+      var i$, len$, el, a, b;
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        for (a in animation) {
+          b = animation[a];
+          b = w3ui.CLONE(b);
+          switch (a) {
+          case 'hover':
+          case 'xhover':
+          case 'unhover':
+            b[0].node = el.nodeTitle.nodes.concat(el.node[0].nodes);
+            b[1].node = el.nodeContent.nodes.concat(el.node[1].nodes);
+            b[2].node = [el.nodeBox[0].node, el.nodeBox[1].node, el.nodePanel.node];
+            if (a === 'unhover') {
+              b[3].node = el.nodes;
+            }
+            b = w3ui.GSAP.queue(b);
+            break;
+          case 'resize':
+            b.node = el.nodeBox[1].node;
+          }
+          el.animation[a] = b;
+        }
+        if (el.panels) {
+          initAnimations(el.panels, animation);
+        }
+      }
     };
     createNodes = function(data, box){
       var i$, len$, index, el, a, b;
@@ -2381,35 +2417,6 @@ w3ui && (w3ui.accordion = {
         el['class'] = 'box N' + index;
       }
     };
-    createAnimations = function(data, animation){
-      var i$, len$, el, a, b;
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        el = data[i$];
-        for (a in animation) {
-          b = animation[a];
-          b = w3ui.CLONE(b);
-          switch (a) {
-          case 'hover':
-          case 'xhover':
-          case 'unhover':
-            b[0].node = el.nodeTitle.nodes.concat(el.node[0].nodes);
-            b[1].node = el.nodeContent.nodes.concat(el.node[1].nodes);
-            b[2].node = [el.nodeBox[0].node, el.nodeBox[1].node, el.nodePanel.node];
-            if (a === 'unhover') {
-              b[3].node = el.nodes;
-            }
-            b = w3ui.GSAP.queue(b);
-            break;
-          case 'resize':
-            b.node = el.nodeBox[1].node;
-          }
-          el.animation[a] = b;
-        }
-        if (el.panels) {
-          createAnimations(el.panels, animation);
-        }
-      }
-    };
     getItem = function(id, data){
       var i$, len$, el, a;
       for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
@@ -2451,12 +2458,12 @@ w3ui && (w3ui.accordion = {
       return list;
     };
     return function(){
-      var DATA, create, destroy, resize, refreshSize, refreshActive, refreshHovered, this$ = this;
+      var DATA, create, destroy, resize, refreshSize, refreshHovered, refreshActive, this$ = this;
       DATA = [];
       create = function(){
         if (DATA.length) {
           createNodes(DATA);
-          createAnimations(DATA, this$.data.animation);
+          initAnimations(DATA, this$.data.animation);
           this$.node.child.add(DATA[0].nodeParent);
         }
         return true;
@@ -2642,6 +2649,61 @@ w3ui && (w3ui.accordion = {
         }
         return anim;
       };
+      refreshHovered = function(panel){
+        var a, list, i$, len$, el, b, anim;
+        a = panel.parent ? panel.parent.panels : DATA;
+        list = [];
+        for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
+          el = a[i$];
+          if (!el.hidden && !el.disabled) {
+            list.push(el);
+          }
+        }
+        a = [];
+        for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+          el = list[i$];
+          b = el.nodePanel['class'].has('hovered');
+          if (b && !el.hovered) {
+            b = el.animation.unhover;
+            b.invalidate();
+            a.push(b);
+          } else if (!b && el.hovered) {
+            b = el.animation.hover;
+            b.invalidate();
+            a.push(b);
+          }
+        }
+        anim = new TimelineLite({
+          paused: true
+        });
+        for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
+          b = a[i$];
+          anim.add(b.play(0), 0);
+        }
+        if (this$.options.activeHover) {
+          return anim;
+        }
+        anim.addLabel('A');
+        a = [];
+        for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+          el = list[i$];
+          b = el.nodePanel['class'].has('hover');
+          if (b && !el.hoverx) {
+            b = el.animation.unhover;
+            b.invalidate();
+            a.push(b);
+          } else if (!b && el.hoverx) {
+            b = el.animation.xhover;
+            b.invalidate();
+            a.push(b);
+          }
+        }
+        for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
+          b = a[i$];
+          anim.add(b.play(0), 'A');
+        }
+        return anim;
+      };
       refreshActive = function(data, parent){
         var box, lst0, lst1, i$, len$, el, a, size, b, c;
         data == null && (data = DATA);
@@ -2721,50 +2783,6 @@ w3ui && (w3ui.accordion = {
           a.add(c.play());
         }
         return a;
-      };
-      refreshHovered = function(data){
-        var lst0, lst1, i$, len$, el, a;
-        data == null && (data = DATA);
-        lst0 = [];
-        lst1 = [];
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          el = data[i$];
-          if (!el.hidden) {
-            a = el.nodePanel['class'].has('hovered');
-            if (el.hovered && !a) {
-              lst0.push(el);
-            } else if (!el.hovered && a) {
-              lst1.push(el);
-            }
-          }
-        }
-        /***
-        # set state
-        if id == 'hover'
-            b = 'hovered'
-            a.nodePanel.classAdd b, c
-            a.nodeBox.classAdd b, c
-            a.node.classAdd b, c
-        # start panel animation
-        stopAnimations a
-        a.animation[id].invalidate!
-        a.animation[id].play 0
-        # start exclusive hover/unhover
-        # check options
-        if @options.multiSelect or not @options.exclusiveHover
-            break
-        # get parent
-        b = if a.parent
-            then a.parent.panels
-            else @panels['']
-        # iterate
-        for c in b when c != a and not c.hidden and c.active
-            stopAnimations c
-            id = 'xhover' if id == 'hover'
-            c.animation[id].invalidate!
-            c.animation[id].play 0
-        /***/
-        return true;
       };
       Object.defineProperty(this, 'panels', {
         set: function(data){

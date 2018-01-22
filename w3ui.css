@@ -103,26 +103,17 @@
   padding: 6px 0;
   cursor: pointer;
 }
+.w3ui.accordion .title.hover {
+  background-color: var(--col90);
+  box-shadow: inset 0 0 8px 2px var(--col85);
+}
 .w3ui.accordion .title.active {
-  font-size: calc(1.1 * var(--title-font-size));
-  color: var(--col20);
   background-color: var(--col90);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 .w3ui.accordion .title.active.hover {
-  font-size: var(--title-font-size);
   box-shadow: inset 0 0 0 0px var(--col85);
-  text-shadow: none;
-}
-.w3ui.accordion .title.hover {
-  font-size: calc(1.1 * var(--title-font-size));
-  background-color: var(--col90);
-  color: var(--col20);
-  box-shadow: inset 0 0 8px 2px var(--col85);
-}
-.w3ui.accordion .title.hover.hovered {
-  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col95), 0 0 6px var(--col95), 0 0 8px var(--col50), 0 0 10px var(--col50), 0 0 12px var(--col50);
 }
 .w3ui.accordion .title .box {
   font-family: var(--title-font);
@@ -135,6 +126,21 @@
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+}
+.w3ui.accordion .title .box.N1.hover {
+  font-size: calc(1.1 * var(--title-font-size));
+  color: var(--col20);
+}
+.w3ui.accordion .title .box.N1.hover.hovered {
+  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col95), 0 0 6px var(--col95), 0 0 8px var(--col50), 0 0 10px var(--col50), 0 0 12px var(--col50);
+}
+.w3ui.accordion .title .box.N1.active {
+  font-size: calc(1.1 * var(--title-font-size));
+  color: var(--col20);
+}
+.w3ui.accordion .title .box.N1.active.hover {
+  font-size: var(--title-font-size);
+  text-shadow: none;
 }
 .w3ui.accordion .title .box.N0,
 .w3ui.accordion .title .box.N2 {
