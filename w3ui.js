@@ -349,7 +349,7 @@ w3ui = function(){
           }
         };
         react = function(data, event){
-          if (this.__proto__.react.call(this, data, event, this.options.events)) {
+          if (this.__proto__.react.call(this, data, event)) {
             event.preventDefault();
           }
           return true;
@@ -463,17 +463,12 @@ w3ui = function(){
         }
         (a = this.__proto__.destroy) && a.call(this);
       },
-      resize: function(animate){
+      resize: function(){
         var a;
-        animate == null && (animate = false);
         if (!(a = this.__proto__.resize)) {
           return true;
         }
-        if (!a.call(this, animate)) {
-          return false;
-        }
-        this.resize.boxState = this.node[0].box.state;
-        return true;
+        return a.call(this);
       },
       setup: function(key, val){
         var a;
@@ -1894,7 +1889,8 @@ w3ui && (w3ui.accordion = {
     ORDER: ['panels'],
     multiSelect: false,
     activeSwitch: true,
-    activeHover: true
+    activeHover: true,
+    childCollapse: true
     /***
     # hides adjacent panels on selection
     deepDive: false
@@ -1916,7 +1912,7 @@ w3ui && (w3ui.accordion = {
       hover: [
         {
           label: 'A',
-          duration: 0.6,
+          duration: 0.4,
           to: {
             className: '+=hover hovered',
             ease: Bounce.easeOut
@@ -1929,7 +1925,7 @@ w3ui && (w3ui.accordion = {
           }
         }, {
           position: 'A',
-          duration: 8,
+          duration: 0.6,
           to: {
             className: '+=hover hovered',
             ease: Power2.easeOut
@@ -1965,20 +1961,20 @@ w3ui && (w3ui.accordion = {
           duration: 0.4,
           to: {
             className: '-=hover',
-            ease: Bounce.easeOut
+            ease: Power2.easeIn
           }
         }, {
           duration: 0.2,
           to: {
             className: '-=hover',
-            ease: Power2.easeOut
+            ease: Power2.easeIn
           }
         }, {
           position: 'A',
           duration: 0.6,
           to: {
             className: '-=hover',
-            ease: Power2.easeOut
+            ease: Power2.easeIn
           }
         }, {
           duration: 0,
@@ -1987,89 +1983,28 @@ w3ui && (w3ui.accordion = {
           }
         }
       ],
+      select: {
+        duration: 0.2,
+        to: {
+          className: '+=select',
+          ease: Power2.easeOut
+        }
+      },
+      deselect: {
+        duration: 0.2,
+        to: {
+          className: '-=select',
+          ease: Power2.easeIn
+        }
+      },
       resize: {
         duration: 0.4,
         to: {
           ease: Power2.easeInOut
         }
-      }
-      /***
-      hover: # {{{
-          {
-              label: 'A'
-              duration: 0.4
-              to:
-                  className: '+=hover'
-                  ease: Bounce.easeOut
-          }
-          {
-              position: 'A'
-              duration: 0.6
-              to:
-                  className: '+=hover'
-                  ease: Power2.easeOut
-          }
-          {
-              position: 'A'
-              duration: 0.6
-              to:
-                  className: '+=hover'
-                  ease: Power2.easeOut
-          }
-      # }}}
-      unhover: # {{{
-          # 0. TITLE, CONTENT
-          {
-              label: 'A'
-              duration: 0.4
-              to:
-                  className: '-=hover'
-                  ease: Power2.easeIn
-          }
-          # 1. CONTAINERS
-          {
-              position: 'A'
-              duration: 0.4
-              to:
-                  className: '-=hover'
-                  ease: Power2.easeIn
-          }
-          # 2. PANEL
-          {
-              position: 'A'
-              duration: 0.4
-              to:
-                  className: '-=hover'
-                  ease: Power2.easeIn
-          }
-          # 3. ALL
-          {
-              duration: 0
-              to:
-                  className: '-=hovered'
-          }
-      # }}}
-      xhover: # {{{
-          {
-              duration: 0.4
-              to:
-                  className: '+=hover'
-                  ease: Power2.easeIn
-          }
-          {
-              duration: 0.1
-              to:
-                  className: '-=hovered'
-                  ease: Power2.easeIn
-          }
-      # }}}
-      /***/,
+      },
       activate: [
         {
-          label: 'A',
-          duration: 0,
-          to: {}
-        }, {
           position: 'A',
           duration: 0.6,
           to: {
@@ -2120,11 +2055,14 @@ w3ui && (w3ui.accordion = {
         el: '.title'
       }, {
         id: 'select',
+        event: 'pointerdown',
+        el: '.title'
+      }, {
+        id: 'activate',
         event: 'click',
-        el: '.title .box.N1'
+        el: '.title'
       }
-    ],
-    selecting: null
+    ]
   },
   api: {
     none: true
@@ -2136,15 +2074,8 @@ w3ui && (w3ui.accordion = {
     }
     return true;
   },
-  resize: function(animate){
-    var a;
+  resize: function(){
     this.panels.resize();
-    if (a = this.panels.refreshSize()) {
-      if (!animate) {
-        a.duration = 0;
-      }
-      a.play();
-    }
     return true;
   },
   setup: function(name, opt){
@@ -2186,8 +2117,8 @@ w3ui && (w3ui.accordion = {
     addAnimation = function(a){
       true;
     };
-    return function(data, event, trigger){
-      var id, a, b, c, i$, len$, el, opts;
+    return function(data, event){
+      var id, a, b, c, i$, len$, el, o, d;
       switch (id = data.id) {
       case 'hover':
       case 'unhover':
@@ -2213,6 +2144,7 @@ w3ui && (w3ui.accordion = {
           for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
             el = c[i$];
             el.hoverx = false;
+            el.selected = false;
           }
         }
         if (!this.data.selecting) {
@@ -2227,33 +2159,62 @@ w3ui && (w3ui.accordion = {
         }
         break;
       case 'select':
-        if (this.data.busy) {
-          break;
-        }
         if (!(a = event.currentTarget.dataset.id)) {
           break;
         }
         if (!(a = this.panels[a]) || a.disabled) {
           break;
         }
-        opts = this.options;
-        if (a.active && !opts.activeSwitch && !opts.multiSelect) {
+        if (event.button !== 0) {
           break;
         }
-        if (trigger.select && !trigger.select(a)) {
+        if (!a.hovered || a.selected) {
           break;
         }
+        a.selected = true;
+        b = a.animation.select.invalidate();
+        if (c = a.hovering) {
+          c.add(b.play(0));
+          c.add(function(){
+            c.remove(b);
+          });
+          c.timeScale(3);
+        } else {
+          a.hovering = b.play();
+        }
+        break;
+      case 'activate':
+        if (!(a = event.currentTarget.dataset.id)) {
+          break;
+        }
+        if (!(a = this.panels[a]) || a.disabled) {
+          break;
+        }
+        o = this.options;
         if (a.active) {
+          if (!o.activeSwitch && !o.multiSelect) {
+            break;
+          }
           a.active = false;
-          /*
-          if not opts.multiSelect and a.panels
-              for b in getList a.panels when b.active
-                  hideNode = hideNode ++ b.node.nodes
-                  b.active = false
-          */
+          if (a.panels && o.childCollapse) {
+            b = a.panels;
+            while (b.length) {
+              d = [];
+              for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+                c = b[i$];
+                if (b.active) {
+                  c.active = false;
+                  if (c.panels) {
+                    d.push(c);
+                  }
+                }
+              }
+              b = d;
+            }
+          }
         } else {
           a.active = true;
-          if (!opts.multiSelect) {
+          if (!o.multiSelect) {
             c = a.parent
               ? a.parent.panels
               : this.panels[''];
@@ -2265,12 +2226,6 @@ w3ui && (w3ui.accordion = {
             }
           }
         }
-        b = a.parent
-          ? this.panels.refresh(true, a.parent.panels)
-          : this.panels.refresh(true);
-        b.add(selectComplete.bind(this, a, trigger.selectComplete));
-        this.data.busy = b;
-        b.play();
         break;
       default:
         return false;
@@ -2279,59 +2234,9 @@ w3ui && (w3ui.accordion = {
     };
   }(),
   panels: function(){
-    var initialize, initAnimations, createNodes, getItem, getList;
-    initialize = function(data, parent){
-      var i$, len$, index, el;
-      parent == null && (parent = null);
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        index = i$;
-        el = data[i$];
-        el.parent = parent;
-        el.level = parent ? parent.level + 1 : 0;
-        el.animation = {};
-        if (!el.id) {
-          el.id = el.level + '#' + index;
-        }
-        el.hidden = !!el.hidden;
-        el.active = !!el.active;
-        el.disabled = !!el.disabled;
-        if (el.panels && !initialize(el.panels, el)) {
-          return false;
-        }
-      }
-      return true;
-    };
-    initAnimations = function(data, animation){
-      var i$, len$, el, a, b;
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        el = data[i$];
-        for (a in animation) {
-          b = animation[a];
-          b = w3ui.CLONE(b);
-          switch (a) {
-          case 'hover':
-          case 'xhover':
-          case 'unhover':
-            b[0].node = el.nodeTitle.nodes.concat(el.node[0].nodes);
-            b[1].node = el.nodeContent.nodes.concat(el.node[1].nodes);
-            b[2].node = [el.nodeBox[0].node, el.nodeBox[1].node, el.nodePanel.node];
-            if (a === 'unhover') {
-              b[3].node = el.nodes;
-            }
-            b = w3ui.GSAP.queue(b);
-            break;
-          case 'resize':
-            b.node = el.nodeBox[1].node;
-          }
-          el.animation[a] = b;
-        }
-        if (el.panels) {
-          initAnimations(el.panels, animation);
-        }
-      }
-    };
+    var createNodes, initialize, initAnimations, getItem, getList;
     createNodes = function(data, box){
-      var i$, len$, index, el, a, b;
+      var i$, len$, index, el, a, b, c;
       if (!box) {
         box = w3ui(document.createElement('div'));
         box['class'].add('box');
@@ -2390,6 +2295,37 @@ w3ui && (w3ui.accordion = {
             a[0].html = b;
             a[0]['class'].add('N1');
           }
+          a = el.nodeContent;
+          b = [-1, -1];
+          if (c = el.contentSize) {
+            if (toString$.call(c).slice(8, -1) === 'Array') {
+              if (c[0]) {
+                b[0] = c[0];
+              }
+              if (c[1]) {
+                b[1] = c[1];
+              }
+            } else {
+              b[0] = c;
+            }
+          } else {
+            if (a[0]['class'].has('N1')) {
+              b[0] = 100 * a[0].outterHeight / size[3];
+            }
+            if (a[2]['class'].has('N1')) {
+              b[1] = 100 * a[2].outterHeight / size[3];
+            }
+          }
+          c = 100;
+          if (b[0] >= 0) {
+            a[0].style.height = b[0] + '%';
+            c = c - b[0];
+          }
+          if (b[1] >= 0) {
+            a[2].style.height = b[1] + '%';
+            c = c - b[1];
+          }
+          a[1].style.height = c + '%';
         }
         if (el.panels) {
           createNodes(el.panels, el.nodeContent[1]);
@@ -2416,6 +2352,141 @@ w3ui && (w3ui.accordion = {
       function fn2$(el, index){
         el['class'] = 'box N' + index;
       }
+    };
+    initialize = function(data, parent){
+      var i$, len$, index, el;
+      parent == null && (parent = null);
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        index = i$;
+        el = data[i$];
+        el.parent = parent;
+        el.level = parent ? parent.level + 1 : 0;
+        el.animation = {};
+        if (!el.id) {
+          el.id = el.level + '#' + index;
+        }
+        el.hidden = !!el.hidden;
+        el.active = !!el.active;
+        el.disabled = !!el.disabled;
+        if (el.panels && !initialize(el.panels, el)) {
+          return false;
+        }
+      }
+      return true;
+    };
+    initAnimations = function(data, animation){
+      var i$, len$, el, a, b, initSize, this$ = this;
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        for (a in animation) {
+          b = animation[a];
+          b = w3ui.CLONE(b);
+          switch (a) {
+          case 'hover':
+          case 'xhover':
+          case 'unhover':
+            b[0].node = el.nodeTitle.nodes;
+            b[1].node = el.nodeContent.nodes;
+            b[2].node = el.node.nodes.concat(el.nodeBox.nodes, el.nodePanel.nodes);
+            if (a === 'unhover') {
+              b[3].node = el.nodes;
+            }
+            b = w3ui.GSAP.queue(b);
+            break;
+          case 'select':
+          case 'deselect':
+            b.node = el.nodes;
+            b = w3ui.GSAP.queue(b);
+            break;
+          case 'resize':
+            b.node = el.nodeBox[1].node;
+            break;
+          case 'activate':
+            b[0].node = el.nodeBox[1].node;
+            b[1].node = [el.nodePanel.node, el.nodeBox[0].node, el.node[0], el.node[1]];
+          }
+          el.animation[a] = b;
+        }
+        if (el.panels) {
+          initAnimations(el.panels, animation);
+        }
+      }
+      initSize = function(data, size){
+        var lst0, lst1, i$, len$, el, box, a, b, gap0, gap1, c, e, d, index;
+        lst0 = [];
+        lst1 = [];
+        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+          el = data[i$];
+          if (!el.hidden) {
+            lst0.push(el);
+            if (el.active) {
+              lst1.push(el);
+            }
+          }
+        }
+        el = data[0];
+        box = el.nodeParent;
+        a = el.nodeBox[0].box;
+        b = el.node[0].box;
+        gap0 = a.borderHeight + a.paddingHeight + b.borderHeight + b.paddingHeight;
+        gap1 = 0;
+        for (i$ = 0, len$ = lst0.length; i$ < len$; ++i$) {
+          el = lst0[i$];
+          a = el.nodePanel.box;
+          gap1 = gap1 + a.borderHeight + a.paddingHeight;
+        }
+        if ((a = size[0] - gap1) < 1) {
+          a = 0;
+        }
+        b = size[1];
+        if (b * lst0.length > a) {
+          if ((b = a / lst0.length) < 1) {
+            b = 0;
+          }
+        }
+        c = size[2];
+        if (c + gap0 > b) {
+          if ((c = b - gap0) < 1) {
+            c = 0;
+          }
+        }
+        e = [a - b * lst0.length, 0];
+        d = data.map(function(el, index){
+          var x;
+          if (!el.active || el.hidden) {
+            return 0;
+          }
+          if (el.panelSize) {
+            x = el.panelSize * a / 100.0;
+          } else {
+            x = e[0] / lst1.length;
+          }
+          if (x < 1) {
+            x = 0;
+          }
+          e[1] = e[1] + x;
+          return x;
+        });
+        e = e[0] - e[1];
+        if (Math.abs(e > 1)) {
+          d = d.map(function(x){
+            return x < 1 || x + e < 0
+              ? 0
+              : x + e;
+          });
+        }
+        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+          index = i$;
+          el = data[i$];
+          el.size = [d[index], b, c];
+        }
+        for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
+          el = lst1[i$];
+          if (el.panels) {
+            initSize(el.panels, el.size);
+          }
+        }
+      };
     };
     getItem = function(id, data){
       var i$, len$, el, a;
@@ -2458,7 +2529,7 @@ w3ui && (w3ui.accordion = {
       return list;
     };
     return function(){
-      var DATA, create, destroy, resize, refreshSize, refreshHovered, refreshActive, this$ = this;
+      var DATA, create, destroy, resize, refresh, refreshHovered, refreshActive, this$ = this;
       DATA = [];
       create = function(){
         if (DATA.length) {
@@ -2474,147 +2545,66 @@ w3ui && (w3ui.accordion = {
           DATA.length = 0;
         }
       };
-      resize = function(data, parent){
-        var box, lst0, lst1, i$, len$, el, a, b, gap0, gap1, size, c;
-        data == null && (data = DATA);
-        if (!data.length) {
+      resize = function(){
+        var el, a, c, b;
+        if (!DATA.length) {
           return;
         }
-        box = data[0].nodeParent;
-        lst0 = [];
-        lst1 = [];
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          el = data[i$];
-          if (!el.hidden) {
-            lst0.push(el);
-            if (el.active) {
-              lst1.push(el);
-            }
-          }
+        el = DATA[0].nodeParent;
+        if ((a = el.box.innerHeight) < 1) {
+          a = 0;
         }
-        el = data[0];
-        a = el.nodeBox[0].box;
-        b = el.node[0].box;
-        gap0 = a.borderHeight + a.paddingHeight + b.borderHeight + b.paddingHeight;
-        a = el.nodePanel.box;
-        gap1 = (a.borderHeight + a.paddingHeight) * lst0.length;
-        if (parent) {
-          if ((size = parent.size[3]) < 1) {
-            size = 0;
-          }
-          if (parent.content) {
-            a = parent.nodeContent;
-            b = [-1, -1];
-            if (c = parent.contentSize) {
-              if (toString$.call(c).slice(8, -1) === 'Array') {
-                if (c[0]) {
-                  b[0] = c[0];
-                }
-                if (c[1]) {
-                  b[1] = c[1];
-                }
-              } else {
-                b[0] = c;
-              }
-            } else {
-              if (a[0]['class'].has('N1')) {
-                b[0] = 100 * a[0].outterHeight / size;
-              }
-              if (a[2]['class'].has('N1')) {
-                b[1] = 100 * a[2].outterHeight / size;
-              }
-            }
-            c = 100;
-            if (b[0] >= 0) {
-              a[0].style.height = b[0] + '%';
-              c = c - b[0];
-            }
-            if (b[1] >= 0) {
-              a[2].style.height = b[1] + '%';
-              c = c - b[1];
-            }
-            a[1].style.height = c + '%';
-          }
-          a = parent.size[1];
-          b = parent.size[2];
-        } else {
-          if ((size = box.box.innerHeight - gap1) < 1) {
-            size = 0;
-          }
-          a = this$.style.titleSize;
-          if ((b = this$.style.titleFontSize) === 0) {
-            b = box.style.fontSize;
-          }
-          if (a === 0) {
-            a = b + gap0;
-          } else {
-            if (typeof a === 'string') {
-              el.nodeTitle[1].style.height = a;
-              a = el.nodeTitle[1].style.height;
-            }
-          }
+        if ((c = this$.style.titleFontSize) === 0) {
+          c = this$.node.style.fontSize;
         }
-        if (this$.options.responsive && a * lst0.length > size) {
-          if ((a = size / lst0.length) < 1) {
-            a = 0;
-          }
+        if ((b = this$.style.titleSize) === 0) {
+          b = c;
+        } else if (typeof b === 'string') {
+          el.nodeTitle[1].style.height = a;
+          a = el.nodeTitle[1].style.height;
         }
-        if (b + gap0 > a) {
-          if ((b = a - gap0) < 1) {
-            b = 0;
-          }
-        }
-        if (lst1.length) {
-          c = (size - a * lst0.length) / lst1.length;
-          if (c < 1) {
-            c = 0;
-          }
-        } else {
-          c = 0;
-        }
-        size = [size, a, b, c];
-        data.forEach(function(el){
-          el.size = size;
-        });
-        for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-          el = lst1[i$];
-          if (el.panels) {
-            refresh(el.panels, el);
-          }
-        }
+        initSize(DATA, [a, b, c]);
       };
-      refreshSize = function(panel){
-        var anim, list, b, c, a, i$, len$, el;
+      refresh = function(panel){
+        var anim, list, b, c, a, i$, len$, el, ref$;
         anim = [];
-        list = [];
+        list = panel && panel.panels
+          ? panel.panels
+          : [];
         if (panel) {
-          b = panel.nodePanel;
+          b = parent.nodePanel;
           c = panel.size;
         } else {
           b = DATA[0].nodeParent;
           c = DATA[0].size;
         }
-        if (Math.abs(b.style.titleSize - c[1]) > 0.0001 || Math.abs(b.style.titleFontSize - c[2]) > 0.0001) {
+        if (Math.abs(b.style.titleSize - c[1]) > 0.001 || Math.abs(b.style.titleFontSize - c[2]) > 0.001) {
           a = w3ui.CLONE(this$.data.animation.resize);
           a.node = b.node;
           a.to['--title-size'] = c[1] + 'px';
           a.to['--title-font-size'] = c[2] + 'px';
           anim.push(w3ui.GSAP.queue(a));
         }
-        panel = panel ? panel.panels : DATA;
-        for (i$ = 0, len$ = panel.length; i$ < len$; ++i$) {
-          el = panel[i$];
-          if (!el.hidden && el.active) {
-            if (el.panels) {
-              list.push(el);
-            }
-            a = el.size[3];
-            b = el.nodeBox[1].style.panelSize;
-            if (Math.abs(a - b) < 0.0001) {
-              c = el.animation.resize;
-              c.to['--panel-size'] = a + 'px';
-              anim.push(w3ui.GSAP.queue(c));
-            }
+        for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+          el = list[i$];
+          a = el.nodePanel.has('active');
+          c = null;
+          if (el.active !== a) {
+            c = el.active
+              ? el.animation.activate
+              : el.animation.deactivate;
+            c.to['--panel-size'] = b + 'px';
+            anim.push(w3ui.GSAP.queue(c));
+            continue;
+          } else if (!el.active) {
+            continue;
+          }
+          a = el.nodeBox[1].style.panelSize;
+          b = el.size[0];
+          if (Math.abs(a - b) > 0.001) {
+            c = el.animation.resize;
+            c.to['--panel-size'] = b + 'px';
+            anim.push(w3ui.GSAP.queue(c));
           }
         }
         if (!anim.length) {
@@ -2633,156 +2623,156 @@ w3ui && (w3ui.accordion = {
           }
           anim = a;
         }
-        b = [];
-        for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
-          el = list[i$];
-          if (a = refreshSize(el)) {
-            b.push(a);
+        if (panel && panel.panels) {
+          b = [];
+          for (i$ = 0, len$ = (ref$ = panel.panels).length; i$ < len$; ++i$) {
+            el = ref$[i$];
+            if (el.panels) {
+              if (a = refreshActive(el)) {
+                b.push(a);
+              }
+            }
           }
-        }
-        if (b.length) {
-          anim.addLabel('B');
-          for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-            a = b[i$];
-            anim.add(a.play(), 'B');
+          if (b.length) {
+            anim.addLabel('B');
+            for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+              a = b[i$];
+              anim.add(a.play(), 'B');
+            }
           }
         }
         return anim;
       };
       refreshHovered = function(panel){
-        var a, list, i$, len$, el, b, anim;
+        var a, list, i$, len$, el, anim, b;
         a = panel.parent ? panel.parent.panels : DATA;
         list = [];
         for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
           el = a[i$];
-          if (!el.hidden && !el.disabled) {
+          if (!el.hidden) {
             list.push(el);
           }
         }
-        a = [];
+        anim = new TimelineLite({
+          paused: true,
+          overwrite: 'concurrent'
+        });
         for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
           el = list[i$];
-          b = el.nodePanel['class'].has('hovered');
-          if (b && !el.hovered) {
-            b = el.animation.unhover;
-            b.invalidate();
-            a.push(b);
-          } else if (!b && el.hovered) {
-            b = el.animation.hover;
-            b.invalidate();
-            a.push(b);
+          a = el.nodePanel['class'].has('select');
+          b = false;
+          if (a && !el.selected) {
+            b = el.animation.deselect;
+          } else if (!a && el.selected) {
+            b = el.animation.select;
           }
-        }
-        anim = new TimelineLite({
-          paused: true
-        });
-        for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
-          b = a[i$];
-          anim.add(b.play(0), 0);
-        }
-        if (this$.options.activeHover) {
-          return anim;
+          if (b) {
+            anim.add(b.invalidate().play(0), 0);
+          }
         }
         anim.addLabel('A');
-        a = [];
         for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
           el = list[i$];
-          b = el.nodePanel['class'].has('hover');
-          if (b && !el.hoverx) {
+          a = el.nodePanel['class'].has('hovered');
+          b = false;
+          if (a && !el.hovered) {
             b = el.animation.unhover;
-            b.invalidate();
-            a.push(b);
-          } else if (!b && el.hoverx) {
-            b = el.animation.xhover;
-            b.invalidate();
-            a.push(b);
+          } else if (!a && el.hovered) {
+            b = el.animation.hover;
+          }
+          if (b) {
+            anim.add(b.invalidate().play(0), 'A');
           }
         }
-        for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
-          b = a[i$];
-          anim.add(b.play(0), 'A');
+        if (this$.options.activeHover) {
+          anim.addLabel('B');
+          for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+            el = list[i$];
+            if (el.active) {
+              a = el.nodePanel['class'].has('hover');
+              b = false;
+              if (a && !el.hoverx) {
+                b = el.animation.unhover;
+              } else if (!a && el.hoverx) {
+                b = el.animation.xhover;
+              }
+              if (b) {
+                anim.add(b.invalidate().play(0), 'B');
+              }
+            }
+          }
         }
         return anim;
       };
-      refreshActive = function(data, parent){
-        var box, lst0, lst1, i$, len$, el, a, size, b, c;
-        data == null && (data = DATA);
-        box = data[0].nodeParent;
-        lst0 = [];
-        lst1 = [];
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          el = data[i$];
-          if (!el.hidden) {
-            lst0.push(el);
-            if (el.active) {
-              lst1.push(el);
-            }
+      refreshActive = function(panel){
+        var anim, parent, list, b, c, a, i$, len$, el, ref$;
+        anim = [];
+        parent = panel && panel.parent ? panel.parent : null;
+        list = parent ? parent.panels : DATA;
+        if (parent) {
+          initSize(list, panel.size);
+        } else {
+          resize();
+        }
+        if (panel) {
+          b = parent.nodePanel;
+          c = panel.size;
+        } else {
+          b = DATA[0].nodeParent;
+          c = DATA[0].size;
+        }
+        if (Math.abs(b.style.titleSize - c[1]) > 0.001 || Math.abs(b.style.titleFontSize - c[2]) > 0.001) {
+          a = w3ui.CLONE(this$.data.animation.resize);
+          a.node = b.node;
+          a.to['--title-size'] = c[1] + 'px';
+          a.to['--title-font-size'] = c[2] + 'px';
+          anim.push(w3ui.GSAP.queue(a));
+        }
+        for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+          el = list[i$];
+          a = el.nodeBox[1].style.panelSize;
+          b = el.size[0];
+          if (Math.abs(a - b) > 0.001) {
+            c = el.animation.resize;
+            c.to['--panel-size'] = b + 'px';
+            anim.push(w3ui.GSAP.queue(c));
           }
         }
-        a = [];
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          el = data[i$];
-          size = el.size;
-          b = el.nodePanel['class'].has('active');
-          if (el.active) {
-            if (!b) {
-              c = w3ui.CLONE(this$.data.animation.activate);
-              c[0].node = el.nodeBox[1].node;
-              c[0].to['--panel-size'] = size[3] + 'px';
-              c[1].node = [el.nodePanel.node, el.nodeBox[0].node, el.nodeBox[1].node, el.node[0].node, el.node[1].node];
-              c[2].node = el.box.node;
-              a.push(w3ui.GSAP.queue(c));
-            } else {
-              c = w3ui.CLONE(this$.data.animation.resize);
-              c.node = el.nodeBox[1].node;
-              c.to['--panel-size'] = size[3] + 'px';
-              a.push(w3ui.GSAP.queue(c));
-            }
-          } else if (b) {
-            c = w3ui.CLONE(this$.data.animation.deactivate);
-            c[0].node = el.box.node;
-            c[1].node = [el.nodePanel.node, el.nodeBox[0].node, el.nodeBox[1].node, el.node[0].node, el.node[1].node];
-            b = el.nodePanel['class'];
-            if (b.has('hover') && !b.has('hovered')) {
-              c[2].node = c[1].node.concat([c[0].node]);
-            }
-            a.push(w3ui.GSAP.queue(c));
-          }
+        if (!anim.length) {
+          return null;
         }
-        c = w3ui.CLONE(this$.data.animation.resize);
-        c.node = box;
-        c.to['--title-size'] = size[1] + 'px';
-        c.to['--title-font-size'] = size[2] + 'px';
-        if (sync) {
-          c.duration = 0;
-        }
-        b = w3ui.GSAP.queue(c);
-        if (a.length) {
-          b.addLabel('A');
-          a.forEach(function(a){
-            b.add(a.play(), 'A');
-          });
-        }
-        a = b;
-        b = [];
-        for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-          el = lst1[i$];
-          if (el.panels) {
-            if (c = refresh(sync, el.panels, el)) {
-              b.push(c);
-            }
-          }
-        }
-        if (b.length) {
-          c = new TimelineLite({
+        if (anim.length < 2) {
+          anim = anim[0];
+        } else {
+          a = new TimelineLite({
             paused: true
           });
-          b.forEach(function(b){
-            c.add(b.play(), 0);
-          });
-          a.add(c.play());
+          a.addLabel('A');
+          for (i$ = 0, len$ = anim.length; i$ < len$; ++i$) {
+            b = anim[i$];
+            a.add(b.play(), 'A');
+          }
+          anim = a;
         }
-        return a;
+        if (panel && panel.panels) {
+          b = [];
+          for (i$ = 0, len$ = (ref$ = panel.panels).length; i$ < len$; ++i$) {
+            el = ref$[i$];
+            if (el.panels) {
+              if (a = refreshActive(el)) {
+                b.push(a);
+              }
+            }
+          }
+          if (b.length) {
+            anim.addLabel('B');
+            for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+              a = b[i$];
+              anim.add(a.play(), 'B');
+            }
+          }
+        }
+        return anim;
       };
       Object.defineProperty(this, 'panels', {
         set: function(data){
@@ -2796,9 +2786,8 @@ w3ui && (w3ui.accordion = {
             create: create,
             destroy: destroy,
             resize: resize,
-            refreshSize: refreshSize,
-            refreshActive: refreshActive,
-            refreshHovered: refreshHovered
+            refreshHovered: refreshHovered,
+            refreshActive: refreshActive
           }, {
             get: function(api, key){
               if (key in api) {

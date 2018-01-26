@@ -910,14 +910,11 @@ w3ui && w3ui.APP({
                 a = this.cfg.nav.id;
                 b = w3ui[a](this.cfg.node, this[a].options);
                 this.cfg.data.widget = b;
-                this.cfg.show[0].widget = b;
                 return true;
               },
               finit: function(){
                 var a;
-                if (a = this.cfg.data.widget) {
-                  a.destroy();
-                }
+                (a = this.cfg.data.widget) && a.destroy();
                 return true;
               },
               resize: function(){

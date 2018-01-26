@@ -1025,11 +1025,10 @@ w3ui and w3ui.APP {
                                 b = w3ui[a] @cfg.node, @[a].options
                                 # store it
                                 @cfg.data.widget = b
-                                @cfg.show.0.widget = b
                                 true
                             # }}}
                             finit: -> # {{{
-                                a.destroy! if (a = @cfg.data.widget)
+                                (a = @cfg.data.widget) and a.destroy!
                                 true
                             # }}}
                             resize: -> # {{{
