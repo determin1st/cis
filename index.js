@@ -947,8 +947,7 @@ w3ui && w3ui.APP({
                     panels: [
                       {
                         title: 'title #2-1',
-                        content: 'text2-1',
-                        disabled: true
+                        content: 'text2-1'
                       }, {
                         title: 'title #2-2',
                         content: 'text2-2'

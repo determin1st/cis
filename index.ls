@@ -1063,7 +1063,6 @@ w3ui and w3ui.APP {
                                             {
                                                 title: 'title #2-1'
                                                 content: 'text2-1'
-                                                disabled: true
                                             }
                                             {
                                                 title: 'title #2-2'

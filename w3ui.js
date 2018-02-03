@@ -295,6 +295,7 @@ w3ui = function(){
       options: function(){
         var base;
         base = {
+          orientation: 1,
           responsive: true,
           animate: true,
           log: true,
@@ -326,9 +327,11 @@ w3ui = function(){
           if (!this.attach.ready) {
             for (i$ = 0, len$ = (ref$ = this.data.events).length; i$ < len$; ++i$) {
               a = ref$[i$];
-              a.node = a.el
-                ? QUERY(a.el, this.node)
-                : this.node;
+              a.node = !a.el
+                ? this.node
+                : typeof a.el === 'string'
+                  ? QUERY(a.el, this.node)
+                  : [a.el];
               a.handler = a.node.map(fn$);
             }
             this.attach.ready = true;
@@ -1883,14 +1886,12 @@ w3ui = function(){
 }();
 /***/
 w3ui && (w3ui.accordion = {
-  /* {{{
-  */
   options: {
     ORDER: ['panels'],
     multiSelect: false,
     activeSwitch: true,
-    activeHover: true,
-    childCollapse: true
+    activeHover: false,
+    deactivateChild: true
     /***
     # hides adjacent panels on selection
     deepDive: false
@@ -1905,141 +1906,85 @@ w3ui && (w3ui.accordion = {
     },
     panels: null
   },
-  style: ['titleSize', 'titleFontSize', 'panelSize'],
   data: {
     INIT: ['panels'],
     animation: {
       hover: [
         {
-          label: 'A',
-          duration: 0.4,
+          duration: 0.6,
           to: {
-            className: '+=hover hovered',
+            className: '+=hovered',
             ease: Bounce.easeOut
           }
         }, {
           duration: 0.2,
           to: {
-            className: '+=hover hovered',
+            className: '+=hovered',
             ease: Power2.easeOut
           }
         }, {
-          position: 'A',
+          position: 0.2,
           duration: 0.6,
           to: {
-            className: '+=hover hovered',
-            ease: Power2.easeOut
-          }
-        }
-      ],
-      xhover: [
-        {
-          label: 'A',
-          duration: 0.4,
-          to: {
-            className: '+=hover',
-            ease: Bounce.easeOut
-          }
-        }, {
-          duration: 0.2,
-          to: {
-            className: '+=hover',
-            ease: Power2.easeOut
-          }
-        }, {
-          position: 'A',
-          duration: 0.6,
-          to: {
-            className: '+=hover',
+            className: '+=hovered',
             ease: Power2.easeOut
           }
         }
       ],
       unhover: [
         {
-          label: 'A',
-          duration: 0.4,
+          duration: 0.2,
           to: {
-            className: '-=hover',
+            className: '-=hovered',
             ease: Power2.easeIn
           }
         }, {
           duration: 0.2,
           to: {
-            className: '-=hover',
+            className: '-=hovered',
             ease: Power2.easeIn
           }
         }, {
-          position: 'A',
-          duration: 0.6,
+          position: 0,
+          duration: 0.4,
           to: {
-            className: '-=hover',
+            className: '-=hovered',
             ease: Power2.easeIn
-          }
-        }, {
-          duration: 0,
-          to: {
-            className: '-=hovered'
           }
         }
       ],
-      select: {
-        duration: 0.2,
-        to: {
-          className: '+=select',
-          ease: Power2.easeOut
-        }
-      },
-      deselect: {
-        duration: 0.2,
-        to: {
-          className: '-=select',
-          ease: Power2.easeIn
-        }
-      },
-      resize: {
+      resize: [{
         duration: 0.4,
         to: {
+          css: {},
           ease: Power2.easeInOut
         }
-      },
+      }],
       activate: [
         {
-          position: 'A',
-          duration: 0.6,
+          duration: 0,
           to: {
-            className: '+=active',
-            ease: Power2.easeOut
+            css: {}
           }
         }, {
-          duration: 0.2,
+          duration: 0.4,
           to: {
             className: '+=active',
-            ease: Power2.easeOut
+            ease: Power2.easeIn
           }
         }
       ],
       deactivate: [
         {
-          label: 'A',
-          duration: 0.2,
-          to: {
-            className: '-=active',
-            ease: Power2.easeOut
-          }
-        }, {
-          position: 'A',
           duration: 0.4,
           to: {
             className: '-=active',
-            ease: Power2.easeOut
+            ease: Power1.easeOut
           }
         }, {
-          node: null,
-          duration: 0.2,
+          duration: 0,
           to: {
-            className: '-=hover',
-            ease: Power2.easeIn
+            css: {}
           }
         }
       ]
@@ -2055,15 +2000,16 @@ w3ui && (w3ui.accordion = {
         el: '.title'
       }, {
         id: 'select',
-        event: 'pointerdown',
-        el: '.title'
-      }, {
-        id: 'activate',
         event: 'click',
         el: '.title'
+      }, {
+        id: 'key',
+        event: 'keypress',
+        el: document
       }
     ]
   },
+  style: ['titleSize', 'titleFontSize', 'panelSize'],
   api: {
     none: true
   },
@@ -2075,7 +2021,10 @@ w3ui && (w3ui.accordion = {
     return true;
   },
   resize: function(){
-    this.panels.resize();
+    var a;
+    if (a = this.panels.refresh()) {
+      a.progress(1);
+    }
     return true;
   },
   setup: function(name, opt){
@@ -2092,149 +2041,138 @@ w3ui && (w3ui.accordion = {
     }
     return null;
   },
-  react: function(){
-    var stopAnimations, selectComplete, addAnimation;
-    stopAnimations = function(el){
-      var c, a, ref$, b;
-      c = false;
-      for (a in ref$ = el.animation) {
-        b = ref$[a];
-        if (!b.paused()) {
-          b.pause();
-          c = true;
-        }
+  react: function(data, event){
+    var id, a, b, c, i$, len$, d, opts, list, this$ = this;
+    switch (id = data.id) {
+    case 'hover':
+    case 'unhover':
+      a = event.currentTarget.dataset.id;
+      b = id === 'hover';
+      if (!(a = this.panels[a]) || a.disabled) {
+        break;
       }
-      if (c) {
-        for (a in ref$ = el.animation) {
-          b = ref$[a];
-          b.invalidate();
-        }
+      if (b && a.hovered || !b && !a.hovered) {
+        break;
       }
-    };
-    selectComplete = function(el, func){
-      this.data.busy = null;
-    };
-    addAnimation = function(a){
-      true;
-    };
-    return function(data, event){
-      var id, a, b, c, i$, len$, el, o, d;
-      switch (id = data.id) {
-      case 'hover':
-      case 'unhover':
-        a = event.currentTarget.dataset.id;
-        if (!(a = this.panels[a]) || a.disabled) {
-          break;
-        }
-        b = id === 'hover';
-        if (b && a.hovered || !b && !a.hovered) {
-          break;
-        }
+      a.hovered = b;
+      if (this.options.activeHover) {
         c = a.parent
           ? a.parent.panels
           : this.panels[''];
-        if (b) {
-          a.hovered = true;
-          for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
-            el = c[i$];
-            el.hoverx = !!el.active;
-          }
-        } else {
-          a.hovered = false;
-          for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
-            el = c[i$];
-            el.hoverx = false;
-            el.selected = false;
+        for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
+          d = c[i$];
+          if (d !== a) {
+            d.hovered = d.active ? b : false;
           }
         }
-        if (!this.data.selecting) {
-          if (a.hovering) {
-            a.hovering.progress(1);
-          }
-          c = this.panels.refreshHovered(a);
-          c.add(function(){
-            delete a.hovering;
-          });
-          a.hovering = c.play();
-        }
-        break;
-      case 'select':
-        if (!(a = event.currentTarget.dataset.id)) {
-          break;
-        }
-        if (!(a = this.panels[a]) || a.disabled) {
-          break;
-        }
-        if (event.button !== 0) {
-          break;
-        }
-        if (!a.hovered || a.selected) {
-          break;
-        }
-        a.selected = true;
-        b = a.animation.select.invalidate();
-        if (c = a.hovering) {
-          c.add(b.play(0));
-          c.add(function(){
-            c.remove(b);
-          });
-          c.timeScale(3);
-        } else {
-          a.hovering = b.play();
-        }
-        break;
-      case 'activate':
-        if (!(a = event.currentTarget.dataset.id)) {
-          break;
-        }
-        if (!(a = this.panels[a]) || a.disabled) {
-          break;
-        }
-        o = this.options;
-        if (a.active) {
-          if (!o.activeSwitch && !o.multiSelect) {
-            break;
-          }
-          a.active = false;
-          if (a.panels && o.childCollapse) {
-            b = a.panels;
-            while (b.length) {
-              d = [];
-              for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-                c = b[i$];
-                if (b.active) {
-                  c.active = false;
-                  if (c.panels) {
-                    d.push(c);
-                  }
-                }
-              }
-              b = d;
-            }
-          }
-        } else {
-          a.active = true;
-          if (!o.multiSelect) {
-            c = a.parent
-              ? a.parent.panels
-              : this.panels[''];
-            for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
-              b = c[i$];
-              if (b !== a && b.active) {
-                b.active = false;
-              }
-            }
-          }
-        }
-        break;
-      default:
-        return false;
       }
-      return true;
-    };
-  }(),
+      if (this.data.selecting) {
+        break;
+      }
+      if (this.data.hovering) {
+        this.data.hovering.kill();
+      }
+      a = this.panels.refreshHovered();
+      a.add(function(){
+        delete this$.data.hovering;
+      });
+      this.data.hovering = a;
+      break;
+    case 'select':
+      if (!(a = event.currentTarget.dataset.id)) {
+        break;
+      }
+      if (!(a = this.panels[a]) || a.disabled) {
+        break;
+      }
+      opts = this.options;
+      list = a.parent
+        ? a.parent.panels
+        : this.panels[''];
+      if (a.active) {
+        if (!opts.activeSwitch && !opts.multiSelect) {
+          break;
+        }
+        a.active = false;
+        if (opts.deactivateChild && (b = a.panels)) {
+          for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+            c = b[i$];
+            if (c.active) {
+              c.active = false;
+              c.hovered = false;
+            }
+          }
+        }
+      } else {
+        a.active = true;
+        if (!opts.multiSelect) {
+          for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+            b = list[i$];
+            if (b.active && b !== a) {
+              b.active = false;
+              b.hovered = false;
+            }
+          }
+        }
+      }
+      this.data.selecting = this.panels.refresh();
+      /***
+      # check
+      if @data.selecting
+          @data.selecting.progress 1
+      # stop hovering
+      if @data.hovering
+          @data.hovering.kill!
+      # create animation
+      b = @panels.resize a
+      b.add !~>
+          b = @panels.refreshHovered!
+          b.add !~>
+              delete @data.selecting
+              delete @data.hovering
+          @data.hovering = b.timeScale 2
+      # animate
+      @data.selecting = b.play!
+      /***/
+      break;
+    case 'test':
+      if (!(a = event.currentTarget.dataset.id)) {
+        break;
+      }
+      if (!(a = this.panels[a]) || a.disabled) {
+        break;
+      }
+      if (event.button !== 0) {
+        break;
+      }
+      if (!a.hovered || a.selected) {
+        break;
+      }
+      a.selected = true;
+      b = a.animation.select.invalidate();
+      if (c = a.hovering) {
+        c.add(b.play(0));
+        c.add(function(){
+          c.remove(b);
+        });
+        c.timeScale(3);
+      } else {
+        a.hovering = b.play();
+      }
+      break;
+    case 'key':
+      if (event.ctrlKey && event.code === 'KeyY') {
+        a = this.panels[''];
+        debugger;
+      }
+      break;
+    default:
+      return false;
+    }
+    return true;
+  },
   panels: function(){
-    var createNodes, initialize, initAnimations, getItem, getList;
+    var createNodes, initialize, initAnimations, initDataSizes, setAnimationState, getItem, getVisibleItems;
     createNodes = function(data, box){
       var i$, len$, index, el, a, b, c;
       if (!box) {
@@ -2375,7 +2313,7 @@ w3ui && (w3ui.accordion = {
       return true;
     };
     initAnimations = function(data, animation){
-      var i$, len$, el, a, b, initSize, this$ = this;
+      var i$, len$, el, a, b;
       for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
         el = data[i$];
         for (a in animation) {
@@ -2383,27 +2321,24 @@ w3ui && (w3ui.accordion = {
           b = w3ui.CLONE(b);
           switch (a) {
           case 'hover':
-          case 'xhover':
           case 'unhover':
             b[0].node = el.nodeTitle.nodes;
             b[1].node = el.nodeContent.nodes;
             b[2].node = el.node.nodes.concat(el.nodeBox.nodes, el.nodePanel.nodes);
-            if (a === 'unhover') {
-              b[3].node = el.nodes;
-            }
             b = w3ui.GSAP.queue(b);
-            break;
-          case 'select':
-          case 'deselect':
-            b.node = el.nodes;
-            b = w3ui.GSAP.queue(b);
+            b.eventCallback('onStart', setAnimationState, [el, a, true]);
+            b.eventCallback('onComplete', setAnimationState, [el, a, false]);
             break;
           case 'resize':
             b.node = el.nodeBox[1].node;
             break;
           case 'activate':
             b[0].node = el.nodeBox[1].node;
-            b[1].node = [el.nodePanel.node, el.nodeBox[0].node, el.node[0], el.node[1]];
+            b[1].node = el.nodes;
+            break;
+          case 'deactivate':
+            b[0].node = el.nodes;
+            b[1].node = el.nodeBox[1].node;
           }
           el.animation[a] = b;
         }
@@ -2411,82 +2346,89 @@ w3ui && (w3ui.accordion = {
           initAnimations(el.panels, animation);
         }
       }
-      initSize = function(data, size){
-        var lst0, lst1, i$, len$, el, box, a, b, gap0, gap1, c, e, d, index;
-        lst0 = [];
-        lst1 = [];
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          el = data[i$];
-          if (!el.hidden) {
-            lst0.push(el);
-            if (el.active) {
-              lst1.push(el);
-            }
+    };
+    initDataSizes = function(data, size){
+      var lst0, lst1, i$, len$, el, a, b, gap0, gap1, c, e, d, index;
+      lst0 = [];
+      lst1 = [];
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        if (!el.hidden) {
+          lst0.push(el);
+          if (el.active) {
+            lst1.push(el);
           }
         }
-        el = data[0];
-        box = el.nodeParent;
-        a = el.nodeBox[0].box;
-        b = el.node[0].box;
-        gap0 = a.borderHeight + a.paddingHeight + b.borderHeight + b.paddingHeight;
+      }
+      el = data[0];
+      a = el.nodeBox[0].box;
+      b = el.node[0].box;
+      gap0 = a.borderHeight + a.paddingHeight + b.borderHeight + b.paddingHeight;
+      if (a = el.parent) {
+        a = a.node[1].box;
+        gap1 = a.borderHeight + a.paddingHeight;
+      } else {
         gap1 = 0;
-        for (i$ = 0, len$ = lst0.length; i$ < len$; ++i$) {
-          el = lst0[i$];
-          a = el.nodePanel.box;
-          gap1 = gap1 + a.borderHeight + a.paddingHeight;
+      }
+      for (i$ = 0, len$ = lst0.length; i$ < len$; ++i$) {
+        el = lst0[i$];
+        a = el.nodePanel.box;
+        gap1 = gap1 + a.borderHeight + a.paddingHeight;
+      }
+      if ((a = size[0] - gap1) < 1) {
+        a = 0;
+      }
+      b = size[1];
+      if (b * lst0.length > a) {
+        if ((b = a / lst0.length) < 1) {
+          b = 0;
         }
-        if ((a = size[0] - gap1) < 1) {
-          a = 0;
+      }
+      c = size[2];
+      if (c > b - gap0) {
+        if ((c = b - gap0) < 1) {
+          c = 0;
         }
-        b = size[1];
-        if (b * lst0.length > a) {
-          if ((b = a / lst0.length) < 1) {
-            b = 0;
-          }
+      }
+      e = [a - b * lst0.length, 0];
+      d = data.map(function(el, index){
+        var x;
+        if (!el.active || el.hidden) {
+          return 0;
         }
-        c = size[2];
-        if (c + gap0 > b) {
-          if ((c = b - gap0) < 1) {
-            c = 0;
-          }
+        if (el.panelSize) {
+          x = el.panelSize * a / 100.0;
+        } else {
+          x = e[0] / lst1.length;
         }
-        e = [a - b * lst0.length, 0];
-        d = data.map(function(el, index){
-          var x;
-          if (!el.active || el.hidden) {
-            return 0;
-          }
-          if (el.panelSize) {
-            x = el.panelSize * a / 100.0;
-          } else {
-            x = e[0] / lst1.length;
-          }
-          if (x < 1) {
-            x = 0;
-          }
-          e[1] = e[1] + x;
-          return x;
+        if (x < 1) {
+          x = 0;
+        }
+        e[1] = e[1] + x;
+        return x;
+      });
+      e = e[0] - e[1];
+      if (Math.abs(e > 1)) {
+        d = d.map(function(x){
+          return x < 1 || x + e < 0
+            ? 0
+            : x + e;
         });
-        e = e[0] - e[1];
-        if (Math.abs(e > 1)) {
-          d = d.map(function(x){
-            return x < 1 || x + e < 0
-              ? 0
-              : x + e;
-          });
+      }
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        index = i$;
+        el = data[i$];
+        el.size = [d[index], b, c];
+      }
+      for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
+        el = lst1[i$];
+        if (el.panels) {
+          initDataSizes(el.panels, el.size);
         }
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          index = i$;
-          el = data[i$];
-          el.size = [d[index], b, c];
-        }
-        for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-          el = lst1[i$];
-          if (el.panels) {
-            initSize(el.panels, el.size);
-          }
-        }
-      };
+      }
+    };
+    setAnimationState = function(el, name, state){
+      el.animation[name]._state = state;
     };
     getItem = function(id, data){
       var i$, len$, el, a;
@@ -2506,36 +2448,37 @@ w3ui && (w3ui.accordion = {
       }
       return null;
     };
-    getList = function(data, list){
+    getVisibleItems = function(data, list){
       var a, i$, len$, b;
       list == null && (list = []);
-      do {
-        list = list.concat(data);
+      while (data.length) {
         a = [];
         for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
           b = data[i$];
-          if (b.panels) {
-            a.push(b);
+          if (!b.hidden) {
+            list.push(b);
+            if (b.active && b.panels) {
+              a.push(b);
+            }
           }
         }
         data = [];
         for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
           b = a[i$];
-          if (b.panels) {
-            data = data.concat(b.panels);
-          }
+          data = data.concat(b.panels);
         }
-      } while (data.length);
+      }
       return list;
     };
     return function(){
-      var DATA, create, destroy, resize, refresh, refreshHovered, refreshActive, this$ = this;
+      var DATA, create, destroy, refresh, refreshSize, refreshActive, refreshHovered, this$ = this;
       DATA = [];
       create = function(){
         if (DATA.length) {
           createNodes(DATA);
           initAnimations(DATA, this$.data.animation);
           this$.node.child.add(DATA[0].nodeParent);
+          refresh();
         }
         return true;
       };
@@ -2543,36 +2486,114 @@ w3ui && (w3ui.accordion = {
         if (DATA.length) {
           this$.node.child.remove(DATA[0].nodeParent);
           DATA.length = 0;
+          delete DATA.visibleItems;
+          delete DATA.sizes;
         }
       };
-      resize = function(){
-        var el, a, c, b;
+      refresh = function(){
+        var el, a, c, b, d, e;
         if (!DATA.length) {
           return;
         }
-        el = DATA[0].nodeParent;
-        if ((a = el.box.innerHeight) < 1) {
-          a = 0;
+        if (!DATA.visibleItems) {
+          DATA.visibleItems = getVisibleItems(DATA);
         }
-        if ((c = this$.style.titleFontSize) === 0) {
-          c = this$.node.style.fontSize;
+        if (!DATA.sizes) {
+          el = DATA[0];
+          if ((a = el.nodeParent.box.innerHeight) < 1) {
+            a = 0;
+          }
+          if ((c = this$.style.titleFontSize) === 0) {
+            c = this$.node.style.fontSize;
+          }
+          if ((b = this$.style.titleSize) === 0) {
+            b = c;
+          } else if (typeof b === 'string') {
+            debugger;
+            el.nodeTitle[1].style.height = a;
+            a = el.nodeTitle[1].style.height;
+          }
+          d = el.nodeBox[0].box;
+          e = el.node[0].box;
+          d = d.borderHeight + d.paddingHeight + e.borderHeight + e.paddingHeight;
+          if (b < c + d) {
+            b = c + d;
+          }
+          DATA.sizes = [a, b, c];
+          initDataSizes(DATA, DATA.sizes);
         }
-        if ((b = this$.style.titleSize) === 0) {
-          b = c;
-        } else if (typeof b === 'string') {
-          el.nodeTitle[1].style.height = a;
-          a = el.nodeTitle[1].style.height;
-        }
-        initSize(DATA, [a, b, c]);
       };
-      refresh = function(panel){
-        var anim, list, b, c, a, i$, len$, el, ref$;
+      refreshSize = function(){
+        if (DATA.sizes) {
+          delete DATA.sizes;
+        }
+        refresh();
+      };
+      refreshActive = function(parent, reset){
+        var anim, data, box, size, a, b, i$, len$, el, c;
+        reset == null && (reset = true);
+        anim = new TimelineLite({
+          overwrite: 0,
+          autoCSS: false
+        });
+        if (parent) {
+          data = parent.panels;
+          box = parent.nodeBox[1];
+        } else {
+          data = DATA;
+          box = data[0].nodeParent;
+        }
+        size = data[0].size;
+        if (Math.abs(box.style.titleSize - size[1]) > 0.001 || Math.abs(box.style.titleFontSize - size[2]) > 0.001) {
+          a = new TimelineLite({
+            paused: true,
+            autoCSS: false,
+            overwrite: 0
+          });
+          b = w3ui.CLONE(this$.data.animation.resize);
+          b[0].to.css['--title-size'] = size[1] + 'px';
+          b[0].to.css['--title-font-size'] = size[2] + 'px';
+          w3ui.GSAP.add(a, box.node, b);
+          anim.add(a.play());
+        }
+        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+          el = data[i$];
+          if (!el.hidden) {
+            a = el.active;
+            b = el.nodePanel['class'].has('active');
+            if (a === b) {
+              continue;
+            }
+            size = el.size;
+            if (a) {
+              b = el.animation.activate;
+              b[0].to.css['--panel-size'] = size[0] + 'px';
+            } else {
+              b = el.animation.deactivate;
+              b[1].to.css['--panel-size'] = size[0] + 'px';
+            }
+            c = new TimelineLite({
+              paused: true,
+              overwrite: 0,
+              autoCSS: false
+            });
+            w3ui.GSAP.add(c, null, b);
+            anim.add(c.play(), anim.time());
+          }
+        }
+        /****
+        for el in data when not el.hidden and el.active and el.panels
+            if (a = refreshActive el)
+                anim.add a, anim.time!
+        /****/
+        return anim;
+      };
+      refreshSize = function(panel){
+        var anim, list, b, c, a, i$, len$, el;
         anim = [];
-        list = panel && panel.panels
-          ? panel.panels
-          : [];
+        list = panel && panel.panels ? panel.panels : DATA;
         if (panel) {
-          b = parent.nodePanel;
+          b = panel.nodePanel;
           c = panel.size;
         } else {
           b = DATA[0].nodeParent;
@@ -2587,14 +2608,16 @@ w3ui && (w3ui.accordion = {
         }
         for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
           el = list[i$];
-          a = el.nodePanel.has('active');
-          c = null;
+          a = el.nodePanel['class'].has('active');
           if (el.active !== a) {
-            c = el.active
-              ? el.animation.activate
-              : el.animation.deactivate;
-            c.to['--panel-size'] = b + 'px';
-            anim.push(w3ui.GSAP.queue(c));
+            if (el.active) {
+              b = el.animation.activate;
+              b[0].to['--panel-size'] = el.size[0] + 'px';
+            } else {
+              b = el.animation.deactivate;
+              b[1].to['--panel-size'] = el.size[0] + 'px';
+            }
+            anim.push(w3ui.GSAP.queue(b));
             continue;
           } else if (!el.active) {
             continue;
@@ -2610,167 +2633,45 @@ w3ui && (w3ui.accordion = {
         if (!anim.length) {
           return null;
         }
-        if (anim.length < 2) {
-          anim = anim[0];
-        } else {
-          a = new TimelineLite({
-            paused: true
-          });
-          a.addLabel('A');
-          for (i$ = 0, len$ = anim.length; i$ < len$; ++i$) {
-            b = anim[i$];
-            a.add(b.play(), 'A');
-          }
-          anim = a;
-        }
-        if (panel && panel.panels) {
-          b = [];
-          for (i$ = 0, len$ = (ref$ = panel.panels).length; i$ < len$; ++i$) {
-            el = ref$[i$];
-            if (el.panels) {
-              if (a = refreshActive(el)) {
-                b.push(a);
-              }
-            }
-          }
-          if (b.length) {
-            anim.addLabel('B');
-            for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-              a = b[i$];
-              anim.add(a.play(), 'B');
-            }
-          }
-        }
-        return anim;
-      };
-      refreshHovered = function(panel){
-        var a, list, i$, len$, el, anim, b;
-        a = panel.parent ? panel.parent.panels : DATA;
-        list = [];
-        for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
-          el = a[i$];
-          if (!el.hidden) {
-            list.push(el);
-          }
-        }
-        anim = new TimelineLite({
-          paused: true,
-          overwrite: 'concurrent'
+        a = new TimelineLite({
+          paused: true
         });
-        for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
-          el = list[i$];
-          a = el.nodePanel['class'].has('select');
-          b = false;
-          if (a && !el.selected) {
-            b = el.animation.deselect;
-          } else if (!a && el.selected) {
-            b = el.animation.select;
-          }
-          if (b) {
-            anim.add(b.invalidate().play(0), 0);
-          }
+        for (i$ = 0, len$ = anim.length; i$ < len$; ++i$) {
+          b = anim[i$];
+          a.add(b.play(), 0);
         }
+        anim = a;
         anim.addLabel('A');
         for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
           el = list[i$];
-          a = el.nodePanel['class'].has('hovered');
-          b = false;
-          if (a && !el.hovered) {
-            b = el.animation.unhover;
-          } else if (!a && el.hovered) {
-            b = el.animation.hover;
-          }
-          if (b) {
-            anim.add(b.invalidate().play(0), 'A');
-          }
-        }
-        if (this$.options.activeHover) {
-          anim.addLabel('B');
-          for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
-            el = list[i$];
-            if (el.active) {
-              a = el.nodePanel['class'].has('hover');
-              b = false;
-              if (a && !el.hoverx) {
-                b = el.animation.unhover;
-              } else if (!a && el.hoverx) {
-                b = el.animation.xhover;
-              }
-              if (b) {
-                anim.add(b.invalidate().play(0), 'B');
-              }
+          if (el.panels) {
+            if (a = refreshSize(el)) {
+              anim.add(a.play(), 'A');
             }
           }
         }
         return anim;
       };
-      refreshActive = function(panel){
-        var anim, parent, list, b, c, a, i$, len$, el, ref$;
-        anim = [];
-        parent = panel && panel.parent ? panel.parent : null;
-        list = parent ? parent.panels : DATA;
-        if (parent) {
-          initSize(list, panel.size);
-        } else {
-          resize();
-        }
-        if (panel) {
-          b = parent.nodePanel;
-          c = panel.size;
-        } else {
-          b = DATA[0].nodeParent;
-          c = DATA[0].size;
-        }
-        if (Math.abs(b.style.titleSize - c[1]) > 0.001 || Math.abs(b.style.titleFontSize - c[2]) > 0.001) {
-          a = w3ui.CLONE(this$.data.animation.resize);
-          a.node = b.node;
-          a.to['--title-size'] = c[1] + 'px';
-          a.to['--title-font-size'] = c[2] + 'px';
-          anim.push(w3ui.GSAP.queue(a));
-        }
+      refreshHovered = function(){
+        var list, anim, i$, len$, el, a, b, c;
+        list = DATA.visibleItems;
+        anim = new TimelineLite({
+          overwrite: 0
+        });
         for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
           el = list[i$];
-          a = el.nodeBox[1].style.panelSize;
-          b = el.size[0];
-          if (Math.abs(a - b) > 0.001) {
-            c = el.animation.resize;
-            c.to['--panel-size'] = b + 'px';
-            anim.push(w3ui.GSAP.queue(c));
-          }
-        }
-        if (!anim.length) {
-          return null;
-        }
-        if (anim.length < 2) {
-          anim = anim[0];
-        } else {
-          a = new TimelineLite({
-            paused: true
-          });
-          a.addLabel('A');
-          for (i$ = 0, len$ = anim.length; i$ < len$; ++i$) {
-            b = anim[i$];
-            a.add(b.play(), 'A');
-          }
-          anim = a;
-        }
-        if (panel && panel.panels) {
-          b = [];
-          for (i$ = 0, len$ = (ref$ = panel.panels).length; i$ < len$; ++i$) {
-            el = ref$[i$];
-            if (el.panels) {
-              if (a = refreshActive(el)) {
-                b.push(a);
-              }
+          a = el.animation;
+          b = el.hovered;
+          if (!a.hover._state && !a.unhover._state) {
+            c = el.nodePanel['class'].has('hovered');
+            if ((c && b) || (!c && !b)) {
+              continue;
             }
           }
-          if (b.length) {
-            anim.addLabel('B');
-            for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-              a = b[i$];
-              anim.add(a.play(), 'B');
-            }
-          }
+          c = b
+            ? a.hover
+            : a.unhover;
+          anim.add(c.invalidate().play(), anim.time());
         }
         return anim;
       };
@@ -2785,9 +2686,8 @@ w3ui && (w3ui.accordion = {
           api = w3ui.PROXY({
             create: create,
             destroy: destroy,
-            resize: resize,
-            refreshHovered: refreshHovered,
-            refreshActive: refreshActive
+            refresh: refresh,
+            refreshHovered: refreshHovered
           }, {
             get: function(api, key){
               if (key in api) {
@@ -2803,7 +2703,6 @@ w3ui && (w3ui.accordion = {
       });
     };
   }()
-  /**** }}} */
 });
 false && (w3ui.pointer = {
   /* {{{

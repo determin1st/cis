@@ -103,17 +103,17 @@
   padding: 6px 0;
   cursor: pointer;
 }
-.w3ui.accordion .title.hover {
+.w3ui.accordion .title.hovered {
   background-color: var(--col90);
   box-shadow: inset 0 0 8px 2px var(--col85);
+}
+.w3ui.accordion .title.hovered.active {
+  box-shadow: inset 0 0 0 0px var(--col85);
 }
 .w3ui.accordion .title.active {
   background-color: var(--col90);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-}
-.w3ui.accordion .title.active.hover {
-  box-shadow: inset 0 0 0 0px var(--col85);
 }
 .w3ui.accordion .title .box {
   font-family: var(--title-font);
@@ -127,25 +127,24 @@
   justify-content: center;
   white-space: nowrap;
 }
-.w3ui.accordion .title .box.N1.hover {
+.w3ui.accordion .title .box.N1.hovered {
   font-size: calc(1.1 * var(--title-font-size));
+  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col90), 0 0 6px var(--col50), 0 0 8px var(--col40);
 }
-.w3ui.accordion .title .box.N1.hover.hovered {
-  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col95), 0 0 6px var(--col50), 0 0 8px var(--col50);
+.w3ui.accordion .title .box.N1.hovered.active {
+  font-size: var(--title-font-size);
+  color: var(--col40);
+  text-shadow: none;
 }
 .w3ui.accordion .title .box.N1.select {
   color: var(--col20);
 }
+.w3ui.accordion .title .box.N1.select.active {
+  color: var(--col40);
+}
 .w3ui.accordion .title .box.N1.active {
   font-size: calc(1.1 * var(--title-font-size));
   color: var(--col20);
-}
-.w3ui.accordion .title .box.N1.active.hover {
-  font-size: var(--title-font-size);
-  text-shadow: none;
-}
-.w3ui.accordion .title .box.N1.active.select {
-  color: var(--col40);
 }
 .w3ui.accordion .title .box.N0,
 .w3ui.accordion .title .box.N2 {
@@ -162,17 +161,14 @@
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
-.w3ui.accordion .content .box {
-  width: 100%;
-  height: auto;
-  font-family: var(--panel-font);
-  color: var(--col40);
-}
 .w3ui.accordion .content .box.N1 {
   height: 100%;
 }
 .w3ui.accordion .content .box.N0,
 .w3ui.accordion .content .box.N2 {
+  height: auto;
+  font-family: var(--panel-font);
+  color: var(--col40);
   display: none;
 }
 .w3ui.accordion .content .box.N0.N1,
