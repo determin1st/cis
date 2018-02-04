@@ -1032,7 +1032,7 @@ w3ui and w3ui.APP {
                                 true
                             # }}}
                             resize: -> # {{{
-                                #@cfg.data.widget.resize true
+                                @cfg.data.widget.resize!
                                 true
                             # }}}
                             show: # {{{
@@ -1066,18 +1066,30 @@ w3ui and w3ui.APP {
                                             }
                                             {
                                                 title: 'title #2-2'
-                                                content: 'text2-2'
+                                                panels: [
+                                                    {
+                                                        title: 'title #2-2-1'
+                                                        content: 'text2-2-1'
+                                                    }
+                                                    {
+                                                        title: 'title #2-2-2'
+                                                        content: 'text2-2-2'
+                                                    }
+                                                    {
+                                                        title: 'title #2-2-3'
+                                                        content: 'text2-2-3'
+                                                    }
+                                                ]
+                                            }
+                                            {
+                                                title: 'title #2-3'
+                                                content: 'text2-3'
                                             }
                                         ]
                                     }
                                     {
                                         title: 'title #3'
                                         content: 'text3'
-                                        hidden: true
-                                    }
-                                    {
-                                        title: 'title #4'
-                                        content: 'text4'
                                     }
                                 ]
                         # }}}

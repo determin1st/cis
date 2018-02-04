@@ -918,6 +918,7 @@ w3ui && w3ui.APP({
                 return true;
               },
               resize: function(){
+                this.cfg.data.widget.resize();
                 return true;
               },
               show: [
@@ -950,16 +951,26 @@ w3ui && w3ui.APP({
                         content: 'text2-1'
                       }, {
                         title: 'title #2-2',
-                        content: 'text2-2'
+                        panels: [
+                          {
+                            title: 'title #2-2-1',
+                            content: 'text2-2-1'
+                          }, {
+                            title: 'title #2-2-2',
+                            content: 'text2-2-2'
+                          }, {
+                            title: 'title #2-2-3',
+                            content: 'text2-2-3'
+                          }
+                        ]
+                      }, {
+                        title: 'title #2-3',
+                        content: 'text2-3'
                       }
                     ]
                   }, {
                     title: 'title #3',
-                    content: 'text3',
-                    hidden: true
-                  }, {
-                    title: 'title #4',
-                    content: 'text4'
+                    content: 'text3'
                   }
                 ]
               }
