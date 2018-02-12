@@ -18,10 +18,13 @@
   --col84: #b1d5fc;
   --col83: #acd2fc;
   --col82: #a7d0fb;
+  --col82: #a2cdfb;
   --col80: #9dcafb;
   --col77: #8ec3fa;
   --col75: #85bdfa;
   --col73: #7bb8f9;
+  --col73: #76b5f9;
+  --col73: #71b3f9;
   --col70: #6cb0f9;
   --col65: #54a3f8;
   --col60: #3b96f7;
@@ -30,6 +33,7 @@
   --col40: #0863c4;
   --col35: #0757ab;
   --col30: #064a93;
+  --col25: #053e7a;
   --col20: #043162;
   /* transparent */
   --col95a: rgba(231, 242, 254, 0);
@@ -81,63 +85,6 @@
   width: 100%;
   height: var(--title-size);
 }
-.w3ui.accordion .title {
-  width: 100%;
-  height: 100%;
-  background-color: var(--col93);
-  border: 1px solid var(--col85);
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 0px var(--col85);
-  padding: 6px 0;
-  cursor: pointer;
-}
-.w3ui.accordion .title.hovered {
-  background-color: var(--col90);
-  box-shadow: inset 0 0 8px 2px var(--col85);
-}
-.w3ui.accordion .title.hovered.active {
-  box-shadow: inset 0 0 0 0px var(--col85);
-}
-.w3ui.accordion .title.active {
-  background-color: var(--col90);
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.w3ui.accordion .title .box {
-  font-family: var(--title-font);
-  font-size: var(--title-font-size);
-  color: var(--col40);
-  opacity: 1;
-}
-.w3ui.accordion .title .box.N1 {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-}
-.w3ui.accordion .title .box.N1.hovered {
-  font-size: calc(1.1 * var(--title-font-size));
-  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col90), 0 0 6px var(--col50), 0 0 8px var(--col40);
-}
-.w3ui.accordion .title .box.N1.hovered.active {
-  font-size: var(--title-font-size);
-  color: var(--col40);
-  text-shadow: none;
-}
-.w3ui.accordion .title .box.N1.select {
-  color: var(--col20);
-}
-.w3ui.accordion .title .box.N1.select.active {
-  color: var(--col40);
-}
-.w3ui.accordion .title .box.N1.active {
-  font-size: calc(1.1 * var(--title-font-size));
-  color: var(--col20);
-}
-.w3ui.accordion .title .box.N0,
-.w3ui.accordion .title .box.N2 {
-  display: none;
-}
 .w3ui.accordion .boxContent {
   width: 100%;
   height: 0;
@@ -146,15 +93,105 @@
   height: var(--panel-size);
   padding: 0;
 }
+.w3ui.accordion .title {
+  width: 100%;
+  height: 100%;
+  padding: 6px 0;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.w3ui.accordion .title.active {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.w3ui.accordion .title.EVEN {
+  background-color: var(--col93);
+  border: 1px solid var(--col85);
+  box-shadow: inset 0 0 0 0px var(--col85);
+}
+.w3ui.accordion .title.EVEN.hovered {
+  background-color: var(--col90);
+  box-shadow: inset 0 0 8px 2px var(--col85);
+}
+.w3ui.accordion .title.EVEN.hovered.active {
+  box-shadow: inset 0 0 0 0px var(--col85);
+}
+.w3ui.accordion .title.EVEN.active {
+  background-color: var(--col90);
+}
+.w3ui.accordion .title.ODD {
+  background-color: var(--col85);
+  border: 1px solid var(--col75);
+  box-shadow: inset 0 0 0 0px var(--col75);
+}
+.w3ui.accordion .title.ODD.hovered {
+  background-color: var(--col80);
+  box-shadow: inset 0 0 8px 2px var(--col70);
+}
+.w3ui.accordion .title.ODD.hovered.active {
+  box-shadow: inset 0 0 0 0px var(--col70);
+}
+.w3ui.accordion .title.ODD.active {
+  background-color: var(--col80);
+}
+.w3ui.accordion .title .box {
+  opacity: 1;
+}
+.w3ui.accordion .title .box.N0,
+.w3ui.accordion .title .box.N2 {
+  display: none;
+}
+.w3ui.accordion .title .box.N1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-family: var(--title-font);
+  font-size: var(--title-font-size);
+  color: var(--col40);
+}
+.w3ui.accordion .title .box.N1.active {
+  font-size: calc(1.1 * var(--title-font-size));
+  color: var(--col25);
+}
+.w3ui.accordion .title .box.N1.hovered {
+  font-size: calc(1.08 * var(--title-font-size));
+}
+.w3ui.accordion .title .box.N1.hovered.active {
+  font-size: var(--title-font-size);
+  color: var(--col40);
+}
+.w3ui.accordion .title .box.N1.EVEN.hovered {
+  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col90), 0 0 6px var(--col50), 0 0 8px var(--col40);
+}
+.w3ui.accordion .title .box.N1.EVEN.hovered.active {
+  color: var(--col40);
+  text-shadow: none;
+}
+.w3ui.accordion .title .box.N1.ODD.hovered {
+  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col90), 0 0 6px var(--col50), 0 0 8px var(--col40);
+}
+.w3ui.accordion .title .box.N1.ODD.hovered.active {
+  color: var(--col40);
+  text-shadow: none;
+}
 .w3ui.accordion .content {
   width: 100%;
   height: 100%;
-  background-color: var(--col90);
-  border: 1px solid var(--col85);
-  border-top: 0;
+  border-style: solid;
+  border-top-style: none;
+  border-width: 1px;
   border-radius: 3px;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+}
+.w3ui.accordion .content.EVEN {
+  background-color: var(--col90);
+  border-color: var(--col85);
+}
+.w3ui.accordion .content.ODD {
+  background-color: var(--col80);
+  border-color: var(--col75);
 }
 .w3ui.accordion .content .box {
   padding: 4px 2px;
