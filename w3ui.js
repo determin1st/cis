@@ -237,6 +237,26 @@ w3ui = function(){
         }
       }
     },
+    joinTimelines: function(list, queue){
+      var a, i$, to$, b;
+      queue == null && (queue = false);
+      if (!list || !list.length) {
+        return null;
+      }
+      if (list.length < 2) {
+        return list[0];
+      }
+      a = list[0];
+      for (i$ = 1, to$ = list.length - 1; i$ <= to$; ++i$) {
+        b = i$;
+        if (queue) {
+          a.add(list[b].play());
+        } else {
+          a.add(list[b].play(), 0);
+        }
+      }
+      return a;
+    },
     pauseAll: function(timeline){
       do {
         timeline.pause();

@@ -69,6 +69,7 @@
 }
 .w3ui.accordion .panel {
   width: 100%;
+  height: auto;
   padding: 0 4px 2px 4px;
 }
 .w3ui.accordion .panel.active {
@@ -80,6 +81,7 @@
 }
 .w3ui.accordion .panel.hidden {
   display: none;
+  height: 0;
 }
 .w3ui.accordion .boxTitle {
   width: 100%;
