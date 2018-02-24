@@ -991,19 +991,27 @@ w3ui = function(){
       });
     };
     getNodes = function(selector, parent){
-      var node, a, i$, to$, b, len$;
+      var node, i$, ref$, len$, a, to$, b;
       node = [];
-      if (!selector) {
-        return node;
-      }
-      if ('w3ui' in parent) {
-        parent = parent.w3ui.node;
-      }
       switch (toString$.call(selector).slice(8, -1)) {
       case 'String':
-        a = selector
-          ? parent.querySelectorAll(selector)
-          : parent.children;
+        if ('w3ui' in parent) {
+          for (i$ = 0, len$ = (ref$ = parent.w3ui.nodes).length; i$ < len$; ++i$) {
+            a = ref$[i$];
+            node = node.concat(getNodes(selector, a));
+          }
+          break;
+        }
+        if (selector) {
+          if (!(a = parent.querySelectorAll(selector)).length) {
+            if (parent.matches(selector)) {
+              node.push(parent);
+              break;
+            }
+          }
+        } else {
+          a = parent.children;
+        }
         if (a && a.length) {
           for (i$ = 0, to$ = a.length - 1; i$ <= to$; ++i$) {
             b = i$;
@@ -1264,20 +1272,18 @@ w3ui = function(){
         }
         d = document.createElement('template');
         d.innerHTML = a.trim();
-        c = b
-          ? w3ui('#' + b, d.content)
-          : w3ui('', d.content);
-        c.style.display = 'none';
+        c = w3ui('', d.content);
+        if (b) {
+          this[id].cfg.node = w3ui('#' + b, c);
+        } else {
+          this[id].node = c;
+        }
         if (old) {
-          this.cfg.node.child.insert(c);
+          c.style.display = 'none';
+          this.cfg.node.child.insert(c, 0);
         } else {
           this.cfg.node.child.remove();
           this.cfg.node.child.add(c);
-        }
-        if (b) {
-          this[id].cfg.node = c;
-        } else {
-          this[id].node = c;
         }
         return true;
       },

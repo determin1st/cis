@@ -1,45 +1,112 @@
-:root {
-  /* default color: ALICE BLUE */
-  /* main */
-  --col-h: 211;
-  /* hue */
-  --col-s: 92;
-  /* saturation */
-  /* opaque */
-  --col99: #fafcff;
-  --col95: #e7f2fe;
-  --col94: #e2effe;
-  --col93: #ddedfe;
-  --col92: #d8eafd;
-  --col90: #cee5fd;
-  --col88: #c4dffd;
-  --col87: #bfddfc;
-  --col85: #b6d8fc;
-  --col84: #b1d5fc;
-  --col83: #acd2fc;
-  --col82: #a7d0fb;
-  --col82: #a2cdfb;
-  --col80: #9dcafb;
-  --col77: #8ec3fa;
-  --col75: #85bdfa;
-  --col73: #7bb8f9;
-  --col73: #76b5f9;
-  --col73: #71b3f9;
-  --col70: #6cb0f9;
-  --col65: #54a3f8;
-  --col60: #3b96f7;
-  --col55: #2389f6;
-  --col50: #0a7cf5;
-  --col40: #0863c4;
-  --col35: #0757ab;
-  --col30: #064a93;
-  --col25: #053e7a;
-  --col20: #043162;
-  /* transparent */
-  --col95a: rgba(231, 242, 254, 0);
-  --col90a: rgba(206, 229, 253, 0);
-  --col85a: rgba(182, 216, 252, 0);
-  --col80a: rgba(157, 202, 251, 0);
+.w3ui {
+  --col-A1: var(--col-A), 10%;
+  --col-A2: var(--col-A), 20%;
+  --col-A3: var(--col-A), 30%;
+  --col-A4: var(--col-A), 40%;
+  --col-A5: var(--col-A), 50%;
+  --col-A6: var(--col-A), 60%;
+  --col-A7: var(--col-A), 70%;
+  --col-A8: var(--col-A), 80%;
+  --col-A9: var(--col-A), 90%;
+  --col-B1: var(--col-B), 10%;
+  --col-B2: var(--col-B), 20%;
+  --col-B3: var(--col-B), 30%;
+  --col-B4: var(--col-B), 40%;
+  --col-B5: var(--col-B), 50%;
+  --col-B6: var(--col-B), 60%;
+  --col-B7: var(--col-B), 70%;
+  --col-B8: var(--col-B), 80%;
+  --col-B9: var(--col-B), 90%;
+  --col-C1: var(--col-C), 10%;
+  --col-C2: var(--col-C), 20%;
+  --col-C3: var(--col-C), 30%;
+  --col-C4: var(--col-C), 40%;
+  --col-C5: var(--col-C), 50%;
+  --col-C6: var(--col-C), 60%;
+  --col-C7: var(--col-C), 70%;
+  --col-C8: var(--col-C), 80%;
+  --col-C9: var(--col-C), 90%;
+  --col-D1: var(--col-D), 10%;
+  --col-D2: var(--col-D), 20%;
+  --col-D3: var(--col-D), 30%;
+  --col-D4: var(--col-D), 40%;
+  --col-D5: var(--col-D), 50%;
+  --col-D6: var(--col-D), 60%;
+  --col-D7: var(--col-D), 70%;
+  --col-D8: var(--col-D), 80%;
+  --col-D9: var(--col-D), 90%;
+  --col-E1: var(--col-E), 10%;
+  --col-E2: var(--col-E), 20%;
+  --col-E3: var(--col-E), 30%;
+  --col-E4: var(--col-E), 40%;
+  --col-E5: var(--col-E), 50%;
+  --col-E6: var(--col-E), 60%;
+  --col-E7: var(--col-E), 70%;
+  --col-E8: var(--col-E), 80%;
+  --col-E9: var(--col-E), 90%;
+  --col-F1: var(--col-F), 10%;
+  --col-F2: var(--col-F), 20%;
+  --col-F3: var(--col-F), 30%;
+  --col-F4: var(--col-F), 40%;
+  --col-F5: var(--col-F), 50%;
+  --col-F6: var(--col-F), 60%;
+  --col-F7: var(--col-F), 70%;
+  --col-F8: var(--col-F), 80%;
+  --col-F9: var(--col-F), 90%;
+  --col-a1: hsl(var(--col-A1));
+  --col-a2: hsl(var(--col-A2));
+  --col-a3: hsl(var(--col-A3));
+  --col-a4: hsl(var(--col-A4));
+  --col-a5: hsl(var(--col-A5));
+  --col-a6: hsl(var(--col-A6));
+  --col-a7: hsl(var(--col-A7));
+  --col-a8: hsl(var(--col-A8));
+  --col-a9: hsl(var(--col-A9));
+  --col-b1: hsl(var(--col-B1));
+  --col-b2: hsl(var(--col-B2));
+  --col-b3: hsl(var(--col-B3));
+  --col-b4: hsl(var(--col-B4));
+  --col-b5: hsl(var(--col-B5));
+  --col-b6: hsl(var(--col-B6));
+  --col-b7: hsl(var(--col-B7));
+  --col-b8: hsl(var(--col-B8));
+  --col-b9: hsl(var(--col-B9));
+  --col-c1: hsl(var(--col-C1));
+  --col-c2: hsl(var(--col-C2));
+  --col-c3: hsl(var(--col-C3));
+  --col-c4: hsl(var(--col-C4));
+  --col-c5: hsl(var(--col-C5));
+  --col-c6: hsl(var(--col-C6));
+  --col-c7: hsl(var(--col-C7));
+  --col-c8: hsl(var(--col-C8));
+  --col-c9: hsl(var(--col-C9));
+  --col-d1: hsl(var(--col-D1));
+  --col-d2: hsl(var(--col-D2));
+  --col-d3: hsl(var(--col-D3));
+  --col-d4: hsl(var(--col-D4));
+  --col-d5: hsl(var(--col-D5));
+  --col-d6: hsl(var(--col-D6));
+  --col-d7: hsl(var(--col-D7));
+  --col-d8: hsl(var(--col-D8));
+  --col-d9: hsl(var(--col-D9));
+  --col-e1: hsl(var(--col-E1));
+  --col-e2: hsl(var(--col-E2));
+  --col-e3: hsl(var(--col-E3));
+  --col-e4: hsl(var(--col-E4));
+  --col-e5: hsl(var(--col-E5));
+  --col-e6: hsl(var(--col-E6));
+  --col-e7: hsl(var(--col-E7));
+  --col-e8: hsl(var(--col-E8));
+  --col-e9: hsl(var(--col-E9));
+  --col-f1: hsl(var(--col-F1));
+  --col-f2: hsl(var(--col-F2));
+  --col-f3: hsl(var(--col-F3));
+  --col-f4: hsl(var(--col-F4));
+  --col-f5: hsl(var(--col-F5));
+  --col-f6: hsl(var(--col-F6));
+  --col-f7: hsl(var(--col-F7));
+  --col-f8: hsl(var(--col-F8));
+  --col-f9: hsl(var(--col-F9));
 }
 .w3ui div {
   display: block;
@@ -49,15 +116,22 @@
   padding: 0;
   margin: 0;
 }
+.w3ui svg {
+  height: 100%;
+  width: 100%;
+  overflow: visible;
+}
 .w3ui.accordion {
   --title-size: 0;
   --title-font: sans-serif;
-  --title-font-size: 36px;
+  --title-font-size: 0;
   --panel-size: 0;
   --panel-font: sans-serif;
-  padding: 1px;
+  width: 100%;
+  height: 100%;
 }
 .w3ui.accordion .box {
+  display: block;
   width: 100%;
   height: 100%;
   background-color: transparent;
@@ -70,162 +144,63 @@
 .w3ui.accordion .panel {
   width: 100%;
   height: auto;
-  padding: 0 4px 2px 4px;
-}
-.w3ui.accordion .panel.active {
-  padding-left: 0;
-  padding-right: 0;
-}
-.w3ui.accordion .panel.SINGLE {
-  padding: 0;
-}
-.w3ui.accordion .panel.LAST {
-  padding-bottom: 0;
-}
-.w3ui.accordion .panel.hiddenTitle {
-  padding: 0;
 }
 .w3ui.accordion .panel.hidden {
   display: none;
   height: 0;
 }
-.w3ui.accordion .boxTitle {
+.w3ui.accordion .panel > .titleSizer {
   width: 100%;
   height: var(--title-size);
 }
-.w3ui.accordion .boxTitle.hidden {
+.w3ui.accordion .panel > .titleSizer.hidden {
   height: 0;
   display: none;
 }
-.w3ui.accordion .boxContent {
-  width: 100%;
-  height: 0;
-}
-.w3ui.accordion .boxContent.active {
-  height: var(--panel-size);
-  padding: 0;
-}
-.w3ui.accordion .title {
+.w3ui.accordion .panel > .titleSizer > .title {
   width: 100%;
   height: 100%;
-  padding: 6px 0;
   cursor: pointer;
-  border-radius: 3px;
 }
-.w3ui.accordion .title.active {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.w3ui.accordion .title.EVEN {
-  background-color: var(--col93);
-  border: 1px solid var(--col85);
-  box-shadow: inset 0 0 0 0px var(--col85);
-}
-.w3ui.accordion .title.EVEN.hovered {
-  background-color: var(--col90);
-  box-shadow: inset 0 0 8px 2px var(--col85);
-}
-.w3ui.accordion .title.EVEN.hovered.active {
-  box-shadow: inset 0 0 0 0px var(--col85);
-}
-.w3ui.accordion .title.EVEN.active {
-  background-color: var(--col90);
-}
-.w3ui.accordion .title.ODD {
-  background-color: var(--col85);
-  border: 1px solid var(--col75);
-  box-shadow: inset 0 0 0 0px var(--col75);
-}
-.w3ui.accordion .title.ODD.hovered {
-  background-color: var(--col80);
-  box-shadow: inset 0 0 8px 2px var(--col70);
-}
-.w3ui.accordion .title.ODD.hovered.active {
-  box-shadow: inset 0 0 0 0px var(--col70);
-}
-.w3ui.accordion .title.ODD.active {
-  background-color: var(--col80);
-}
-.w3ui.accordion .title .box {
+.w3ui.accordion .panel > .titleSizer > .title > .box {
   opacity: 1;
 }
-.w3ui.accordion .title .box.N0,
-.w3ui.accordion .title .box.N2 {
+.w3ui.accordion .panel > .titleSizer > .title > .box.N0 {
   display: none;
 }
-.w3ui.accordion .title .box.N1 {
+.w3ui.accordion .panel > .titleSizer > .title > .box.N1 {
+  font-family: var(--title-font);
+  font-size: var(--title-font-size);
   display: flex;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-  font-family: var(--title-font);
-  font-size: var(--title-font-size);
-  color: var(--col40);
 }
-.w3ui.accordion .title .box.N1.active {
-  font-size: calc(1.1 * var(--title-font-size));
-  color: var(--col25);
-}
-.w3ui.accordion .title .box.N1.hovered {
-  font-size: calc(1.08 * var(--title-font-size));
-}
-.w3ui.accordion .title .box.N1.hovered.active {
-  font-size: var(--title-font-size);
-  color: var(--col40);
-}
-.w3ui.accordion .title .box.N1.EVEN.hovered {
-  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col90), 0 0 6px var(--col50), 0 0 8px var(--col40);
-}
-.w3ui.accordion .title .box.N1.EVEN.hovered.active {
-  color: var(--col40);
-  text-shadow: none;
-}
-.w3ui.accordion .title .box.N1.ODD.hovered {
-  text-shadow: 0 0 2px var(--col95), 0 0 4px var(--col90), 0 0 6px var(--col50), 0 0 8px var(--col40);
-}
-.w3ui.accordion .title .box.N1.ODD.hovered.active {
-  color: var(--col40);
-  text-shadow: none;
-}
-.w3ui.accordion .content {
-  width: 100%;
-  height: 100%;
-  border-style: solid;
-  border-top-style: none;
-  border-width: 1px;
-  border-radius: 3px;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-.w3ui.accordion .content.EVEN {
-  background-color: var(--col90);
-  border-color: var(--col85);
-}
-.w3ui.accordion .content.ODD {
-  background-color: var(--col80);
-  border-color: var(--col75);
-}
-.w3ui.accordion .content.hiddenTitle {
-  border-width: 0;
-}
-.w3ui.accordion .content .box {
-  padding: 4px 2px;
-}
-.w3ui.accordion .content .box.N1 {
-  height: 100%;
-}
-.w3ui.accordion .content .box.N1.hiddenTitle {
-  padding: 0;
-}
-.w3ui.accordion .content .box.N0,
-.w3ui.accordion .content .box.N2 {
-  height: auto;
-  font-family: var(--panel-font);
-  color: var(--col40);
+.w3ui.accordion .panel > .titleSizer > .title > .box.N2 {
   display: none;
 }
-.w3ui.accordion .content .box.N0.N1,
-.w3ui.accordion .content .box.N2.N1 {
+.w3ui.accordion .panel > .contentSizer {
+  width: 100%;
+  height: 0;
+}
+.w3ui.accordion .panel > .contentSizer.active {
+  height: var(--panel-size);
+}
+.w3ui.accordion .panel > .contentSizer > .content {
+  width: 100%;
+  height: 100%;
+}
+.w3ui.accordion .panel > .contentSizer > .content .box.N1 {
+  height: 100%;
+}
+.w3ui.accordion .panel > .contentSizer > .content .box.N0,
+.w3ui.accordion .panel > .contentSizer > .content .box.N2 {
+  height: auto;
+  font-family: var(--panel-font);
+  display: none;
+}
+.w3ui.accordion .panel > .contentSizer > .content .box.N0.N1,
+.w3ui.accordion .panel > .contentSizer > .content .box.N2.N1 {
   display: block;
 }
 .w3ui.slider {
@@ -263,5 +238,185 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+.w3ui.RETROWAVE {
+  --col-A: 55, 95%;
+  --col-B: 40, 95%;
+  --col-C: 330, 85%;
+  --col-D: 300, 50%;
+  --col-E: 270, 100%;
+  --col-F: 220, 60%;
+}
+.w3ui.RETROWAVE.accordion {
+  --title-font: uiTitle;
+  --title-font-size: 36px;
+  --panel-font: uiText;
+}
+.w3ui.RETROWAVE.accordion .panel {
+  padding: 0 4px 2px 4px;
+}
+.w3ui.RETROWAVE.accordion .panel.active {
+  padding-left: 0;
+  padding-right: 0;
+}
+.w3ui.RETROWAVE.accordion .panel.FIRST {
+  padding-top: 2px;
+}
+.w3ui.RETROWAVE.accordion .panel.FIRST.LAST {
+  padding: 0;
+}
+.w3ui.RETROWAVE.accordion .panel.hiddenTitle {
+  padding: 0;
+}
+.w3ui.RETROWAVE.accordion .panel.hidden {
+  display: none;
+  height: 0;
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title {
+  padding: 6px 0;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 3px;
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.active {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.EVEN {
+  box-shadow: inset 0 0 0 0px var(--col-f6);
+  border-color: var(--col-e4);
+  background-color: var(--col-f8);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.EVEN.hovered {
+  box-shadow: inset 0 0 8px 2px var(--col-f6);
+  border-color: var(--col-e6);
+  background-color: var(--col-f7);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.EVEN.hovered.active {
+  box-shadow: inset 0 0 0 0px var(--col-f6);
+  border-color: var(--col-e4);
+  background-color: var(--col-f8);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.EVEN.active {
+  border-color: var(--col-e4);
+  background-color: var(--col-f7);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.ODD {
+  box-shadow: inset 0 0 0 0px var(--col-e6);
+  border-color: var(--col-e4);
+  background-color: var(--col-d8);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.ODD.hovered {
+  box-shadow: inset 0 0 8px 2px var(--col-e6);
+  border-color: var(--col-e6);
+  background-color: var(--col-d7);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.ODD.hovered.active {
+  box-shadow: inset 0 0 0 0px var(--col-e6);
+  border-color: var(--col-e4);
+  background-color: var(--col-d8);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title.ODD.active {
+  border-color: var(--col-e4);
+  background-color: var(--col-d7);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.active {
+  font-size: calc(1.1 * var(--title-font-size));
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.hovered {
+  font-size: calc(1.08 * var(--title-font-size));
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.hovered.active {
+  font-size: var(--title-font-size);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.EVEN {
+  color: var(--col-e2);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.EVEN.hovered {
+  color: var(--col-c5);
+  text-shadow: 0 0 2px var(--col-e5), 0 0 4px var(--col-e6), 0 0 6px var(--col-b7), 0 0 8px var(--col-b8);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.EVEN.hovered.active {
+  color: var(--col-c2);
+  text-shadow: none;
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.EVEN.active {
+  color: var(--col-a5);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.ODD {
+  color: var(--col-c2);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.ODD.hovered {
+  color: var(--col-e5);
+  text-shadow: 0 0 2px var(--col-c5), 0 0 4px var(--col-c6), 0 0 6px var(--col-b7), 0 0 8px var(--col-b8);
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.ODD.hovered.active {
+  color: var(--col-c2);
+  text-shadow: none;
+}
+.w3ui.RETROWAVE.accordion .panel > .titleSizer > .title > .box.N1.ODD.active {
+  color: var(--col-a5);
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content {
+  border-style: solid;
+  border-top-style: none;
+  border-width: 1px;
+  border-radius: 3px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content.EVEN {
+  border-color: var(--col-e4);
+  background-color: var(--col-f7);
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content.ODD {
+  border-color: var(--col-e4);
+  background-color: var(--col-d7);
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content.hovered.EVEN {
+  background-color: var(--col-f8);
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content.hovered.ODD {
+  background-color: var(--col-d8);
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content.hiddenTitle {
+  border-width: 0;
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content.hiddenTitle.EVEN {
+  background-color: hsla(var(--col-F8), 0);
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content.hiddenTitle.ODD {
+  background-color: hsla(var(--col-D8), 0);
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box {
+  padding: 4px 2px;
+  color: var(--col-e2);
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.hovered {
+  opacity: 0.4;
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.N1 {
+  height: 100%;
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.N1.hiddenTitle {
+  padding: 0;
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.N0,
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.N2 {
+  height: auto;
+  font-family: var(--panel-font);
+  display: none;
+}
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.N0.N1,
+.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.N2.N1 {
+  display: block;
+}
+@font-face {
+  font-family: 'uiTitle';
+  src: url('font/Molot.woff2') format('woff2'), url('font/Molot.woff') format('woff');
+}
+@font-face {
+  font-family: 'uiText';
+  src: url('font/RobotoCondensed.woff2') format('woff2'), url('font/RobotoCondensed.woff') format('woff');
 }
 /* vim: set et ts=4 sw=4 sts=4 fdm=marker fenc=utf-8 ff=unix: */

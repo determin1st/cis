@@ -5,7 +5,7 @@ w3ui && (w3ui.accordion = {
   options: {
     ORDER: ['panels', 'multiSelect', 'deactivation'],
     multiSelect: false,
-    deepDive: 2,
+    deepDive: 1,
     deactivation: true,
     deactivateChildren: true,
     extraHover: false,
@@ -30,7 +30,8 @@ w3ui && (w3ui.accordion = {
             ease: Bounce.easeOut
           }
         }, {
-          duration: 0.2,
+          position: 0,
+          duration: 0.4,
           to: {
             className: '+=hovered',
             ease: Power2.easeOut
@@ -260,7 +261,7 @@ w3ui && (w3ui.accordion = {
     return true;
   },
   panels: function(){
-    var createNodes, initData, initDataSizessssssssssssssss, initAnimations, getAnimation, stopAnimations, getItem, getItemList, resizeInit, resizePanels;
+    var createNodes, initData, initAnimations, getAnimation, stopAnimations, getItem, getItemList, resizeInit, resizePanels;
     createNodes = function(data, box){
       var list, i$, len$, index, el, a, b, c;
       list = [];
@@ -289,8 +290,8 @@ w3ui && (w3ui.accordion = {
         el.nodePanel.child.add(el.nodeBox);
         box.child.add(el.nodePanel);
         el.nodePanel['class'] = 'panel';
-        el.nodeBox[0]['class'] = 'boxTitle';
-        el.nodeBox[1]['class'] = 'boxContent';
+        el.nodeBox[0]['class'] = 'titleSizer';
+        el.nodeBox[1]['class'] = 'contentSizer';
         el.node[0]['class'] = 'title';
         el.node[1]['class'] = 'content';
         el.nodeTitle.forEach(fn1$);
@@ -308,11 +309,15 @@ w3ui && (w3ui.accordion = {
         el.nodes.props.dataId = el.id;
         a = el.level % 2 === 0 ? 'EVEN' : 'ODD';
         el.nodes.classAdd(a);
-        if (el.singleElement) {
-          el.nodePanel['class'].add('SINGLE');
+        if (el.firstElement) {
+          a = 'FIRST';
+          el.nodePanel['class'].add(a);
+          el.node.classAdd(a);
         }
         if (el.lastElement) {
-          el.nodePanel['class'].add('LAST');
+          a = 'LAST';
+          el.nodePanel['class'].add(a);
+          el.node.classAdd(a);
         }
         el.nodeTitle[1].html = el.title;
         if ('content' in el) {
@@ -396,97 +401,13 @@ w3ui && (w3ui.accordion = {
         el.hidden = !!el.hidden;
         el.active = !!el.active;
         el.disabled = !!el.disabled;
-        el.singleElement = data.length < 2;
+        el.firstElement = index === 0;
         el.lastElement = index === data.length - 1;
         if (el.panels && !initData(el.panels, el)) {
           return false;
         }
       }
       return true;
-    };
-    initDataSizessssssssssssssss = function(data, size){
-      var lst0, lst1, i$, len$, el, gap0, gap1, a, b, c, e, d, index;
-      lst0 = [];
-      lst1 = [];
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        el = data[i$];
-        if (!el.hidden) {
-          if (!el.hiddenTitle) {
-            lst0.push(el);
-          }
-          if (el.active) {
-            lst1.push(el);
-          }
-        }
-      }
-      gap0 = 0;
-      gap1 = 0;
-      el = data[0];
-      a = el.nodeBox[0].box;
-      b = el.node[0].box;
-      gap0 = a.borderHeight + a.paddingHeight + b.borderHeight + b.paddingHeight;
-      if ((a = el.parent) && !a.hiddenTitle) {
-        a = a.nodeContent[1].box;
-        gap1 = a.borderHeight + a.paddingHeight;
-      }
-      if (lst0.length > 1) {
-        for (i$ = 0, len$ = lst0.length; i$ < len$; ++i$) {
-          el = lst0[i$];
-          a = el.nodePanel.box;
-          gap1 = gap1 + a.borderHeight + a.paddingHeight;
-        }
-      }
-      if ((a = size[0] - gap1) < 1) {
-        a = 0;
-      }
-      b = size[1];
-      if (b * lst0.length > a) {
-        if ((b = a / lst0.length) < 1) {
-          b = 0;
-        }
-      }
-      c = size[2];
-      if (c > b - gap0) {
-        if ((c = b - gap0) < 1) {
-          c = 0;
-        }
-      }
-      e = [a - b * lst0.length, 0];
-      d = data.map(function(el, index){
-        var x;
-        if (!el.active || el.hidden) {
-          return 0;
-        }
-        if (el.panelSize) {
-          x = el.panelSize * a / 100.0;
-        } else {
-          x = e[0] / lst1.length;
-        }
-        if (x < 1) {
-          x = 0;
-        }
-        e[1] = e[1] + x;
-        return x;
-      });
-      e = e[0] - e[1];
-      if (Math.abs(e > 1)) {
-        d = d.map(function(x){
-          return x < 1 || x + e < 0
-            ? 0
-            : x + e;
-        });
-      }
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        index = i$;
-        el = data[i$];
-        el.size = [d[index], b, c];
-      }
-      for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-        el = lst1[i$];
-        if (el.panels) {
-          initDataSizes(el.panels, el.size);
-        }
-      }
     };
     initAnimations = function(data, animation){
       var i$, len$, el, a, b;
@@ -643,7 +564,7 @@ w3ui && (w3ui.accordion = {
       if (lst0.length) {
         c = c - data.titleSize * lst0.length;
         if (lst0.length > 1) {
-          c = c - data.panelGap;
+          c = c - data.panelsGap;
         }
       }
       if (c < 0) {
@@ -806,16 +727,44 @@ w3ui && (w3ui.accordion = {
         for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
           el = data[i$];
           a = null;
-          b = el.nodePanel['class'];
-          if (sync && el.active !== b.has('active')) {
-            if (el.active) {
-              a = el.animation.activate;
-              a[0].to.css['--panel-size'] = el.panelSize + 'px';
-            } else {
-              a = el.animation.deactivate;
-              animOrderFirst.push(el.id);
+          if (sync) {
+            c = el.nodePanel['class'];
+            if (el.active !== c.has('active')) {
+              if (el.active) {
+                a = el.animation.activate;
+                a[0].to.css['--panel-size'] = el.panelSize + 'px';
+              } else {
+                a = el.animation.deactivate;
+                animOrderFirst.push(el.id);
+              }
+            } else if (el.hidden !== c.has('hidden')) {
+              a = el.hidden
+                ? el.animation.hide
+                : el.animation.show;
             }
-          } else if (el.active) {
+            while (this$.options.deepDive && el.deepDived !== (c.has('FIRST') && c.has('LAST'))) {
+              if (el.firstElement && el.lastElement) {
+                break;
+              }
+              if (!el.firstElement) {
+                b = 'FIRST';
+                if (!el.lastElement) {
+                  b = b + ' LAST';
+                }
+              } else {
+                b = 'LAST';
+              }
+              c = el.animation.setClass;
+              if (el.deepDived) {
+                c[0].to.className = '+=' + b;
+              } else {
+                c[0].to.className = '-=' + b;
+              }
+              a = a ? a.concat(c) : c;
+              break;
+            }
+          }
+          if (el.active && !a) {
             a = el.panelSize - el.nodeBox[1].style.panelSize;
             if (Math.abs(a) > 0.001) {
               if (a > 0) {
@@ -826,34 +775,14 @@ w3ui && (w3ui.accordion = {
               }
               a[0].to.css['--panel-size'] = el.panelSize + 'px';
             }
-          } else if (sync && el.hidden !== b.has('hidden')) {
-            a = el.hidden
-              ? el.animation.hide
-              : el.animation.show;
           }
-          if (el.singleElement !== el.nodePanel['class'].has('SINGLE')) {
-            true;
-            /****
-            # get target animation
-            b = el.animation.setClass
-            # initialize it
-            b.0.to.className = if el.singleElement
-                then '+=SINGLE'
-                else '-=SINGLE'
-            # append
-            a = if a
-                then a ++ b
-                else b
-            /****/
+          if (a) {
+            b = new TimelineLite({
+              paused: true
+            });
+            w3ui.GSAP.add(b, null, a);
+            animPanel.push(b);
           }
-          if (!a) {
-            continue;
-          }
-          b = new TimelineLite({
-            paused: true
-          });
-          w3ui.GSAP.add(b, null, a);
-          animPanel.push(b);
         }
         animPanel = w3ui.GSAP.joinTimelines(animPanel);
         for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
@@ -872,7 +801,7 @@ w3ui && (w3ui.accordion = {
         animSubPanel1 = w3ui.GSAP.joinTimelines(animSubPanel1);
         a = [];
         if (animSubPanel0) {
-          a.push(animSubPanel0);
+          a.push(animSubPanel0.timeScale(1.5));
         }
         if (animPanel) {
           a.push(animPanel);
@@ -1010,9 +939,7 @@ w3ui && (w3ui.accordion = {
                 a.hiddenTitle = false;
               }
             }
-            if (b.length > 1) {
-              panel.singleElement = false;
-            }
+            panel.deepDived = false;
           }
         } else {
           panel.active = true;
@@ -1051,7 +978,7 @@ w3ui && (w3ui.accordion = {
                   }
                 }
               }
-              panel.singleElement = true;
+              panel.deepDived = true;
             }
           }
         }

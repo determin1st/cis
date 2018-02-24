@@ -2,7 +2,7 @@
 'use strict';
 w3ui && w3ui.APP({
   M: {
-    navDefault: ['w3demo', 'view', 'widget', 'accordion']
+    navDefault: ['w3demo', 'widget', 'accordion', '']
   },
   V: {
     ui: {
@@ -888,104 +888,91 @@ w3ui && w3ui.APP({
       },
       w3demo: {
         cfg: {
-          empty: true
+          render: true
         },
-        view: {
+        intro: {
           cfg: {
-            render: true
+            empty: true
           },
-          intro: {
-            cfg: {
-              empty: true
+          data: [{
+            title: 'Документация w3ui',
+            text: 'bla bla bla'
+          }]
+        },
+        widget: {
+          cfg: {
+            init: function(){
+              var a, b;
+              a = this.cfg.nav.id;
+              b = w3ui[a](this.cfg.node, this[a].options);
+              this.cfg.data.widget = b;
+              return true;
             },
-            data: [{
-              title: 'Документация w3ui',
-              text: 'bla bla bla'
+            finit: function(){
+              var a;
+              (a = this.cfg.data.widget) && a.destroy();
+              return true;
+            },
+            resize: function(){
+              this.cfg.data.widget.resize();
+              return true;
+            },
+            show: [
+              function(){
+                var a;
+                (a = this.cfg.data.widget) && a.resize();
+              }, {
+                duration: 0.4,
+                to: {
+                  className: '+=show'
+                }
+              }
+            ],
+            attach: [function(){
+              return this.cfg.data.widget;
             }]
           },
-          widget: {
-            cfg: {
-              init: function(){
-                var a, b;
-                a = this.cfg.nav.id;
-                b = w3ui[a](this.cfg.node, this[a].options);
-                this.cfg.data.widget = b;
-                return true;
-              },
-              finit: function(){
-                var a;
-                (a = this.cfg.data.widget) && a.destroy();
-                return true;
-              },
-              resize: function(){
-                this.cfg.data.widget.resize();
-                return true;
-              },
-              show: [
-                function(){
-                  var a;
-                  (a = this.cfg.data.widget) && a.resize();
+          accordion: {
+            title: 'аккордеон',
+            options: {
+              panels: [
+                {
+                  title: 'title #1',
+                  content: 'content'
                 }, {
-                  duration: 0.4,
-                  to: {
-                    className: '+=show'
-                  }
+                  title: 'title #2',
+                  panels: [
+                    {
+                      title: 'title #2-1',
+                      content: 'text2-1'
+                    }, {
+                      title: 'title #2-2',
+                      panels: [
+                        {
+                          title: 'title #2-2-1',
+                          content: 'text2-2-1'
+                        }, {
+                          title: 'title #2-2-2',
+                          content: 'text2-2-2'
+                        }, {
+                          title: 'title #2-2-3',
+                          content: 'text2-2-3'
+                        }
+                      ]
+                    }, {
+                      title: 'title #2-3',
+                      content: 'text2-3'
+                    }
+                  ]
+                }, {
+                  title: 'title #3',
+                  content: 'text3'
                 }
-              ],
-              attach: [function(){
-                return this.cfg.data.widget;
-              }]
-            },
-            accordion: {
-              title: 'аккордеон',
-              options: {
-                panels: [
-                  {
-                    title: 'title #1',
-                    content: 'content'
-                  }, {
-                    title: 'title #2',
-                    panels: [
-                      {
-                        title: 'title #2-1',
-                        content: 'text2-1'
-                      }, {
-                        title: 'title #2-2',
-                        panels: [
-                          {
-                            title: 'title #2-2-1',
-                            content: 'text2-2-1'
-                          }, {
-                            title: 'title #2-2-2',
-                            content: 'text2-2-2'
-                          }, {
-                            title: 'title #2-2-3',
-                            content: 'text2-2-3'
-                          }
-                        ]
-                      }, {
-                        title: 'title #2-3',
-                        content: 'text2-3'
-                      }
-                    ]
-                  }, {
-                    title: 'title #3',
-                    content: 'text3'
-                  }
-                ]
-              }
-            },
-            slider: {
-              title: 'слайдер'
+              ]
             }
-          }
-        },
-        sidebar: {
-          cfg: {
-            render: false,
-            init: function(){
-              return true;
-            }
+          },
+          slider: {
+            title: 'слайдер'
           }
         }
       }

@@ -1,4 +1,38 @@
 /* CSSv3 */
+:root {
+  /* ALICE BLUE */
+  /* list */
+  --col99: #fafcff;
+  --col95: #e7f2fe;
+  --col94: #e2effe;
+  --col93: #ddedfe;
+  --col92: #d8eafd;
+  --col90: #cee5fd;
+  --col88: #c4dffd;
+  --col87: #bfddfc;
+  --col85: #b6d8fc;
+  --col84: #b1d5fc;
+  --col83: #acd2fc;
+  --col82: #a7d0fb;
+  --col82: #a2cdfb;
+  --col80: #9dcafb;
+  --col77: #8ec3fa;
+  --col75: #85bdfa;
+  --col73: #7bb8f9;
+  --col73: #76b5f9;
+  --col73: #71b3f9;
+  --col70: #6cb0f9;
+  --col65: #54a3f8;
+  --col60: #3b96f7;
+  --col55: #2389f6;
+  --col50: #0a7cf5;
+  --col40: #0863c4;
+  --col35: #0757ab;
+  --col30: #064a93;
+  --col25: #053e7a;
+  --col20: #043162;
+  /***/
+}
 @font-face {
   font-family: 'uiCaptain';
   src: url('font/AmericanCaptain.woff2') format('woff2'), url('font/AmericanCaptain.woff') format('woff');
@@ -10,14 +44,6 @@
 @font-face {
   font-family: 'uiBebas';
   src: url('font/AABebasNeue.woff2') format('woff2'), url('font/AABebasNeue.woff') format('woff');
-}
-@font-face {
-  font-family: 'uiRoboto';
-  src: url('font/RobotoCondensed.woff2') format('woff2'), url('font/RobotoCondensed.woff') format('woff');
-}
-@font-face {
-  font-family: 'uiTroika';
-  src: url('font/Troika.woff2') format('woff2'), url('font/Troika.woff') format('woff');
 }
 html {
   min-height: 100vh;
@@ -31,18 +57,7 @@ body {
   height: 100vh;
   width: 100vw;
   margin: 0;
-  background-color: var(--col99);
-  /**/
-  color: var(--col40);
   font-family: uiCaptain;
-}
-div {
-  box-sizing: border-box;
-}
-svg {
-  height: 100%;
-  width: 100%;
-  overflow: visible;
 }
 .button,
 .title {
@@ -57,36 +72,45 @@ svg {
   width: 100%;
   white-space: nowrap;
 }
-#ui {
-  height: 100%;
-  width: 100%;
-}
 /* APP Sections */
+#ui {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+#ui > div {
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
 #w3demo {
   display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+#w3demo > .title {
+  flex: 0 0 24px;
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  color: indigo;
+}
+#w3demo > .renderBox {
+  flex: 1 1 100%;
   height: 100%;
-  width: 100%;
   overflow: hidden;
-  background-color: var(--col95);
-  color: var(--col40);
+  border-style: solid;
+  border-width: 4px;
+  border-color: indigo;
+  padding: 1px;
 }
-#w3demo #view {
-  width: 85%;
-}
-#w3demo #view #widget {
-  width: 100%;
-  height: 100%;
+#widget {
   opacity: 0;
 }
-#w3demo #view #widget.show {
+#widget.show {
   opacity: 1;
-}
-#w3demo #view #widget.accordion {
-  --title-font: uiTroika;
-  --panel-font: uiRoboto;
-}
-#w3demo #sidebar {
-  width: 15%;
 }
 #wa {
   display: flex;

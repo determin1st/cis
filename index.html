@@ -11,10 +11,9 @@
   <body>
     <!-- render zone -->
     <div id='ui'></div>
-    <!-- -->
-    <!-- templates -->
     <template>
       <!-- workarea -->
+      <!-- {{{ -->
       <!-- wa {{{ -->
       <div id='t-wa'>
         <div id='wa'>
@@ -112,24 +111,19 @@
         </div>
       </div>
       <!-- }}} -->
+      <!-- }}} -->
       <!-- demo -->
-      <!-- w3demo {{{ -->
+      <!-- {{{ -->
       <div id='t-w3demo'>
-        <div id='w3demo'>
-          <div id='sidebar'>list selector</div>
-          <div id='view'></div>
+        <div id='w3demo'></div>
+      </div>
+      <div id='t-w3demo-widget'>
+        <div class='title'>«{{cfg.nav.id}}»</div>
+        <div class='renderBox'>
+          <div id='widget' class='RETROWAVE'></div>
         </div>
       </div>
-      <!-- }}} -->
-      <!-- sidebar {{{ -->
-      <div id='t-w3demo-sidebar'>
-        {{list}}
-          <div class='button'>{{{name}}}</div>
-        {{/list}}
-      </div>
-      <!-- }}} -->
-      <!-- view {{{ -->
-      <div id='t-w3demo-view-intro'>
+      <div id='t-w3demo-intro'>
         <div id='intro'>
           {{#data}}
             <h1>{{title}}</h1>
@@ -137,11 +131,9 @@
           {{/data}}
         </div>
       </div>
-      <div id='t-w3demo-view-widget'>
-        <div id='widget'></div>
-      </div>
       <!-- }}} -->
       <!-- ... -->
+      <!-- {{{ -->
       <!-- auth {{{ -->
       <div id='t-auth'>
         <canvas>!</canvas>
@@ -209,6 +201,7 @@
           </svg>
         </div>
       </div>
+      <!-- }}} -->
       <!-- }}} -->
     </template>
     <!-- scripts -->
