@@ -742,8 +742,11 @@ w3ui && (w3ui.accordion = {
                 ? el.animation.hide
                 : el.animation.show;
             }
-            while (this$.options.deepDive && el.deepDived !== (c.has('FIRST') && c.has('LAST'))) {
+            while (this$.options.deepDive) {
               if (el.firstElement && el.lastElement) {
+                break;
+              }
+              if (!!el.deepDived === (c.has('FIRST') && c.has('LAST'))) {
                 break;
               }
               if (!el.firstElement) {
@@ -925,6 +928,7 @@ w3ui && (w3ui.accordion = {
               b = ref$[i$];
               b.active = false;
               b.hidden = false;
+              b.deepDived = false;
             }
           }
           if (this$.options.deepDive) {
