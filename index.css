@@ -112,6 +112,11 @@ body {
 #widget.show {
   opacity: 1;
 }
+#widget > .box {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
 #wa {
   display: flex;
   flex-direction: column;

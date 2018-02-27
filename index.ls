@@ -1085,7 +1085,8 @@ w3ui and w3ui.APP {
                                 }
                                 {
                                     title: 'title #3'
-                                    content: 'text3'
+                                    content: 'contentBoxFirst=TRUE'
+                                    contentBoxFirst: true
                                 }
                             ]
                     # }}}

@@ -8,6 +8,7 @@ w3ui && (w3ui.accordion = {
     deepDive: 0,
     deactivation: true,
     deactivateChildren: true,
+    contentBoxFirst: false,
     extraHover: false,
     extraActive: false,
     nextLevelSize: 1,
@@ -262,7 +263,7 @@ w3ui && (w3ui.accordion = {
   },
   panels: function(){
     var createNodes, getItem, getItemList, initData, initAnimations, getAnimation, stopAnimations, createHoverAnimation, resizeInit, resizePanels;
-    createNodes = function(data, box){
+    createNodes = function(data, opts, box){
       var list, i$, len$, index, el, a, b, c;
       list = [];
       if (!box) {
@@ -287,7 +288,12 @@ w3ui && (w3ui.accordion = {
         el.node[1].child.add(el.nodeContent);
         el.nodeBox[0].child.add(el.node[0]);
         el.nodeBox[1].child.add(el.node[1]);
-        el.nodePanel.child.add(el.nodeBox);
+        if (el.contentBoxFirst || opts.contentBoxFirst) {
+          el.nodePanel.child.add(el.nodeBox[1]);
+          el.nodePanel.child.add(el.nodeBox[0]);
+        } else {
+          el.nodePanel.child.add(el.nodeBox);
+        }
         box.child.add(el.nodePanel);
         el.nodePanel['class'] = 'panel';
         el.nodeBox[0]['class'] = 'titleSizer';
@@ -309,6 +315,8 @@ w3ui && (w3ui.accordion = {
         el.nodes.props.dataId = el.id;
         a = el.level % 2 === 0 ? 'EVEN' : 'ODD';
         el.nodes.classAdd(a);
+        a = el.contentBoxFirst || opts.contentBoxFirst ? 'ORDER_B' : 'ORDER_A';
+        el.node.classAdd(a);
         if (el.firstElement) {
           a = 'FIRST';
           el.nodePanel['class'].add(a);
@@ -371,7 +379,7 @@ w3ui && (w3ui.accordion = {
           a[1].style.height = c + '%';
         }
         if (el.panels) {
-          createNodes(el.panels, el.nodeContent[1]);
+          createNodes(el.panels, opts, el.nodeContent[1]);
         }
       }
       box['class'].add('L' + data[0].level);
@@ -858,7 +866,7 @@ w3ui && (w3ui.accordion = {
       };
       create = function(){
         if (DATA.length) {
-          createNodes(DATA);
+          createNodes(DATA, this$.options);
           initAnimations(DATA, this$.data.animation);
           this$.node.child.add(DATA[0].nodeParent);
         }

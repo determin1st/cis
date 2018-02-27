@@ -315,7 +315,7 @@ w3ui = function(){
       options: function(){
         var base;
         base = {
-          orientation: 1,
+          orientation: false,
           responsive: false,
           animate: true,
           log: true,
