@@ -392,9 +392,6 @@
   padding: 4px 2px;
   color: var(--col-e2);
 }
-.w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.hovered {
-  opacity: 0.4;
-}
 .w3ui.RETROWAVE.accordion .panel > .contentSizer > .content > .box.N1 {
   height: 100%;
 }

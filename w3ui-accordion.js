@@ -5,7 +5,7 @@ w3ui && (w3ui.accordion = {
   options: {
     ORDER: ['panels', 'multiSelect', 'deactivation'],
     multiSelect: false,
-    deepDive: 1,
+    deepDive: 0,
     deactivation: true,
     deactivateChildren: true,
     extraHover: false,
@@ -261,7 +261,7 @@ w3ui && (w3ui.accordion = {
     return true;
   },
   panels: function(){
-    var createNodes, initData, initAnimations, getAnimation, stopAnimations, getItem, getItemList, resizeInit, resizePanels;
+    var createNodes, getItem, getItemList, initData, initAnimations, getAnimation, stopAnimations, createHoverAnimation, resizeInit, resizePanels;
     createNodes = function(data, box){
       var list, i$, len$, index, el, a, b, c;
       list = [];
@@ -385,6 +385,38 @@ w3ui && (w3ui.accordion = {
         el['class'] = 'box N' + index;
       }
     };
+    getItem = function(id, data){
+      var i$, len$, el, a;
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        if (el.id === id) {
+          return el;
+        }
+      }
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        if (el.panels) {
+          if (a = getItem(id, el.panels)) {
+            return a;
+          }
+        }
+      }
+      return null;
+    };
+    getItemList = function(data){
+      var list, i$, len$, a;
+      if (!data) {
+        return [];
+      }
+      list = data;
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        a = data[i$];
+        if (a.panels) {
+          list = list.concat(getItemList(a.panels));
+        }
+      }
+      return list;
+    };
     initData = function(data, parent){
       var i$, len$, index, el;
       parent == null && (parent = null);
@@ -403,6 +435,7 @@ w3ui && (w3ui.accordion = {
         el.disabled = !!el.disabled;
         el.firstElement = index === 0;
         el.lastElement = index === data.length - 1;
+        el.deepDived = false;
         if (el.panels && !initData(el.panels, el)) {
           return false;
         }
@@ -417,13 +450,14 @@ w3ui && (w3ui.accordion = {
           b = animation[a];
           el.animation[a] = getAnimation(el, a, animation);
         }
+        el.animation.hovering = new TimelineLite({});
         if (el.panels) {
           initAnimations(el.panels, animation);
         }
       }
     };
     getAnimation = function(el, animName, animData){
-      var a, b;
+      var a;
       a = w3ui.CLONE(animData[animName]);
       switch (animName) {
       case 'hover':
@@ -431,11 +465,7 @@ w3ui && (w3ui.accordion = {
         a[0].node = el.nodeTitle.nodes;
         a[1].node = el.nodeContent.nodes;
         a[2].node = el.node.nodes.concat(el.nodePanel.nodes);
-        b = new TimelineLite({
-          paused: true
-        });
-        w3ui.GSAP.add(b, null, a);
-        a = b;
+        a = w3ui.GSAP.queue(a);
         break;
       case 'activate':
         a[0].node = el.nodeBox[1].node;
@@ -472,48 +502,38 @@ w3ui && (w3ui.accordion = {
       for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
         el = data[i$];
         a = el.animation;
-        if (a.hover.isActive() || a.unhover.isActive()) {
-          if (el.hovered) {
-            a.unhover.kill();
-            a.hover.progress(1);
-          } else {
-            a.hover.kill();
-            a.unhover.progress(1);
-          }
+        if (a.hovering.isActive()) {
+          a.hovering.progress(1);
         }
       }
     };
-    getItem = function(id, data){
-      var i$, len$, el, a;
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        el = data[i$];
-        if (el.id === id) {
-          return el;
+    createHoverAnimation = function(list){
+      var b, i$, len$, el, a;
+      if (!list || !list.length) {
+        return null;
+      }
+      b = [];
+      for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
+        el = list[i$];
+        if (el.hovered === el.nodePanel['class'].has('hovered')) {
+          continue;
         }
+        a = el.hovered
+          ? el.animation.hover
+          : el.animation.unhover;
+        b.push(a.invalidate());
       }
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        el = data[i$];
-        if (el.panels) {
-          if (a = getItem(id, el.panels)) {
-            return a;
-          }
-        }
+      if (!b.length) {
+        return null;
       }
-      return null;
-    };
-    getItemList = function(data){
-      var list, i$, len$, a;
-      if (!data) {
-        return [];
+      a = new TimelineLite({
+        paused: true
+      });
+      for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
+        el = b[i$];
+        a.add(el.play(), 0);
       }
-      list = data;
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        a = data[i$];
-        if (a.panels) {
-          list = list.concat(getItemList(a.panels));
-        }
-      }
-      return list;
+      return a;
     };
     resizeInit = function(data, parent){
       var a, i$, len$, el, b;
@@ -648,7 +668,7 @@ w3ui && (w3ui.accordion = {
       }
     };
     return function(){
-      var DATA, resizeContainer, createResizeAnimation, create, destroy, resize, hover, select, this$ = this;
+      var DATA, resizeContainer, createResizeAnimation, unlockResizeAnimation, create, destroy, resize, hover, select, this$ = this;
       DATA = [];
       resizeContainer = function(){
         var data, el, a, b;
@@ -746,7 +766,7 @@ w3ui && (w3ui.accordion = {
               if (el.firstElement && el.lastElement) {
                 break;
               }
-              if (!!el.deepDived === (c.has('FIRST') && c.has('LAST'))) {
+              if (el.deepDived === (c.has('FIRST') && c.has('LAST'))) {
                 break;
               }
               if (!el.firstElement) {
@@ -818,18 +838,28 @@ w3ui && (w3ui.accordion = {
         a = w3ui.GSAP.joinTimelines(a, true);
         return a;
       };
+      unlockResizeAnimation = function(forced){
+        var list, a;
+        if (list = DATA.hovering) {
+          if (forced && (a = list.animation)) {
+            a.progress(1);
+            delete list.animation;
+          } else if (list.length && (a = createHoverAnimation(list))) {
+            list.length = 0;
+            a.add(unlockResizeAnimation);
+            list.animation = a;
+            a.play();
+            return;
+          } else if (list.animation) {
+            delete list.animation;
+          }
+        }
+        DATA.selecting = false;
+      };
       create = function(){
-        var a;
         if (DATA.length) {
           createNodes(DATA);
           initAnimations(DATA, this$.data.animation);
-          a = new TimelineLite({
-            overflow: 0,
-            autoCSS: false
-          });
-          a.autoRemoveChildren = true;
-          a.smoothChildTiming = true;
-          DATA.animation = a;
           this$.node.child.add(DATA[0].nodeParent);
         }
         return true;
@@ -847,7 +877,7 @@ w3ui && (w3ui.accordion = {
         return createResizeAnimation();
       };
       hover = function(id, state){
-        var panel, a;
+        var panel, a, b;
         if (!(panel = getItem(id, DATA))) {
           return;
         }
@@ -855,40 +885,22 @@ w3ui && (w3ui.accordion = {
           return;
         }
         panel.hovered = state;
-        if (DATA.locked || DATA.animation.isActive()) {
-          if (panel.hovering) {
-            return;
+        if (DATA.selecting) {
+          if (!DATA.hovering) {
+            DATA.hovering = [];
           }
-          panel.hovering = true;
-          DATA.animation.add(function(){
-            var a, b;
-            a = panel.hovered;
-            b = panel.nodePanel['class'].has('hovered');
-            if (a !== b) {
-              a = a
-                ? getAnimation(panel, 'hover', this$.data.animation)
-                : getAnimation(panel, 'unhover', this$.data.animation);
-              DATA.animation.add(a.play());
-            }
-            delete panel.hovering;
-          });
-          if (!DATA.animation.isActive()) {
-            DATA.animation.play();
-          }
+          DATA.hovering.push(panel);
         } else {
-          if (panel.hovering) {
-            delete panel.hovering;
-          }
           a = panel.animation;
-          if (panel.hovered) {
-            a.unhover.kill();
-            a.hover.invalidate().play(0);
-          } else {
-            a.hover.kill();
-            a.unhover.invalidate().play(0);
-          }
+          b = panel.hovered
+            ? a.hover
+            : a.unhover;
+          a.hovering.kill().clear();
+          a.hovering.add(b.invalidate().play());
         }
         /***
+        # TODO
+        # additional animation
         if @options.hoverMore
             # get adjacent panels
             panel = if panel.parent
@@ -910,17 +922,21 @@ w3ui && (w3ui.accordion = {
         /***/
       };
       select = function(id){
-        var panel, i$, ref$, len$, b, a, j$, len1$, c;
+        var panel, a, i$, ref$, len$, b, j$, len1$, c;
         if (!(panel = getItem(id, DATA))) {
           return;
         }
-        if (panel.disabled || DATA.locked) {
+        if (panel.disabled || (!this$.options.multiSelect && panel.active && !this$.options.deactivation)) {
           return;
         }
-        if (!this$.options.multiSelect && panel.active && !this$.options.deactivation) {
-          return;
+        if (a = DATA.selecting) {
+          if (a === true) {
+            return;
+          }
+          a.progress(1);
+          unlockResizeAnimation(true);
         }
-        DATA.locked = true;
+        DATA.selecting = true;
         if (panel.active) {
           panel.active = false;
           if (this$.options.deactivateChildren && panel.panels) {
@@ -987,19 +1003,13 @@ w3ui && (w3ui.accordion = {
           }
         }
         resizePanels(DATA);
-        if (DATA.animation.isActive()) {
-          DATA.animation.progress(1);
+        if (!(a = createResizeAnimation(true))) {
+          DATA.selecting = false;
+          return;
         }
-        DATA.animation.add(function(){
-          var a;
-          if (a = createResizeAnimation(true)) {
-            a.add(function(){
-              DATA.locked = false;
-            });
-            DATA.animation.add(a.play());
-          }
-        });
-        DATA.animation.play();
+        a.add(unlockResizeAnimation);
+        DATA.selecting = a;
+        a.play();
       };
       Object.defineProperty(this, 'panels', {
         get: function(){
