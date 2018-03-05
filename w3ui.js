@@ -300,10 +300,6 @@ w3ui = function(){
         node['class'].add(['w3ui', name]);
         widget = WIDGET.store[name];
         widget = (ref$ = clone$(widget), ref$.name = name, ref$.node = node, ref$.data = CLONE(widget.data), import$(ref$, WIDGET.base));
-        widget.options();
-        widget.style();
-        widget.attach();
-        widget.api();
         if (!widget.create(opts)) {
           widget.log('failed to create');
           return null;
@@ -315,6 +311,7 @@ w3ui = function(){
       options: function(){
         var base;
         base = {
+          theme: 'DEFAULT',
           orientation: false,
           responsive: false,
           animate: true,
@@ -323,20 +320,6 @@ w3ui = function(){
         };
         return function(){
           this.options = import$(clone$(base), CLONE(this.__proto__.options));
-        };
-      }(),
-      style: function(){
-        var base;
-        base = ['uiSomeBaseStyleSetting'];
-        return function(){
-          var a, i$, len$, b;
-          a = this.__proto__.style
-            ? base.concat(this.__proto__.style)
-            : base.slice();
-          for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
-            b = a[i$];
-            this.style[b] = this.node[0].style[b];
-          }
         };
       }(),
       attach: function(){
@@ -462,14 +445,16 @@ w3ui = function(){
       }(),
       create: function(options){
         var a, this$ = this;
+        this.options();
+        this.attach();
+        this.api();
         if ('INIT' in this.data) {
           this.data.INIT.forEach(function(a){
             this$[a]();
           });
         }
-        if (options) {
-          this.api.options = options;
-        }
+        this.api.options = options;
+        this.node['class'].add(this.options.theme);
         if ((a = this.__proto__.create) && !a.call(this)) {
           return false;
         }

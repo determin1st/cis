@@ -941,6 +941,8 @@ w3ui && w3ui.APP({
                   content: 'content'
                 }, {
                   title: 'title #2',
+                  content: '- TOP -',
+                  contentEnd: '- BOTTOM -',
                   panels: [
                     {
                       title: 'title #2-1',
