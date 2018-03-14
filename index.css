@@ -45,6 +45,10 @@
   font-family: 'uiBebas';
   src: url('font/AABebasNeue.woff2') format('woff2'), url('font/AABebasNeue.woff') format('woff');
 }
+@font-face {
+  font-family: 'uiRobo';
+  src: url('font/RobotoCondensed.woff2') format('woff2'), url('font/RobotoCondensed.woff') format('woff');
+}
 html {
   min-height: 100vh;
   min-width: 100vw;
@@ -72,7 +76,7 @@ body {
   width: 100%;
   white-space: nowrap;
 }
-/* APP Sections */
+/* APP section */
 #ui {
   display: flex;
   width: 100%;
@@ -112,7 +116,12 @@ body {
 #widget.show {
   opacity: 1;
 }
-#widget > .box {
+#widget.accordion {
+  --title-font: uiMolot;
+  --title-font-size: 36px;
+  --panel-font: uiRobo;
+}
+#widget.accordion > .box {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;

@@ -3,7 +3,7 @@
 /* web 3.0 user interface */
 var w3ui, toString$ = {}.toString;
 w3ui = function(){
-  var DEP, CLONE, PROXY, THREAD, GSAP, WIDGET, QUERY, APP;
+  var DEP, CLONE, PROXY, THREAD, STATE, GSAP, WIDGET, QUERY, APP;
   DEP = [[Object.entries, "ECMAScript® 2018"], [window.requestAnimationFrame, "WHATWG HTML Living Standard"], [document.body.offsetLeft !== undefined, "CSSOM View Module 2016"]];
   DEP = function(){
     var b, i$, ref$, len$, a;
@@ -144,6 +144,54 @@ w3ui = function(){
     };
     func();
   };
+  STATE = function(){
+    var checker, handler;
+    checker = {
+      boolean: function(data, key, val){
+        return data[key] !== val;
+      },
+      string: function(data, key, val){
+        return data[key] !== val;
+      },
+      number: function(data, key, val){
+        if (key in data) {
+          if (Math.abs(data[key] - val) < 0.0001) {
+            return false;
+          }
+        }
+        return true;
+      }
+    };
+    handler = {
+      set: function(store, key, val){
+        if (checker[typeof val](store.data, key, val)) {
+          store['$' + key] = store.data[key];
+          store.dirty[key] = true;
+          store.data[key] = val;
+        }
+        return true;
+      },
+      get: function(store, key){
+        if (key[0] === '$') {
+          if (key in store) {
+            return store[key];
+          }
+          return store.data[key.slice(1)];
+        }
+        if (!store.dirty[key]) {
+          return false;
+        }
+        store.dirty[key] = false;
+        return true;
+      }
+    };
+    return function(data){
+      return new Proxy({
+        data: data,
+        dirty: {}
+      }, handler);
+    };
+  }();
   GSAP = {
     queue: function(data, node){
       var a;
@@ -297,7 +345,7 @@ w3ui = function(){
           console.log('w3ui: DOM query failed for «' + selector + '»');
           return null;
         }
-        node['class'].add(['w3ui', name]);
+        node['class'].add(['w3ui', 'widget', name]);
         widget = WIDGET.store[name];
         widget = (ref$ = clone$(widget), ref$.name = name, ref$.node = node, ref$.data = CLONE(widget.data), import$(ref$, WIDGET.base));
         if (!widget.create(opts)) {
@@ -1875,6 +1923,7 @@ w3ui = function(){
     CLONE: CLONE,
     PROXY: PROXY,
     THREAD: THREAD,
+    STATE: STATE,
     GSAP: GSAP,
     APP: APP,
     clearObject: function(obj){

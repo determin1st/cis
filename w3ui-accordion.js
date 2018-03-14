@@ -4,7 +4,7 @@ w3ui && (w3ui.accordion = {
   options: {
     ORDER: ['panels', 'multiSelect', 'deactivation'],
     multiSelect: false,
-    deepDive: 3,
+    deepDive: 1,
     deactivation: true,
     deactivateChildren: true,
     contentBoxFirst: false,
@@ -72,6 +72,8 @@ w3ui && (w3ui.accordion = {
         duration: 0.4,
         to: {
           css: {},
+          autoCSS: false,
+          overwrite: 0,
           ease: Power2.easeInOut
         }
       }],
@@ -85,20 +87,32 @@ w3ui && (w3ui.accordion = {
         }, {
           duration: 0.2,
           to: {
-            className: '+=active',
+            css: {
+              className: '+=active'
+            },
+            autoCSS: false,
+            overwrite: 0,
             ease: Power2.easeIn
           }
         }, {
           duration: 0.4,
           to: {
-            className: '+=active',
+            css: {
+              className: '+=active'
+            },
+            autoCSS: false,
+            overwrite: 0,
             ease: Power1.easeOut
           }
         }, {
           position: '-=0.3',
           duration: 0.2,
           to: {
-            className: '+=active',
+            css: {
+              className: '+=active'
+            },
+            autoCSS: false,
+            overwrite: 0,
             ease: Power2.easeIn
           }
         }
@@ -107,20 +121,32 @@ w3ui && (w3ui.accordion = {
         {
           duration: 0.3,
           to: {
-            className: '-=active',
+            css: {
+              className: '-=active'
+            },
+            autoCSS: false,
+            overwrite: 0,
             ease: Power2.easeIn
           }
         }, {
           position: '-=0.3',
           duration: 0.4,
           to: {
-            className: '-=active',
+            css: {
+              className: '-=active'
+            },
+            autoCSS: false,
+            overwrite: 0,
             ease: Power1.easeIn
           }
         }, {
           duration: 0.2,
           to: {
-            className: '-=active',
+            css: {
+              className: '-=active'
+            },
+            autoCSS: false,
+            overwrite: 0,
             ease: Power2.easeOut
           }
         }
@@ -129,6 +155,8 @@ w3ui && (w3ui.accordion = {
         duration: 0.4,
         to: {
           css: {},
+          autoCSS: false,
+          overwrite: 0,
           ease: Power2.easeOut
         }
       }],
@@ -136,63 +164,98 @@ w3ui && (w3ui.accordion = {
         duration: 0.4,
         to: {
           css: {},
+          autoCSS: false,
+          overwrite: 0,
           ease: Power1.easeIn
         }
       }],
-      show: [{
-        duration: 0.4,
-        to: {
-          className: '-=hidden',
-          ease: Power1.easeOut
-        }
-      }],
-      hide: [{
-        duration: 0.4,
-        to: {
-          className: '+=hidden',
-          ease: Power1.easeIn
-        }
-      }],
-      showTitle: [
+      show: [
         {
-          duration: 0.4,
+          duration: 0.1,
           to: {
             className: '-=hidden',
             ease: Power1.easeOut
           }
         }, {
-          position: 0,
-          duration: 0.4,
+          duration: 0.3,
           to: {
-            className: '-=hiddenTitle',
+            className: '-=hidden',
             ease: Power1.easeOut
           }
         }
       ],
-      hideTitle: [
+      hide: [
         {
-          duration: 0.4,
+          duration: 0.3,
           to: {
             className: '+=hidden',
             ease: Power1.easeIn
           }
         }, {
-          position: 0,
-          duration: 0.4,
+          duration: 0.1,
           to: {
-            className: '+=hiddenTitle',
+            className: '+=hidden',
             ease: Power1.easeIn
           }
         }
       ],
-      setClass: [{
-        duration: 0.2,
-        to: {
-          className: '',
-          ease: Power2.easeInOut,
-          overwrite: 0
+      diveOut: [
+        {
+          label: 'D0',
+          duration: 4,
+          to: {
+            className: '-=deepDive',
+            ease: Power1.easeOut
+          }
+        }, {
+          position: 'D0',
+          duration: 4,
+          to: {
+            className: '-=hidden',
+            ease: Power1.easeOut
+          }
+        }, {
+          position: 'D0+=2',
+          duration: 4,
+          to: {
+            className: '-=deepDive',
+            ease: Power1.easeOut
+          }
         }
-      }]
+      ],
+      diveIn: [
+        {
+          duration: 30,
+          to: {
+            css: {
+              className: '+=hidden'
+            },
+            autoCSS: false,
+            overwrite: 0,
+            ease: Power1.easeIn
+          }
+        }, {
+          duration: 30,
+          to: {
+            css: {
+              className: '+=hidden'
+            },
+            autoCSS: false,
+            overwrite: 0,
+            ease: Power1.easeIn
+          }
+        }, {
+          duration: 30,
+          to: {
+            css: {
+              className: '+=deepDive'
+            },
+            autoCSS: false,
+            overwrite: 0,
+            ease: Power1.easeIn
+          }
+        }
+      ]
     },
     events: [
       {
@@ -260,31 +323,175 @@ w3ui && (w3ui.accordion = {
     return true;
   },
   panels: function(){
-    var initData, initAnimations, createNodes, getItem, getItemList, getAnimation, stopAnimations, createHoverAnimation, resizeInit, resizePanels;
+    var initData, initGroupSize, initPanelSize, initAnimations, createNodes, getItem, getItemList, getAnimation, createHoverAnimation, stopHoverAnimation, createResizeAnimation, createRefreshAnimation;
     initData = function(data, parent){
       var i$, len$, index, el;
       parent == null && (parent = null);
       for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
         index = i$;
         el = data[i$];
+        el.state = w3ui.STATE(el);
         el.parent = parent;
         el.index = index;
         el.level = parent ? parent.level + 1 : 0;
         el.animation = {};
         el.firstElement = index === 0;
         el.lastElement = index === data.length - 1;
+        el.panelSize = 0;
         if (!el.id) {
           el.id = el.level + '#' + index;
         }
         el.hidden = !!el.hidden;
+        el.hiddenTitle = !!el.hiddenTitle;
         el.active = !!el.active;
+        el.dived = !!el.dived;
         el.disabled = !!el.disabled;
-        el.deepDived = false;
-        if (el.panels && !initData(el.panels, el)) {
-          return false;
+        if (el.panels) {
+          el.panels.deepDive = 'deepDive' in el
+            ? el.deepDive
+            : data.deepDive;
+          if (!initData(el.panels, el)) {
+            return false;
+          }
         }
       }
       return true;
+    };
+    initGroupSize = function(data, parent){
+      var a, i$, len$, el, b, c;
+      a = data[0].node[0].box;
+      a = a.borderHeight + a.paddingHeight;
+      data.titleGap = a;
+      a = 0;
+      if (data.length > 1) {
+        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+          el = data[i$];
+          b = el.nodePanel.box;
+          a = a + b.borderHeight + b.paddingHeight;
+        }
+      }
+      data.panelsGap = a;
+      a = 0;
+      if (parent) {
+        b = parent.nodeContent[1].box;
+        a = b.borderHeight + b.paddingHeight;
+      }
+      data.boxGap = a;
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        a = data[i$];
+        b = a.nodeContent;
+        c = ['content' in a, 'panels' in a, 'contentEnd' in a];
+        a.contentSize = c[0] ? parseInt(b[0].style.contentSize) : 0;
+        a.contentEndSize = c[2] ? parseInt(b[2].style.contentSize) : 0;
+        if (c[1]) {
+          initGroupSize(a.panels, a);
+        }
+      }
+    };
+    initPanelSize = function(data, parentData){
+      var lst0, lst1, i$, len$, el, c, b, a;
+      parentData == null && (parentData = data);
+      lst0 = [];
+      lst1 = [];
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        if (!el.hidden) {
+          if (!el.dived) {
+            lst0.push(el);
+          }
+          if (el.active) {
+            lst1.push(el);
+          }
+        }
+      }
+      c = data.boxSize;
+      if (lst0.length) {
+        c = c - data.titleSize * lst0.length;
+        if (lst0.length > 1) {
+          c = c - data.panelsGap;
+        }
+      }
+      if (c < 0) {
+        c = 0;
+      }
+      if (b = lst1.length) {
+        a = 0;
+        for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
+          el = lst1[i$];
+          if (el.size) {
+            el.state.panelSize = el.size * c / 100.0;
+          } else {
+            el.state.panelSize = c / b;
+          }
+          a = a + el.panelSize;
+        }
+        a = c - a;
+        if (Math.abs(a) > 0.001) {
+          a = a / b;
+          for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
+            el = lst1[i$];
+            el.state.panelSize = el.panelSize + a;
+          }
+          a = 0;
+          for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
+            el = lst1[i$];
+            if (el.panelSize < 0) {
+              a = a + el.panelSize;
+              el.state.panelSize = 0;
+            }
+          }
+          if (a < 0) {
+            c = [];
+            for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
+              el = lst1[i$];
+              if (el.panelSize > 0) {
+                c.push(el);
+              }
+            }
+            a = a / c.length;
+            for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
+              el = c[i$];
+              el.state.panelSize = el.panelSize + a;
+            }
+          }
+        }
+      }
+      for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
+        el = lst1[i$];
+        if (a = el.panels) {
+          if (el.dived) {
+            a.boxSize = el.panelSize;
+          } else if (el.contentSize || el.contentEndSize) {
+            b = 100 - el.contentSize - el.contentEndSize;
+            b = el.panelSize * b / 100.0;
+            a.boxSize = b - a.boxGap;
+          } else {
+            a.boxSize = el.panelSize - a.boxGap;
+          }
+          b = parentData.titleSize;
+          if (b * lst0.length > el.panelSize) {
+            if ((b = el.panelSize / lst0.length) < 1) {
+              b = 0;
+            }
+          }
+          a.titleSize = b;
+          b = parentData.titleFontSize;
+          if ((c = a.titleSize - parentData.titleGap) > 0) {
+            if (b > c) {
+              b = c;
+            }
+          } else {
+            b = 0;
+          }
+          a.titleFontSize = b;
+        }
+      }
+      for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
+        el = lst1[i$];
+        if (el.panels) {
+          initPanelSize(el.panels, data);
+        }
+      }
     };
     initAnimations = function(data, animation){
       var i$, len$, el, a, b;
@@ -363,6 +570,9 @@ w3ui && (w3ui.accordion = {
           a = 'LAST';
           el.nodePanel['class'].add(a);
           el.node.classAdd(a);
+        }
+        if (data.deepDive) {
+          el.nodePanel['class'].add('deepDive');
         }
         a = el.nodeContent;
         b = ['content' in el, 'panels' in el, 'contentEnd' in el];
@@ -462,14 +672,14 @@ w3ui && (w3ui.accordion = {
         break;
       case 'activate':
         a[0].node = el.nodeBox[1].node;
-        a[1].node = el.nodePanel.nodes.concat([el.nodeBox[0].node], el.node.nodes, el.nodeTitle.nodes);
-        a[2].node = el.nodeBox[1].node;
+        a[1].node = el.nodeBox[0].nodes.concat(el.node.nodes, el.nodeTitle.nodes);
+        a[2].node = [el.nodeBox[1].node, el.nodePanel.node];
         a[3].node = el.nodeContent.nodes;
         break;
       case 'deactivate':
         a[0].node = el.nodeContent.nodes;
-        a[1].node = el.nodeBox[1].node;
-        a[2].node = el.nodePanel.nodes.concat([el.nodeBox[0].node], el.node.nodes, el.nodeTitle.nodes);
+        a[1].node = [el.nodeBox[1].node, el.nodePanel.node];
+        a[2].node = el.nodeBox[0].nodes.concat(el.node.nodes, el.nodeTitle.nodes);
         break;
       case 'resize':
       case 'enlarge':
@@ -477,37 +687,32 @@ w3ui && (w3ui.accordion = {
         a[0].node = el.nodeBox[1].node;
         break;
       case 'show':
-      case 'hide':
         a[0].node = el.nodePanel.node;
+        a[1].node = [el.nodeBox[0].node, el.node[0].node];
         break;
-      case 'showTitle':
-      case 'hideTitle':
-        a[0].node = el.nodeBox[0].node;
-        a[1].node = el.nodePanel.nodes.concat(el.node[1].nodes, el.nodeContent.nodes);
+      case 'hide':
+        a[0].node = [el.nodeBox[0].node, el.node[0].node];
+        a[1].node = el.nodePanel.node;
         break;
-      case 'setClass':
-        a[0].node = el.nodePanel.nodes.concat(el.node.nodes);
+      case 'diveOut':
+        a[0].node = el.nodePanel.node;
+        a[1].node = el.nodeBox.nodes.concat(el.node.nodes);
+        a[2].node = el.nodeContent.nodes;
+        break;
+      case 'diveIn':
+        a[0].node = el.nodeBox.nodes.concat(el.node.nodes);
+        a[1].node = el.nodeContent.nodes;
       }
       return a;
     };
-    stopAnimations = function(data){
-      var i$, len$, el, a;
-      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        el = data[i$];
-        a = el.animation;
-        if (a.hovering.isActive()) {
-          a.hovering.progress(1);
-        }
-      }
-    };
-    createHoverAnimation = function(list){
+    createHoverAnimation = function(data){
       var b, i$, len$, el, a;
-      if (!list || !list.length) {
+      if (!data || !data.length) {
         return null;
       }
       b = [];
-      for (i$ = 0, len$ = list.length; i$ < len$; ++i$) {
-        el = list[i$];
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
         if (el.hovered === el.nodePanel['class'].has('hovered')) {
           continue;
         }
@@ -528,341 +733,168 @@ w3ui && (w3ui.accordion = {
       }
       return a;
     };
-    resizeInit = function(data, parent){
-      var a, i$, len$, el, b, c;
-      a = data[0].node[0].box;
-      a = a.borderHeight + a.paddingHeight;
-      data.titleGap = a;
-      a = 0;
-      if (data.length > 1) {
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          el = data[i$];
-          b = el.nodePanel.box;
-          a = a + b.borderHeight + b.paddingHeight;
-        }
-      }
-      data.panelsGap = a;
-      a = 0;
-      if (parent) {
-        b = parent.nodeContent[1].box;
-        a = b.borderHeight + b.paddingHeight;
-      }
-      data.boxGap = a;
+    stopHoverAnimation = function(data){
+      var i$, len$, el, a;
       for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-        a = data[i$];
-        b = a.nodeContent;
-        c = ['content' in a, 'panels' in a, 'contentEnd' in a];
-        a.contentSize = c[0] ? parseInt(b[0].style.contentSize) : 0;
-        a.contentEndSize = c[2] ? parseInt(b[2].style.contentSize) : 0;
-        if (c[1]) {
-          resizeInit(a.panels, a);
+        el = data[i$];
+        a = el.animation;
+        if (a.hovering.isActive()) {
+          a.hovering.progress(1);
         }
       }
     };
-    resizePanels = function(data, parentData){
-      var lst0, lst1, i$, len$, el, c, b, a;
-      parentData == null && (parentData = data);
-      lst0 = [];
-      lst1 = [];
+    createResizeAnimation = function(data){
+      var anim, animFirstClass, a, i$, len$, el, b, c;
+      anim = [];
+      animFirstClass = [];
+      a = [];
       for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
         el = data[i$];
-        if (!el.hidden) {
-          if (!el.hiddenTitle) {
-            lst0.push(el);
+        if (el.state.panelSize) {
+          if (el.panelSize - el.state.$panelSize > 0) {
+            b = el.animation.enlarge;
+          } else {
+            b = el.animation.shrink;
+            animFirstClass.push(el.id);
           }
-          if (el.active) {
-            lst1.push(el);
+          c = {};
+          c['--panel-size'] = el.panelSize + 'px';
+          if (el.panels) {
+            c['--title-size'] = data.titleSize + 'px';
+            c['--title-font-size'] = data.titleFontSize + 'px';
           }
+          b[0].to.css = c;
+          a.push(w3ui.GSAP.queue(b));
         }
       }
-      c = data.boxSize;
-      if (lst0.length) {
-        c = c - data.titleSize * lst0.length;
-        if (lst0.length > 1) {
-          c = c - data.panelsGap;
-        }
+      if (a = w3ui.GSAP.joinTimelines(a)) {
+        anim.push(a);
       }
-      if (c < 0) {
-        c = 0;
-      }
+      a = [];
+      b = [];
       for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
         el = data[i$];
-        el.panelSize = 0;
-      }
-      if (b = lst1.length) {
-        a = 0;
-        for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-          el = lst1[i$];
-          if (el.size) {
-            el.panelSize = el.size * c / 100.0;
-          } else {
-            el.panelSize = c / b;
-          }
-          a = a + el.panelSize;
-        }
-        a = c - a;
-        if (Math.abs(a) > 0.001) {
-          a = a / b;
-          for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-            el = lst1[i$];
-            el.panelSize = el.panelSize + a;
-          }
-          a = 0;
-          for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-            el = lst1[i$];
-            if (el.panelSize < 0) {
-              a = a + el.panelSize;
-              el.panelSize = 0;
-            }
-          }
-          if (a < 0) {
-            c = [];
-            for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-              el = lst1[i$];
-              if (el.panelSize > 0) {
-                c.push(el);
-              }
-            }
-            a = a / c.length;
-            for (i$ = 0, len$ = c.length; i$ < len$; ++i$) {
-              el = c[i$];
-              el.panelSize = el.panelSize + a;
-            }
-          }
-        }
-      }
-      for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-        el = lst1[i$];
-        if (a = el.panels) {
-          if (el.hiddenTitle) {
-            a.boxSize = el.panelSize;
-          } else if (el.contentSize || el.contentEndSize) {
-            b = 100 - el.contentSize - el.contentEndSize;
-            b = el.panelSize * b / 100.0;
-            a.boxSize = b - a.boxGap;
-          } else {
-            a.boxSize = el.panelSize - a.boxGap;
-          }
-          b = parentData.titleSize;
-          if (b * lst0.length > el.panelSize) {
-            if ((b = el.panelSize / lst0.length) < 1) {
-              b = 0;
-            }
-          }
-          a.titleSize = b;
-          b = parentData.titleFontSize;
-          if ((c = a.titleSize - parentData.titleGap) > 0) {
-            if (b > c) {
-              b = c;
-            }
-          } else {
-            b = 0;
-          }
-          a.titleFontSize = b;
-        }
-      }
-      for (i$ = 0, len$ = lst1.length; i$ < len$; ++i$) {
-        el = lst1[i$];
         if (el.panels) {
-          resizePanels(el.panels, data);
+          if (c = createResizeAnimation(el.panels)) {
+            if (animFirstClass.indexOf(el.id) < 0) {
+              b.push(c);
+            } else {
+              a.push(c);
+            }
+          }
         }
       }
+      if (a = w3ui.GSAP.joinTimelines(a)) {
+        anim.unshift(a);
+      }
+      if (b = w3ui.GSAP.joinTimelines(b)) {
+        anim.push(b);
+      }
+      if (!anim.length) {
+        return null;
+      }
+      if (anim.length < 2) {
+        return anim[0];
+      }
+      return w3ui.GSAP.joinTimelines(anim, true);
+    };
+    createRefreshAnimation = function(data){
+      var anim, animFirstClass, a, b, i$, len$, el, d, c, e;
+      anim = [];
+      animFirstClass = [];
+      stopHoverAnimation(data);
+      a = [];
+      b = [];
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        d = [el.state.hidden, el.state.active, el.state.dived, el.state.panelSize];
+        if (d[0]) {
+          c = el.hidden
+            ? el.animation.hide
+            : el.animation.show;
+          a.push(w3ui.GSAP.queue(c));
+        }
+        if (d[1]) {
+          if (el.active) {
+            c = el.animation.activate;
+            c[0].to.css['--panel-size'] = el.panelSize + 'px';
+          } else {
+            c = el.animation.deactivate;
+            animFirstClass.push(el.id);
+          }
+          a.push(w3ui.GSAP.queue(c));
+        }
+        if (d[2]) {
+          c = el.dived
+            ? el.animation.diveIn
+            : el.animation.diveOut;
+          a.push(w3ui.GSAP.queue(c));
+        }
+        if (d[3] && (!d[2] || !el.dived)) {
+          if (el.panelSize - el.state.$panelSize > 0) {
+            c = el.animation.enlarge;
+          } else {
+            c = el.animation.shrink;
+            animFirstClass.push(el.id);
+          }
+          e = {};
+          if (!d[0] || !el.active) {
+            e['--panel-size'] = el.panelSize + 'px';
+          }
+          if (el.panels) {
+            e['--title-size'] = data.titleSize + 'px';
+            e['--title-font-size'] = data.titleFontSize + 'px';
+          }
+          if (Object.keys(e).length) {
+            c[0].to.css = e;
+            a.push(w3ui.GSAP.queue(c));
+          }
+        }
+      }
+      if (a = w3ui.GSAP.joinTimelines(a)) {
+        anim.push(a);
+      }
+      if (b = w3ui.GSAP.joinTimelines(b)) {
+        anim.push(b);
+      }
+      a = [];
+      b = [];
+      for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
+        el = data[i$];
+        if (el.panels) {
+          if (c = createRefreshAnimation(el.panels)) {
+            if (animFirstClass.indexOf(el.id) < 0) {
+              b.push(c);
+            } else {
+              a.push(c);
+            }
+          }
+        }
+      }
+      if (a = w3ui.GSAP.joinTimelines(a)) {
+        anim.unshift(a);
+      }
+      if (b = w3ui.GSAP.joinTimelines(b)) {
+        anim.push(b);
+      }
+      if (!anim.length) {
+        return null;
+      }
+      if (anim.length < 2) {
+        return anim[0];
+      }
+      return w3ui.GSAP.joinTimelines(anim, true);
     };
     return function(){
-      var DATA, resizeContainer, createResizeAnimation, unlockResizeAnimation, create, destroy, resize, hover, select, this$ = this;
+      var DATA, create, destroy, resize, hover, select, stopSelect, this$ = this;
       DATA = [];
-      resizeContainer = function(){
-        var data, el, a, b;
-        data = DATA;
-        el = data[0];
-        a = el.nodeParent.box.innerHeight;
-        data.boxSize = a < 1 ? 0 : a;
-        if ((a = this$.node.style.titleFontSize) === 0) {
-          a = this$.node.style.fontSize;
-        } else if (typeof a === 'string') {
-          b = el.nodeTitle[1].style;
-          b.fontSize = a;
-          a = b.fontSize;
-          b.fontSize = null;
-        }
-        data.titleFontSize = a;
-        if ((a = this$.node.style.titleSize) === 0) {
-          a = data.titleFontSize + data.titleGap;
-        } else if (typeof b === 'string') {
-          b = el.nodeTitle[1].style;
-          b.height = a;
-          a = b.height;
-          b.height = null;
-        }
-        data.titleSize = a;
-        a = data.boxSize - data.panelsGap;
-        if (a < data.titleSize * data.length) {
-          data.titleSize = a / data.length;
-        }
-        a = data.titleSize - data.titleGap;
-        if (data.titleFontSize > a) {
-          data.titleFontSize = a;
-        }
-        resizePanels(data);
-      };
-      createResizeAnimation = function(sync, parent){
-        var data, box, animSubPanel0, animPanel, animSubPanel1, animOrderFirst, a, b, c, i$, len$, el;
-        sync == null && (sync = false);
-        if (parent) {
-          data = parent.panels;
-          box = parent.nodeBox[1];
-        } else {
-          data = DATA;
-          box = data[0].nodeParent;
-        }
-        stopAnimations(data);
-        animSubPanel0 = [];
-        animPanel = [];
-        animSubPanel1 = [];
-        animOrderFirst = [];
-        if (!parent || (!parent.hidden && parent.active)) {
-          a = null;
-          if (parent && parent.hiddenTitle !== parent.nodeBox[0]['class'].has('hidden')) {
-            a = parent.hiddenTitle
-              ? parent.animation.hideTitle
-              : parent.animation.showTitle;
-          } else {
-            b = box.style.titleSize - data.titleSize;
-            c = box.style.titleFontSize - data.titleFontSize;
-            if (Math.abs(b) > 0.001 || Math.abs(c) > 0.001) {
-              a = b > 0 || c > 0
-                ? this$.data.animation.shrink
-                : this$.data.animation.enlarge;
-              a[0].to.css['--title-size'] = data.titleSize + 'px';
-              a[0].to.css['--title-font-size'] = data.titleFontSize + 'px';
-            }
-          }
-          if (a) {
-            b = new TimelineLite({
-              paused: true
-            });
-            w3ui.GSAP.add(b, box.node, a);
-            animPanel.push(b);
-          }
-        }
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          el = data[i$];
-          a = null;
-          if (sync) {
-            c = el.nodePanel['class'];
-            if (el.active !== c.has('active')) {
-              if (el.active) {
-                a = el.animation.activate;
-                a[0].to.css['--panel-size'] = el.panelSize + 'px';
-              } else {
-                a = el.animation.deactivate;
-                animOrderFirst.push(el.id);
-              }
-            } else if (el.hidden !== c.has('hidden')) {
-              a = el.hidden
-                ? el.animation.hide
-                : el.animation.show;
-            }
-            while (this$.options.deepDive) {
-              if (el.firstElement && el.lastElement) {
-                break;
-              }
-              if (el.deepDived === (c.has('FIRST') && c.has('LAST'))) {
-                break;
-              }
-              if (!el.firstElement) {
-                b = 'FIRST';
-                if (!el.lastElement) {
-                  b = b + ' LAST';
-                }
-              } else {
-                b = 'LAST';
-              }
-              c = el.animation.setClass;
-              if (el.deepDived) {
-                c[0].to.className = '+=' + b;
-              } else {
-                c[0].to.className = '-=' + b;
-              }
-              a = a ? a.concat(c) : c;
-              break;
-            }
-          }
-          if (el.active && !a) {
-            a = el.panelSize - el.nodeBox[1].style.panelSize;
-            if (Math.abs(a) > 0.001) {
-              if (a > 0) {
-                a = el.animation.enlarge;
-              } else {
-                a = el.animation.shrink;
-                animOrderFirst.push(el.id);
-              }
-              a[0].to.css['--panel-size'] = el.panelSize + 'px';
-            }
-          }
-          if (a) {
-            b = new TimelineLite({
-              paused: true
-            });
-            w3ui.GSAP.add(b, null, a);
-            animPanel.push(b);
-          }
-        }
-        animPanel = w3ui.GSAP.joinTimelines(animPanel);
-        for (i$ = 0, len$ = data.length; i$ < len$; ++i$) {
-          el = data[i$];
-          if (el.panels) {
-            if (c = createResizeAnimation(sync, el)) {
-              if (animOrderFirst.indexOf(el.id) < 0) {
-                animSubPanel1.push(c);
-              } else {
-                animSubPanel0.push(c);
-              }
-            }
-          }
-        }
-        animSubPanel0 = w3ui.GSAP.joinTimelines(animSubPanel0);
-        animSubPanel1 = w3ui.GSAP.joinTimelines(animSubPanel1);
-        a = [];
-        if (animSubPanel0) {
-          a.push(animSubPanel0.timeScale(1.5));
-        }
-        if (animPanel) {
-          a.push(animPanel);
-        }
-        if (animSubPanel1) {
-          a.push(animSubPanel1);
-        }
-        if (!a.length) {
-          return null;
-        }
-        a = w3ui.GSAP.joinTimelines(a, true);
-        return a;
-      };
-      unlockResizeAnimation = function(forced){
-        var list, a;
-        if (list = DATA.hovering) {
-          if (forced && (a = list.animation)) {
-            a.progress(1);
-            delete list.animation;
-          } else if (list.length && (a = createHoverAnimation(list))) {
-            list.length = 0;
-            a.add(unlockResizeAnimation);
-            list.animation = a;
-            a.play();
-            return;
-          } else if (list.animation) {
-            delete list.animation;
-          }
-        }
-        DATA.selecting = false;
-      };
       create = function(){
-        if (DATA.length) {
-          createNodes(DATA, this$.options);
-          initAnimations(DATA, this$.data.animation);
-          this$.node.child.add(DATA[0].nodeParent);
+        if (!DATA.length) {
+          return true;
         }
+        createNodes(DATA, this$.options);
+        initAnimations(DATA, this$.data.animation);
+        this$.node.child.add(DATA[0].nodeParent);
         return true;
       };
       destroy = function(){
@@ -873,9 +905,48 @@ w3ui && (w3ui.accordion = {
         }
       };
       resize = function(){
-        resizeInit(DATA);
-        resizeContainer();
-        return createResizeAnimation();
+        var a, b;
+        initGroupSize(DATA);
+        a = DATA[0].nodeParent.box.innerHeight;
+        DATA.boxSize = a < 1 ? 0 : a;
+        if ((a = this$.node.style.titleFontSize) === 0) {
+          a = this$.node.style.fontSize;
+        } else if (typeof a === 'string') {
+          b = DATA[0].nodeTitle[1].style;
+          b.fontSize = a;
+          a = b.fontSize;
+          b.fontSize = null;
+        }
+        DATA.titleFontSize = a;
+        if ((a = this$.node.style.titleSize) === 0) {
+          a = DATA.titleFontSize + DATA.titleGap;
+        } else if (typeof b === 'string') {
+          b = DATA[0].nodeTitle[1].style;
+          b.height = a;
+          a = b.height;
+          b.height = null;
+        }
+        DATA.titleSize = a;
+        a = DATA.boxSize - DATA.panelsGap;
+        if (a < DATA.titleSize * DATA.length) {
+          DATA.titleSize = a / DATA.length;
+        }
+        a = DATA.titleSize - DATA.titleGap;
+        if (DATA.titleFontSize > a) {
+          DATA.titleFontSize = a;
+        }
+        initPanelSize(DATA);
+        b = this$.data.animation.resize;
+        b[0].to.css = {
+          '--title-size': DATA.titleSize + 'px',
+          '--title-font-size': DATA.titleFontSize + 'px'
+        };
+        b = w3ui.GSAP.queue(b, DATA[0].nodeParent.node);
+        if (!(a = createResizeAnimation(DATA))) {
+          return b;
+        }
+        a.add(b.play(), 0);
+        return a;
       };
       hover = function(id, state){
         var panel, a, b;
@@ -923,7 +994,7 @@ w3ui && (w3ui.accordion = {
         /***/
       };
       select = function(id){
-        var panel, a, i$, ref$, len$, b, j$, len1$, c;
+        var panel, a, i$, ref$, len$, b, j$, len1$;
         if (!(panel = getItem(id, DATA))) {
           return;
         }
@@ -935,84 +1006,102 @@ w3ui && (w3ui.accordion = {
             return;
           }
           a.progress(1);
-          unlockResizeAnimation(true);
+          stopSelect(true);
         }
         DATA.selecting = true;
         if (panel.active) {
-          panel.active = false;
+          panel.state.active = false;
+          a = panel.parent ? panel.parent.panels : DATA;
           if (this$.options.deactivateChildren && panel.panels) {
             for (i$ = 0, len$ = (ref$ = getItemList(panel.panels)).length; i$ < len$; ++i$) {
               b = ref$[i$];
-              b.active = false;
-              b.hidden = false;
-              b.deepDived = false;
+              b.state.active = false;
+              b.state.dived = false;
             }
           }
-          if (this$.options.deepDive) {
-            b = panel.parent ? panel.parent.panels : DATA;
-            for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-              a = b[i$];
-              a.hidden = false;
+          if (a.deepDive) {
+            for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
+              b = a[i$];
+              b.state.hidden = false;
             }
-            if (this$.options.deepDive > 1 && (a = panel.parent)) {
-              a.hiddenTitle = false;
-              if (this$.options.deepDive < 3 && (a = a.parent)) {
-                a.hiddenTitle = false;
+            if (a.deepDive > 1 && (b = panel.parent)) {
+              b.state.dived = false;
+              if (a.deepDive < 3 && (b = b.parent)) {
+                b.state.dived = false;
               }
             }
-            panel.deepDived = false;
           }
         } else {
-          panel.active = true;
+          panel.state.active = true;
+          a = panel.parent ? panel.parent.panels : DATA;
           if (!this$.options.multiSelect) {
-            b = panel.parent ? panel.parent.panels : DATA;
-            for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-              a = b[i$];
-              if (a.active && a !== panel) {
-                a.active = false;
-                a.hovered = false;
-                if (a.panels && this$.options.deactivateChildren) {
-                  a = getItemList(a.panels);
-                  for (j$ = 0, len1$ = a.length; j$ < len1$; ++j$) {
-                    c = a[j$];
-                    c.active = false;
-                    c.hovered = false;
+            for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
+              b = a[i$];
+              if (b.active && b !== panel) {
+                b.state.active = false;
+                if (b.panels && this$.options.deactivateChildren) {
+                  for (j$ = 0, len1$ = (ref$ = getItemList(b.panels)).length; j$ < len1$; ++j$) {
+                    b = ref$[j$];
+                    b.state.active = false;
                   }
                 }
               }
             }
-            if (this$.options.deepDive) {
-              for (i$ = 0, len$ = b.length; i$ < len$; ++i$) {
-                a = b[i$];
-                if (a !== panel) {
-                  a.hidden = true;
+            if (a.deepDive) {
+              for (i$ = 0, len$ = a.length; i$ < len$; ++i$) {
+                b = a[i$];
+                if (b !== panel) {
+                  b.state.hidden = true;
                 }
               }
-              if (this$.options.deepDive > 1 && (a = panel.parent)) {
-                if (this$.options.deepDive > 2) {
+              if (a.deepDive > 1 && (b = panel.parent)) {
+                if (a.deepDive > 2) {
                   do {
-                    a.hiddenTitle = true;
-                  } while (a = a.parent);
-                } else {
-                  if (a.parent) {
-                    a.parent.hiddenTitle = true;
-                  }
+                    b.state.dived = true;
+                  } while (b = b.parent);
+                } else if (a.parent) {
+                  a.parent.state.dived = true;
                 }
               }
-              panel.deepDived = true;
             }
           }
         }
-        resizePanels(DATA);
-        if (!(a = createResizeAnimation(true))) {
+        initPanelSize(DATA);
+        if (!(a = createRefreshAnimation(DATA))) {
           DATA.selecting = false;
           return;
         }
-        a.add(unlockResizeAnimation);
-        DATA.selecting = a;
-        a.play();
+        a.add(stopSelect);
+        DATA.selecting = a.play();
+      };
+      stopSelect = function(forced){
+        var list, a;
+        if (list = DATA.hovering) {
+          if (forced && (a = list.animation)) {
+            a.progress(1);
+            delete list.animation;
+          } else if (list.length && (a = createHoverAnimation(list))) {
+            list.length = 0;
+            a.add(stopSelect);
+            list.animation = a;
+            a.play();
+            return;
+          } else if (list.animation) {
+            delete list.animation;
+          }
+        }
+        DATA.selecting = false;
       };
       Object.defineProperty(this, 'panels', {
+        set: function(data){
+          DATA.length = 0;
+          if (data) {
+            data.deepDive = this.options.deepDive;
+            if (initData(data)) {
+              DATA = data;
+            }
+          }
+        },
         get: function(){
           var api;
           api = w3ui.PROXY({
@@ -1032,12 +1121,7 @@ w3ui && (w3ui.accordion = {
           return function(){
             return api;
           };
-        }(),
-        set: function(data){
-          DATA = data && initData(data)
-            ? data
-            : [];
-        }
+        }()
       });
     };
   }()

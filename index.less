@@ -40,21 +40,26 @@
 // fonts {{{
 @font-face
 {
-  font-family: 'uiCaptain';
-  src: url('font/AmericanCaptain.woff2') format('woff2'),
-       url('font/AmericanCaptain.woff')  format('woff');
+    font-family: 'uiCaptain';
+    src: url('font/AmericanCaptain.woff2') format('woff2'),
+         url('font/AmericanCaptain.woff')  format('woff');
 }
 @font-face
 {
-  font-family: 'uiMolot';
-  src: url('font/Molot.woff2') format('woff2'),
-       url('font/Molot.woff')  format('woff');
+    font-family: 'uiMolot';
+    src: url('font/Molot.woff2') format('woff2'),
+         url('font/Molot.woff')  format('woff');
 }
 @font-face
 {
-  font-family: 'uiBebas';
-  src: url('font/AABebasNeue.woff2') format('woff2'),
-       url('font/AABebasNeue.woff')  format('woff');
+    font-family: 'uiBebas';
+    src: url('font/AABebasNeue.woff2') format('woff2'),
+         url('font/AABebasNeue.woff')  format('woff');
+}
+@font-face {
+    font-family: 'uiRobo';
+    src: url('font/RobotoCondensed.woff2') format('woff2'),
+         url('font/RobotoCondensed.woff') format('woff');
 }
 // }}}
 // elements {{{
@@ -93,9 +98,8 @@ body
 }
 // }}}
 
-/* APP Sections */
-
-#ui
+/* APP section */
+#ui // {{{
 {
     display: flex;
     width: 100%;
@@ -109,6 +113,7 @@ body
         overflow: hidden;
     }
 }
+// }}}
 #w3demo // {{{
 {
     display: flex;
@@ -141,11 +146,18 @@ body
         opacity: 1;
     }
     ////
-    > .box
+    &.accordion
     {
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
+        --title-font: uiMolot;
+        --title-font-size: 36px;
+        --panel-font: uiRobo;
+        ////
+        > .box
+        {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
     }
 }
 // }}}

@@ -1056,8 +1056,8 @@ w3ui and w3ui.APP {
                                 {
                                     title: 'title #2'
                                     #active: true
-                                    content: '- TOP -'
-                                    contentEnd: '- BOTTOM -'
+                                    content: '- top -'
+                                    contentEnd: '- bottom -'
                                     panels: [
                                         {
                                             title: 'title #2-1'
