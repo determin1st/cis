@@ -4,13 +4,12 @@ w3ui && (w3ui.accordion = {
   options: {
     ORDER: ['panels', 'multiSelect', 'deactivation'],
     multiSelect: false,
-    deepDive: 1,
+    deepDive: 0,
     deactivation: true,
     deactivateChildren: true,
     contentBoxFirst: false,
     extraHover: false,
     extraActive: false,
-    nextLevelSize: 1,
     events: {
       hover: null,
       unhover: null,
